@@ -121,8 +121,8 @@ LOSS_WEIGHT_F = 2.0          # Blackening factor f(z) - PRIORITARIO
 LOSS_WEIGHT_R = 0.001        # Escalar de Ricci R(z) - MUY BAJO (secundario)
 LOSS_WEIGHT_ZH = 0.1         # PosiciAfAE'A+aEUR(TM)AfaEURsA,A3n del horizonte z_h - BAJO
 LOSS_WEIGHT_FAMILY = 0.05    # ClasificaciAfAE'A+aEUR(TM)AfaEURsA,A3n de family - MUY BAJO
-LOSS_WEIGHT_PHYSICS = 0.05   # RegularizaciAfAE'A+aEUR(TM)AfaEURsA,A3n fAfAE'A+aEUR(TM)AfaEURsA,A-sica genAfAE'A+aEUR(TM)AfaEURsA,A(C)rica
-LOSS_WEIGHT_PHYSICS_ADS = 0.02  # RegularizaciAfAE'A+aEUR(TM)AfaEURsA,A3n especAfAE'A+aEUR(TM)AfaEURsA,A-fica AdS
+LOSS_WEIGHT_PHYSICS = 0.05   # Regularización física genérica (solo muestras con bulk_truth)
+LOSS_WEIGHT_PHYSICS_ADS = 0.02  # Regularización AdS-específica (solo muestras ads, via ads_mask)
 
 # Learning rate y scheduler
 LEARNING_RATE = 1e-3
@@ -472,10 +472,17 @@ def build_feature_vector(boundary_data: Dict[str, Any], operators: List[Dict]) -
     else:
         all_features.extend([float(T), float(T > 1e-10), 0.0, 0.0])
     
-    # 3. Features espectrales de operators (4 features)
-    spec_feats = extract_spectral_features(operators)
-    for k in ["n_ops", "Delta_min", "Delta_max", "Delta_mean"]:
-        all_features.append(spec_feats.get(k, 0.0))
+    # 3. Features QNM (3 features): Q0, f1/f0, γ1/γ0
+    # Replaces the 4 Δ operator features, which are 0 for all LIGO data
+    # (no CFT operator spectrum) but non-zero for sandbox — breaking generalization.
+    # QNM features are stored as boundary attrs by both 00_compute_sandbox_qnms.py
+    # (sandbox) and 02R_build_ringdown_boundary_dataset.py (LIGO).
+    qnm_Q0   = float(boundary_data.get("qnm_Q0",   0.0))
+    qnm_f1f0 = float(boundary_data.get("qnm_f1f0", 0.0))
+    qnm_g1g0 = float(boundary_data.get("qnm_g1g0", 0.0))
+    all_features.append(qnm_Q0)
+    all_features.append(qnm_f1f0)
+    all_features.append(qnm_g1g0)
     
     # 4. Features de respuesta G_R (2 features)
     if "G_R_real" in boundary_data and "G_R_imag" in boundary_data:
@@ -504,9 +511,9 @@ def build_feature_vector(boundary_data: Dict[str, Any], operators: List[Dict]) -
         d = int(d.ravel()[0]) if d.size > 0 else 4
     all_features.append(float(d))
     
-    # Total: 21 features (V2.4: +5 nuevas para deformaciones)
+    # Total: 20 features (V2.5: reemplaza 4 features Δ por 3 features QNM)
     # Correlador: 9 (4 orig + 3 running + 2 stats)
-    # Termicos: 4, Espectrales: 4, Respuesta: 2, Globales: 2
+    # Termicos: 4, QNM: 3 (Q0/f1f0/g1g0), Respuesta: 2, Globales: 2
     return np.array(all_features, dtype=np.float32)
 
 # ============================================================
@@ -551,20 +558,34 @@ class CuerdasDataLoader:
         operators = json.loads(operators_raw)
         return boundary_data, operators
     
-    def load_bulk_truth(self, f: h5py.File) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, str, int]:
+    def load_bulk_truth(self, f: h5py.File) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, str, int, bool]:
         """
         Accede al grupo `bulk_truth` solo en modo entrenamiento.
-        
-        En modo `inference` lanza una excepciAfAE'A+aEUR(TM)AfaEURsA,A3n explAfAE'A+aEUR(TM)AfaEURsA,A-cita para impedir fugas.
+
+        Para geometrías sin bulk_truth (e.g. Kerr sintético) devuelve arrays de ceros
+        y has_bulk_truth=False. El loop de entrenamiento debe anular la loss de
+        reconstrucción para esas geometrías.
+
+        Returns: (A_truth, f_truth, R_truth, z_grid, z_h, family, d, has_bulk_truth)
         """
         if self.mode != "train":
             raise RuntimeError(
-                "Acceso a bulk_truth bloqueado en inference mode/discovery. " 
+                "Acceso a bulk_truth bloqueado en inference mode/discovery. "
                 "Use solo los datos de boundary en este modo."
             )
-        
+
         if "bulk_truth" not in f:
-            raise KeyError("El file HDF5 no contiene grupo 'bulk_truth'")
+            # Geometría sin dual holográfico conocido (e.g. Kerr).
+            # Devolver placeholder de ceros; el training loop usará has_bulk_truth=False
+            # para omitir la loss de reconstrucción A/f/R.
+            family_attr = f.attrs.get("family", b"unknown")
+            if isinstance(family_attr, bytes):
+                family_attr = family_attr.decode("utf-8")
+            d_attr = int(f.attrs.get("d", 4))
+            N = 100  # longitud de grid por defecto
+            zeros = np.zeros(N, dtype=np.float32)
+            z_grid = np.linspace(0.01, 1.0, N, dtype=np.float32)
+            return zeros, zeros, zeros, z_grid, 0.0, str(family_attr), d_attr, False
         
         bulk = f["bulk_truth"]
         A_truth = bulk["A_truth"][:]
@@ -577,7 +598,7 @@ class CuerdasDataLoader:
             family = family.decode("utf-8")
         d_value = int(bulk.attrs.get("d", 4))
         
-        return A_truth, f_truth, R_truth, z_grid, float(z_h), str(family), d_value
+        return A_truth, f_truth, R_truth, z_grid, float(z_h), str(family), d_value, True
 
 
 # ============================================================
@@ -984,6 +1005,7 @@ def train_one_epoch(
     optimizer: torch.optim.Optimizer,
     batch_size: int,
     device: torch.device,
+    has_bulk_mask: Optional[torch.Tensor] = None,
 ) -> Dict[str, float]:
     """
     Entrena una AfAE'A+aEUR(TM)AfaEURsA,A(C)poca completa y devuelve las pAfAE'A+aEUR(TM)AfaEURsA,A(C)rdidas medias.
@@ -999,6 +1021,8 @@ def train_one_epoch(
     Y_R = Y_R[idx]
     Y_zh = Y_zh[idx]
     Y_family = Y_family[idx]
+    if has_bulk_mask is not None:
+        has_bulk_mask = has_bulk_mask[idx]
     
     n_batches = int(np.ceil(n_train / batch_size))
     
@@ -1022,22 +1046,36 @@ def train_one_epoch(
         yR = Y_R[start:end]
         yzh = Y_zh[start:end]
         yfam = Y_family[start:end]
-        
+        bulk_w = has_bulk_mask[start:end].float() if has_bulk_mask is not None else torch.ones(end - start, device=device)
+
         optimizer.zero_grad()
-        
+
         # V2.3: Pasar z_grid para calcular R desde A,f
         out = model(xb, z_grid=z_t)
-        
-        # Perdidas de datos
-        loss_A = huber(out["A"], yA)
-        loss_f = mse(out["f"], yf)
-        loss_R = huber(out["R"], yR)
-        loss_zh = huber(out["z_h"], yzh)
+
+        # Perdidas de datos — anular reconstrucción A/f/R para geometrías sin bulk_truth
+        # (e.g. Kerr sintético). bulk_w=0 para esas, 1 para geometrías holográficas.
+        huber_nr = nn.SmoothL1Loss(reduction='none')
+        mse_nr   = nn.MSELoss(reduction='none')
+        loss_A  = (huber_nr(out["A"], yA).mean(dim=-1)  * bulk_w).mean()
+        loss_f  = (mse_nr(out["f"],   yf).mean(dim=-1)  * bulk_w).mean()
+        loss_R  = (huber_nr(out["R"], yR).mean(dim=-1)  * bulk_w).mean()
+        loss_zh = (huber_nr(out["z_h"].squeeze(-1), yzh) * bulk_w).mean() if out["z_h"].dim() > 1 else (huber(out["z_h"], yzh))
         loss_family = ce(out["family_logits"], yfam)
         
-        # PAfAE'A+aEUR(TM)AfaEURsA,A(C)rdidas fAfAE'A+aEUR(TM)AfaEURsA,A-sicas
+        # Pérdidas físicas.
+        # physics_generic: solo muestras con bulk_truth (holográficas); Kerr no tiene
+        # dual holográfico y sus A/f reconstruidas no están supervisadas (bulk_w=0),
+        # por lo que regularizarlas con priors AdS sería un prior incorrecto.
+        # physics_ads_specific: ya usa ads_mask=(yfam==ads) → Kerr excluido automáticamente.
+        holo_mask = bulk_w.bool()
+        if holo_mask.any():
+            loss_physics = physics_loss_generic(
+                out["A"][holo_mask], out["f"][holo_mask], z_t, d_value
+            )
+        else:
+            loss_physics = torch.tensor(0.0, device=device)
         ads_mask = (yfam == family_map["ads"])
-        loss_physics = physics_loss_generic(out["A"], out["f"], z_t, d_value)
         loss_physics_ads = physics_loss_ads_specific(out["A"], out["f"], z_t, d_value, ads_mask)
         
         # PAfAE'A+aEUR(TM)AfaEURsA,A(C)rdida total ponderada
@@ -1411,7 +1449,7 @@ def run_inference_mode(args):
     }
     
     summary_path = output_dir / "emergent_geometry_summary.json"
-    summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False))
+    summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False, default=str))
     
     # === ESCRIBIR RUN_MANIFEST (IO v2) ===
     if HAS_CUERDAS_IO:
@@ -1485,7 +1523,7 @@ def run_train_mode(args):
         raise FileNotFoundError(f"geometries_manifest.json / manifest.json not found en {data_dir}")
     manifest = json.loads(manifest_path.read_text())
     
-    family_map = {"ads": 0, "lifshitz": 1, "hyperscaling": 2, "deformed": 3, "unknown": 4}
+    family_map = {"ads": 0, "lifshitz": 1, "hyperscaling": 2, "deformed": 3, "unknown": 4, "kerr": 5}
     family_map_inv = {v: k for k, v in family_map.items()}
     
     # Estructuras para datos
@@ -1515,19 +1553,19 @@ def run_train_mode(args):
         
         with h5py.File(h5_path, "r") as f:
             boundary_data, operators = loader.load_boundary_and_meta(f)
-            (A_truth, f_truth, R_truth, z_grid_local, z_h, family, d_value_local
+            (A_truth, f_truth, R_truth, z_grid_local, z_h, family, d_value_local, has_bulk
             ) = loader.load_bulk_truth(f)
             d_value = d_value_local
-        
+
         if z_grid is None:
             z_grid = z_grid_local
-        
+
         # AAfAE'A+aEUR(TM)A+-adir d a boundary_data para feature extraction
         boundary_data["d"] = d_value_local
-        
+
         X = build_feature_vector(boundary_data, operators)
         family_id = family_map.get(family, 4)
-        
+
         if category == "known":
             train_data["X"].append(X)
             train_data["Y_A"].append(A_truth)
@@ -1537,6 +1575,7 @@ def run_train_mode(args):
             train_data["Y_family"].append(family_id)
             train_data["names"].append(geo_info["name"])
             train_data["families"].append(family)
+            train_data.setdefault("has_bulk", []).append(has_bulk)
         else:
             test_data["X"].append(X)
             test_data["Y_A"].append(A_truth)
@@ -1599,7 +1638,9 @@ def run_train_mode(args):
     Y_zh_train_t = torch.from_numpy(Y_zh_train.astype(np.float32)).to(device)
     Y_family_train_t = torch.from_numpy(Y_family_train.astype(np.int64)).to(device)
     z_t = torch.from_numpy(z_grid.astype(np.float32)).to(device)
-    
+    has_bulk_train = np.array(train_data.get("has_bulk", [True] * len(train_data["X"])), dtype=bool)
+    has_bulk_train_t = torch.from_numpy(has_bulk_train).to(device)
+
     # Preparar test
     has_test = len(test_data["X"]) > 0
     if has_test:
@@ -1657,7 +1698,8 @@ def run_train_mode(args):
         train_losses = train_one_epoch(
             model, X_train_t, Y_A_train_t, Y_f_train_t, Y_R_train_t,
             Y_zh_train_t, Y_family_train_t, z_t, d_value, family_map,
-            optimizer, args.batch_size, device
+            optimizer, args.batch_size, device,
+            has_bulk_mask=has_bulk_train_t,
         )
         
         # Actualizar scheduler por AfAE'A+aEUR(TM)AfAcAcaEURsA!A,A?POCA (no por batch)

@@ -516,6 +516,30 @@ def main() -> int:
             b.attrs["temperature"] = float(args.temperature)
             b.attrs["T"] = float(args.temperature)
 
+            # QNM-derived features (parallel to sandbox qnm_numerical.json attrs).
+            # Primary discriminators between geometry families; replace Δ operator
+            # features which are 0 for LIGO data (no CFT operator spectrum).
+            if poles:
+                dom = max(poles, key=lambda p: p.amp_abs)
+                Q0 = math.pi * dom.freq_hz / dom.damping_1_over_s if dom.damping_1_over_s > 0 else 0.0
+                if len(poles) >= 2:
+                    sub = sorted(poles, key=lambda p: -p.amp_abs)
+                    f0_v, f1_v = sub[0].freq_hz, sub[1].freq_hz
+                    g0_v, g1_v = sub[0].damping_1_over_s, sub[1].damping_1_over_s
+                    f1f0 = f1_v / f0_v if f0_v > 0 else 0.0
+                    g1g0 = g1_v / g0_v if g0_v > 0 else 0.0
+                else:
+                    f1f0, g1g0 = 0.0, 0.0
+                b.attrs["qnm_Q0"]      = float(Q0)
+                b.attrs["qnm_f1f0"]    = float(f1f0)
+                b.attrs["qnm_g1g0"]    = float(g1g0)
+                b.attrs["qnm_n_modes"] = int(len(poles))
+            else:
+                b.attrs["qnm_Q0"]      = 0.0
+                b.attrs["qnm_f1f0"]    = 0.0
+                b.attrs["qnm_g1g0"]    = 0.0
+                b.attrs["qnm_n_modes"] = 0
+
             # provenance / quality metadata (attrs for quick audit)
             b.attrs["source_run_dir"] = str(run_dir)
             b.attrs["source_ringdown_dir"] = str(rd_dir)

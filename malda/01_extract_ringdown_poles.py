@@ -292,6 +292,12 @@ def _sort_and_filter(pf: PoleFit, require_decay: bool, max_modes: int) -> PoleFi
         keep = np.imag(w) < 0.0
         z, q, w, a = z[keep], q[keep], w[keep], a[keep]
 
+    # Always keep only positive-frequency poles (Re(ω) > 0).
+    # For a real signal ESPRIT finds conjugate pairs (ω and -ω*); both have Im(ω)<0.
+    # The negative-frequency pole carries no independent information.
+    pos_freq = np.real(w) > 0.0
+    z, q, w, a = z[pos_freq], q[pos_freq], w[pos_freq], a[pos_freq]
+
     if z.size == 0:
         return PoleFit(
             z=z, q=q, omega_qnm=w, a=a,
@@ -330,12 +336,36 @@ def load_boundary_h5(path: Path) -> Dict[str, Any]:
         attrs = {k: (v.item() if hasattr(v, "item") else v) for k, v in attrs.items()}
 
         t_rel = f["time/t_rel"][:].astype(np.float64)
-        h1 = f["strain/H1"][:].astype(np.float64)
-        l1 = f["strain/L1"][:] .astype(np.float64) if "strain/L1" in f else None
+
+        # Prefer whitened strain when available (produced by 00_load_ligo_data.py --whiten)
+        if "strain/H1_whitened" in f:
+            h1 = f["strain/H1_whitened"][:].astype(np.float64)
+            whitened = True
+        else:
+            h1 = f["strain/H1"][:].astype(np.float64)
+            whitened = False
+
+        if "strain/L1_whitened" in f:
+            l1 = f["strain/L1_whitened"][:].astype(np.float64)
+        elif "strain/L1" in f:
+            l1 = f["strain/L1"][:].astype(np.float64)
+        else:
+            l1 = None
+
         fs = float(attrs.get("fs_hz", float(f["time"].attrs.get("fs_hz", 0.0))))
         dt = float(attrs.get("dt", float(f["time"].attrs.get("dt", 1.0 / fs if fs else 0.0))))
         event = str(attrs.get("event", "UNKNOWN_EVENT"))
         gps = float(attrs.get("gps", 0.0))
+
+        if not whitened:
+            import warnings
+            warnings.warn(
+                f"[01_extract_ringdown_poles] No whitened strain found in {path}. "
+                "ESPRIT will run on raw strain — results may be noise-dominated. "
+                "Re-run 00_load_ligo_data.py with --whiten to produce whitened strain.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         return {
             "attrs": attrs,
@@ -346,6 +376,7 @@ def load_boundary_h5(path: Path) -> Dict[str, Any]:
             "t_rel": t_rel,
             "H1": h1,
             "L1": l1,
+            "whitened": whitened,
         }
 
 
@@ -737,6 +768,7 @@ def main() -> int:
             "H1_relative_rms": float(pf_h1.relative_rms),
             "L1_relative_rms": float(pf_l1.relative_rms) if pf_l1 is not None else None,
         },
+        "input_strain_whitened": bool(data.get("whitened", False)),
     }
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
