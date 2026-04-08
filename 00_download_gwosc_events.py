@@ -79,7 +79,7 @@ IFO_ORDER = ["H1", "L1", "V1"]
 # IFO prefix in filename
 IFO_PREFIX = {"H1": "H-H1", "L1": "L-L1", "V1": "V-V1"}
 
-DOWNLOAD_TIMEOUT_S = 120
+DOWNLOAD_TIMEOUT_S = (30, 60)  # (connect, read-per-chunk) seconds
 RETRY_DELAYS = [5, 15, 30]  # seconds between retries
 
 
@@ -169,9 +169,9 @@ def _infer_ifo(filename: str, det: str, obs: str) -> str:
 
 # ── Downloader ────────────────────────────────────────────────────────────────
 
-def download_file(url: str, dest: Path, timeout: int = DOWNLOAD_TIMEOUT_S,
+def download_file(url: str, dest: Path, timeout=DOWNLOAD_TIMEOUT_S,
                   retries: List[int] = RETRY_DELAYS) -> bool:
-    """Download url → dest. Returns True on success."""
+    """Download url → dest with progress. Returns True on success."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     for attempt, delay in enumerate([0] + retries):
         if delay > 0:
@@ -180,12 +180,22 @@ def download_file(url: str, dest: Path, timeout: int = DOWNLOAD_TIMEOUT_S,
         try:
             r = requests.get(url, timeout=timeout, stream=True)
             r.raise_for_status()
+            total = int(r.headers.get("content-length", 0))
+            downloaded = 0
             with open(dest, "wb") as f:
                 for chunk in r.iter_content(chunk_size=1024 * 1024):
                     f.write(chunk)
+                    downloaded += len(chunk)
+                    if total > 0:
+                        pct = downloaded * 100 // total
+                        mb  = downloaded / (1024 * 1024)
+                        print(f"\r      {mb:.1f} MB / {total/(1024*1024):.1f} MB ({pct}%)",
+                              end="", flush=True)
+            if total > 0:
+                print()  # newline after progress
             return True
         except Exception as e:
-            print(f"      [WARN] Download failed: {e}")
+            print(f"\n      [WARN] Download failed: {e}")
     return False
 
 

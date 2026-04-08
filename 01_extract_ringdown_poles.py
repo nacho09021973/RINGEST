@@ -257,12 +257,18 @@ def esprit_poles(y: np.ndarray, dt: float, L: int, rank: int, sv_thresh: float) 
     omega_qnm = 1j * q
 
     # amplitudes via least squares on complex exponentials
+    # Guard: drop poles with |z| > 1 (growing modes) before building Vandermonde
+    # to avoid overflow in z^k for large k. These get amplitude 0 in the fit.
+    stable_mask = np.abs(z) <= 1.0 + 1e-6
+    z_stable = z[stable_mask] if stable_mask.any() else z[:1]
     k = np.arange(N, dtype=np.float64)
-    V = np.power(z[None, :], k[:, None])  # (N, r)
-    # Solve in complex least squares; target is real y, but allow complex fit then take Re later
-    a, *_ = np.linalg.lstsq(V, y.astype(np.complex128), rcond=None)
+    V = np.power(z_stable[None, :], k[:, None])  # (N, r_stable)
+    a_stable, *_ = np.linalg.lstsq(V, y.astype(np.complex128), rcond=None)
+    # Reconstruct full amplitude vector (unstable poles get 0)
+    a = np.zeros(len(z), dtype=np.complex128)
+    a[stable_mask] = a_stable
 
-    y_hat = (V @ a)
+    y_hat = (V @ a_stable)
     resid = y.astype(np.complex128) - y_hat
     residual_rms = float(np.sqrt(np.mean(np.abs(resid) ** 2)))
     denom = float(np.sqrt(np.mean(np.abs(y) ** 2)) + 1e-30)

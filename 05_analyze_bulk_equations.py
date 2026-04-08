@@ -210,13 +210,18 @@ def load_and_analyze(json_path: Path) -> Dict:
             coeffs = parse_equation_coefficients(eq_str)
             structure = analyze_equation_structure(eq_str)
             
-            # Determinar familia (clasificacion post-hoc basada en nombre)
+            # Determinar familia: primero por nombre (sandbox), luego por campo
+            # 'category' del JSON (datos reales como LIGO, donde el nombre no
+            # contiene la familia)
             if "ads" in name and "hvlf" not in name and "lifshitz" not in name:
                 family = "ads"
             elif "lifshitz" in name and "hvlf" not in name:
                 family = "lifshitz"
-            else:
+            elif "hvlf" in name or "hyperscaling" in name:
                 family = "hyperscaling"
+            else:
+                # Fallback: leer campo category/family del entry JSON
+                family = geo.get("category", geo.get("family", "hyperscaling"))
             
             geo_result = {
                 "name": name,
