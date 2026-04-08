@@ -1263,10 +1263,12 @@ def run_inference_mode(args):
     preds_dir.mkdir(parents=True, exist_ok=True)
     
     # === CARGAR MANIFEST ===
-    manifest_path = data_dir / "manifest.json"
+    manifest_path = data_dir / "geometries_manifest.json"
     if not manifest_path.exists():
-        raise FileNotFoundError(f"manifest.json not found en {data_dir}")
-    
+        manifest_path = data_dir / "manifest.json"
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"geometries_manifest.json / manifest.json not found en {data_dir}")
+
     manifest = json.loads(manifest_path.read_text())
     geometries = manifest.get("geometries", [])
     
@@ -1475,10 +1477,12 @@ def run_train_mode(args):
     print(f"                 physics={LOSS_WEIGHT_PHYSICS}, ads={LOSS_WEIGHT_PHYSICS_ADS}")
     print("=" * 70)
     
-    # Cargar manifest
-    manifest_path = data_dir / "manifest.json"
+    # Cargar manifest (geometries_manifest.json tiene precedencia sobre manifest.json)
+    manifest_path = data_dir / "geometries_manifest.json"
     if not manifest_path.exists():
-        raise FileNotFoundError(f"manifest.json not found en {data_dir}")
+        manifest_path = data_dir / "manifest.json"
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"geometries_manifest.json / manifest.json not found en {data_dir}")
     manifest = json.loads(manifest_path.read_text())
     
     family_map = {"ads": 0, "lifshitz": 1, "hyperscaling": 2, "deformed": 3, "unknown": 4}

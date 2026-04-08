@@ -165,53 +165,87 @@ def compute_p_values_from_null(best_score: float, null_scores: List[float]) -> T
 # Surrogate embeddings (data-driven, deterministic)
 # ----------------------------
 
-def build_omega_grid_hz(poles: List[Pole], n_omega: int, fmin_hz: Optional[float], fmax_hz: Optional[float]) -> np.ndarray:
+def get_normalization_scales(poles: List[Pole]) -> Tuple[float, float]:
+    """
+    Return (omega_dom_rads, gamma_dom_inv_s) from the dominant (max-amplitude) pole.
+
+    These two scales define the dimensionless units shared with sandbox embeddings:
+      omega_dimless = (2π f) / omega_dom_rads
+      x_dimless     = t_seconds * gamma_dom_inv_s
+
+    Falls back to generic stellar-mass BH values if no poles are available.
+    """
+    if not poles:
+        return 2.0 * math.pi * 250.0, 50.0  # generic fallback (~GW150914-like)
+
+    dom = max(poles, key=lambda p: p.amp_abs)
+    omega_dom = 2.0 * math.pi * float(dom.freq_hz)
+    gamma_dom = max(float(dom.damping_1_over_s), 1e-6)  # guard zero-damping
+    return omega_dom, gamma_dom
+
+
+def build_omega_grid_dimless(
+    poles: List[Pole],
+    n_omega: int,
+    omega_dom_rads: float,
+    fmin_hz: Optional[float],
+    fmax_hz: Optional[float],
+) -> np.ndarray:
+    """
+    Build dimensionless omega grid: omega_dimless = (2π f) / omega_dom_rads.
+
+    The dominant pole sits at omega_dimless ≈ 1; other poles at their frequency ratios.
+    This matches the sandbox embedding space (dimensionless AdS natural units).
+    """
     if fmin_hz is not None and fmax_hz is not None and fmax_hz > fmin_hz > 0:
-        lo, hi = float(fmin_hz), float(fmax_hz)
+        lo = (2.0 * math.pi * float(fmin_hz)) / omega_dom_rads
+        hi = (2.0 * math.pi * float(fmax_hz)) / omega_dom_rads
     elif poles:
-        freqs = np.array([p.freq_hz for p in poles], dtype=float)
-        fmin = float(np.min(freqs))
-        fmax = float(np.max(freqs))
-        lo = max(1e-3, 0.5 * fmin)
-        hi = max(lo + 1e-3, 1.5 * fmax)
+        freqs_rads = np.array([2.0 * math.pi * p.freq_hz for p in poles], dtype=float)
+        fmin_d = float(np.min(freqs_rads)) / omega_dom_rads
+        fmax_d = float(np.max(freqs_rads)) / omega_dom_rads
+        lo = max(1e-3, 0.5 * fmin_d)
+        hi = max(lo + 1e-3, 1.5 * fmax_d)
     else:
-        lo, hi = 1.0, 1024.0
+        lo, hi = 0.1, 10.0  # match sandbox default range
 
     return np.linspace(lo, hi, int(n_omega), dtype=np.float64)
 
 
-def poles_to_gr(omega_grid_hz: np.ndarray, poles: List[Pole], normalization: str = "unit_peak") -> Tuple[np.ndarray, np.ndarray]:
+def poles_to_gr(
+    omega_grid_dimless: np.ndarray,
+    poles: List[Pole],
+    omega_dom_rads: float,
+    normalization: str = "unit_peak",
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Build a complex-valued surrogate response:
-      GR(ω) = Σ a_n / (ω - ω_n), with ω real and ω_n = 2π f_n - i γ_n.
+    GR(ω̃) = Σ aₙ / (ω̃ - w̃ₙ)   with  w̃ₙ = (2πfₙ - iγₙ) / omega_dom_rads
 
-    Returns real/imag arrays shaped (Nw, Nk) with Nk=1 (k=0 only).
+    omega_grid_dimless is already in units of omega_dom (dominant pole sits at ~1).
+    Poles are renormalized by the same scale so the Lorentzian shape is preserved.
+    Returns real/imag arrays shaped (Nw, 1).
     """
-    Nw = int(omega_grid_hz.size)
+    Nw = int(omega_grid_dimless.size)
     if not poles or Nw <= 0:
         return np.zeros((Nw, 1), dtype=np.float64), np.zeros((Nw, 1), dtype=np.float64)
 
-    # residues: use amp_abs, stabilized
     amps = np.array([max(p.amp_abs, 0.0) for p in poles], dtype=np.float64)
     if not np.any(amps > 0):
         amps = np.ones_like(amps)
-
-    # Normalize residues to avoid extreme scaling
     amps = amps / (float(np.max(amps)) + 1e-12)
 
-    omega = (2.0 * np.pi * omega_grid_hz).astype(np.float64)  # rad/s, real
-    omega = omega.reshape(-1, 1)  # (Nw,1)
+    omega = omega_grid_dimless.astype(np.float64).reshape(-1, 1)  # (Nw, 1)
 
     w_poles = []
     for p, a in zip(poles, amps):
-        w = (2.0 * np.pi * float(p.freq_hz)) - 1j * float(p.damping_1_over_s)
-        w_poles.append((w, float(a)))
+        w_real = (2.0 * math.pi * float(p.freq_hz)) / omega_dom_rads
+        w_imag = float(p.damping_1_over_s) / omega_dom_rads
+        w_poles.append((w_real - 1j * w_imag, float(a)))
 
     GR = np.zeros((Nw, 1), dtype=np.complex128)
     for w, a in w_poles:
         GR[:, 0] += a / (omega[:, 0] - w)
 
-    # Optional normalization
     if normalization == "unit_peak":
         mag = np.abs(GR[:, 0])
         mmax = float(np.max(mag)) if mag.size else 0.0
@@ -221,26 +255,45 @@ def poles_to_gr(omega_grid_hz: np.ndarray, poles: List[Pole], normalization: str
     return np.real(GR).astype(np.float64), np.imag(GR).astype(np.float64)
 
 
-def build_x_grid_s(n_x: int, x_min_s: float, x_max_s: float) -> np.ndarray:
+def build_x_grid_dimless(
+    n_x: int,
+    x_min_dimless: float = 1e-3,
+    x_max_dimless: float = 10.0,
+) -> np.ndarray:
+    """
+    Dimensionless x grid: x_dimless = t_seconds * omega_dom_rads.
+
+    Normalizing by omega_dom (frequency unit) instead of gamma_dom makes the
+    G2 decay at rate gamma/omega = 1/Q, which is comparable (~0.05-0.5) to
+    the holographic AdS spatial correlator decay rate in sandbox units.
+    x_max_dimless=10 covers ~10 oscillation periods of the dominant mode.
+    """
     n_x = int(n_x)
-    x_min_s = float(x_min_s)
-    x_max_s = float(x_max_s)
-    if not (x_max_s > x_min_s >= 0.0):
-        raise ValueError(f"Invalid x range: x_min_s={x_min_s}, x_max_s={x_max_s}")
-    # Avoid x=0 exactly for log features downstream; keep strictly positive lower bound if possible
-    x0 = max(x_min_s, 1e-6)
-    return np.linspace(x0, x_max_s, n_x, dtype=np.float64)
+    x0 = max(float(x_min_dimless), 1e-6)
+    x1 = float(x_max_dimless)
+    if not (x1 > x0 > 0.0):
+        raise ValueError(f"Invalid dimless x range: x_min={x0}, x_max={x1}")
+    return np.linspace(x0, x1, n_x, dtype=np.float64)
 
 
-def poles_to_g2(x_grid_s: np.ndarray, poles: List[Pole], normalization: str = "unit_peak") -> np.ndarray:
+def poles_to_g2(
+    x_grid_dimless: np.ndarray,
+    poles: List[Pole],
+    omega_dom_rads: float,
+    gamma_dom_inv_s: float,
+    normalization: str = "unit_peak",
+) -> np.ndarray:
     """
-    Build a positive surrogate 1D observable from poles:
-      s(x) = Σ a_n * exp((-γ_n + i ω_r_n) x)
-      G2(x) = |s(x)|^2  (>=0)
+    G2(x̃) = |Σ aₙ exp((-γ̃ₙ + iω̃ₙ) x̃)|²
 
-    This is an embedding, not claimed to be a physical CFT correlator.
+    where  γ̃ₙ = γₙ / omega_dom_rads  and  ω̃ₙ = 2πfₙ / omega_dom_rads.
+
+    x̃ = t * omega_dom, so the dominant mode oscillates at ω̃=1 and decays
+    at rate γ̃ = γ/ω_dom = 1/Q (~0.05 for Kerr). This decay rate is
+    comparable to the holographic AdS sandbox G2 log-slope (~-1 to -2),
+    placing LIGO embeddings in the correct feature region.
     """
-    Nx = int(x_grid_s.size)
+    Nx = int(x_grid_dimless.size)
     if not poles or Nx <= 0:
         return np.zeros((Nx,), dtype=np.float64)
 
@@ -249,13 +302,14 @@ def poles_to_g2(x_grid_s: np.ndarray, poles: List[Pole], normalization: str = "u
         amps = np.ones_like(amps)
     amps = amps / (float(np.max(amps)) + 1e-12)
 
-    x = x_grid_s.astype(np.float64).reshape(-1, 1)  # (Nx,1)
+    x = x_grid_dimless.astype(np.float64).reshape(-1, 1)
     s = np.zeros((Nx, 1), dtype=np.complex128)
 
     for p, a in zip(poles, amps):
-        w_r = 2.0 * np.pi * float(p.freq_hz)        # rad/s
-        g = float(p.damping_1_over_s)               # 1/s
-        s[:, 0] += float(a) * np.exp((-g + 1j * w_r) * x[:, 0])
+        # Both rates normalized by omega_dom → decay rate = 1/Q
+        g_dimless = float(p.damping_1_over_s) / omega_dom_rads
+        w_dimless = (2.0 * math.pi * float(p.freq_hz)) / omega_dom_rads
+        s[:, 0] += float(a) * np.exp((-g_dimless + 1j * w_dimless) * x[:, 0])
 
     G2 = (np.abs(s[:, 0]) ** 2).astype(np.float64)
 
@@ -282,15 +336,15 @@ def main() -> int:
     ap.add_argument("--d", type=int, default=4, help="Boundary dimension d to store (default: 4)")
     ap.add_argument("--temperature", type=float, default=0.0, help="Temperature metadata to store (default: 0.0)")
 
-    ap.add_argument("--n-omega", type=int, default=256, help="Number of omega grid points (Hz)")
-    ap.add_argument("--fmin-hz", type=float, default=None, help="Override omega grid min frequency (Hz)")
-    ap.add_argument("--fmax-hz", type=float, default=None, help="Override omega grid max frequency (Hz)")
+    ap.add_argument("--n-omega", type=int, default=256, help="Number of omega grid points (dimensionless)")
+    ap.add_argument("--fmin-hz", type=float, default=None, help="Override omega grid min (Hz; converted internally to dimless)")
+    ap.add_argument("--fmax-hz", type=float, default=None, help="Override omega grid max (Hz; converted internally to dimless)")
     ap.add_argument("--gr-normalization", type=str, default="unit_peak", choices=["unit_peak", "none"],
                     help="Normalize GR by max |GR| (unit_peak) or leave raw (none)")
 
-    ap.add_argument("--n-x", type=int, default=256, help="Number of x grid points (seconds)")
-    ap.add_argument("--x-min-s", type=float, default=1e-4, help="Minimum x (seconds), strictly positive recommended")
-    ap.add_argument("--x-max-s", type=float, default=0.2, help="Maximum x (seconds)")
+    ap.add_argument("--n-x", type=int, default=256, help="Number of x grid points (dimensionless damping units)")
+    ap.add_argument("--x-min-dimless", type=float, default=1e-3, help="Min dimensionless x (x = t * gamma_dom)")
+    ap.add_argument("--x-max-dimless", type=float, default=10.0, help="Max dimensionless x (~10 damping times)")
     ap.add_argument("--g2-normalization", type=str, default="unit_peak", choices=["unit_peak", "none"],
                     help="Normalize G2 by max (unit_peak) or leave raw (none)")
 
@@ -332,10 +386,11 @@ def main() -> int:
             "fmax_hz": None if args.fmax_hz is None else float(args.fmax_hz),
             "gr_normalization": args.gr_normalization,
             "n_x": int(args.n_x),
-            "x_min_s": float(args.x_min_s),
-            "x_max_s": float(args.x_max_s),
+            "x_min_dimless": float(args.x_min_dimless),
+            "x_max_dimless": float(args.x_max_dimless),
             "g2_normalization": args.g2_normalization,
             "k_grid": [0.0],
+            "embedding_space": "dimensionless_dominant_pole",
         },
         "geometries": [],
     }
@@ -404,20 +459,29 @@ def main() -> int:
         if best_score is not None and isinstance(null_scores, list):
             p_unc, p_cond, N, N_valid = compute_p_values_from_null(best_score, null_scores)
 
-        # Build grids and surrogate boundary embeddings
-        omega_grid_hz = build_omega_grid_hz(poles, args.n_omega, args.fmin_hz, args.fmax_hz)
+        # Normalization scales from dominant pole (makes embeddings dimensionless,
+        # comparable to sandbox embeddings trained in AdS natural units)
+        omega_dom_rads, gamma_dom_inv_s = get_normalization_scales(poles)
+
+        # Build dimensionless grids and surrogate boundary embeddings
+        omega_grid_dimless = build_omega_grid_dimless(
+            poles, args.n_omega, omega_dom_rads, args.fmin_hz, args.fmax_hz
+        )
         k_grid = np.array([0.0], dtype=np.float64)
 
         GR_real, GR_imag = poles_to_gr(
-            omega_grid_hz,
+            omega_grid_dimless,
             poles,
+            omega_dom_rads,
             normalization=args.gr_normalization,
         )
 
-        x_grid = build_x_grid_s(args.n_x, args.x_min_s, args.x_max_s)
+        x_grid = build_x_grid_dimless(args.n_x, args.x_min_dimless, args.x_max_dimless)
         G2_ringdown = poles_to_g2(
             x_grid,
             poles,
+            omega_dom_rads,
+            gamma_dom_inv_s,
             normalization=args.g2_normalization,
         )
 
@@ -437,8 +501,12 @@ def main() -> int:
 
             # boundary group (what Stage 02 consumes)
             b = f.create_group("boundary")
-            b.create_dataset("omega_grid", data=omega_grid_hz)
+            b.create_dataset("omega_grid", data=omega_grid_dimless)
             b.create_dataset("k_grid", data=k_grid)
+            # Normalization scales (for reproducibility and inverse-mapping)
+            b.attrs["omega_dom_rads"] = float(omega_dom_rads)
+            b.attrs["gamma_dom_inv_s"] = float(gamma_dom_inv_s)
+            b.attrs["embedding_space"] = "dimensionless_omega_dom"
             b.create_dataset("G_R_real", data=GR_real)
             b.create_dataset("G_R_imag", data=GR_imag)
             b.create_dataset("x_grid", data=x_grid)

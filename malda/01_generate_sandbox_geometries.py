@@ -55,6 +55,9 @@ import sys
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
+
+import numpy as np  # type: ignore
+import h5py  # type: ignore
 # V3 INFRASTRUCTURE - PATCH
 HAS_STAGE_UTILS = False
 EXIT_OK = 0
@@ -1234,8 +1237,8 @@ def main():
                 }
             )
 
-        # escribir manifest
-        manifest_path = output_dir / "manifest.json"
+        # escribir manifest de geometrías (nombre propio para no colisionar con stage_utils)
+        manifest_path = output_dir / "geometries_manifest.json"
         manifest_path.write_text(json.dumps(manifest, indent=2))
 
         # resumen final por family
