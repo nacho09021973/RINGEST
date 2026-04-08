@@ -1,2 +1,0 @@
-"""RINGEST local package."""
-

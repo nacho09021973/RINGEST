@@ -1,8 +1,38 @@
-# Local data
-/data/
+# ── Datos de eventos (volumen elevado) ────────────────────────────────────────
 /runs/
-/.codex
+/malda/runs/
 
-# Python cache
+# Archivos de strain y geometría
+*.npz
+*.hdf5
+*.h5
+
+# ── Entornos virtuales ─────────────────────────────────────────────────────────
+.venv-pysr/
+malda/.venv-pysr/
+.venv/
+venv/
+
+# ── Python cache ───────────────────────────────────────────────────────────────
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+
+# ── Jupyter ────────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Salidas temporales ─────────────────────────────────────────────────────────
+/outputs/
+*.log
+
+# ── PySR ──────────────────────────────────────────────────────────────────────
+hall_of_fame_*.csv
+hall_of_fame_*.pkl
+
+# ── Sistema ───────────────────────────────────────────────────────────────────
+.DS_Store
+*.Zone.Identifier
+/.codex
