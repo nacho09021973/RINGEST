@@ -534,7 +534,7 @@ class CuerdasDataLoader:
     """
     
     def __init__(self, mode: str = "train"):
-        if mode not in ("train", "inference"):
+        if mode not in ("train", "inference", "finetune_physics"):
             raise ValueError(f"Modo no reconocido para CuerdasDataLoader: {mode}")
         self.mode = mode
     
@@ -599,6 +599,70 @@ class CuerdasDataLoader:
         d_value = int(bulk.attrs.get("d", 4))
         
         return A_truth, f_truth, R_truth, z_grid, float(z_h), str(family), d_value, True
+
+
+SUPPORTED_ENGINE_MODES = ("train", "inference")
+EXPERIMENTAL_ENGINE_MODES = ("finetune_physics",)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="CUERDAS - Geometria emergente V2.2 (train, inference, experimental finetune hook)"
+    )
+    parser.add_argument("--data-dir", type=str, default=None,
+                        help="directory con datos HDF5 de geometrías")
+    parser.add_argument("--output-dir", type=str, default=None,
+                        help="directory de salida para modelo y predicciones")
+    parser.add_argument("--n-epochs", type=int, default=2000,
+                        help="Número de épocas de entrenamiento (solo mode=train)")
+    parser.add_argument("--device", type=str, default="cpu",
+                        help="Dispositivo: 'cpu' o 'cuda'")
+    parser.add_argument("--hidden-dim", type=int, default=256,
+                        help="Dimensión oculta de la red")
+    parser.add_argument("--n-layers", type=int, default=4,
+                        help="Número de capas residuales")
+    parser.add_argument("--batch-size", type=int, default=32,
+                        help="Tamaño de batch")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="Semilla aleatoria")
+    parser.add_argument("--verbose", action="store_true", default=True,
+                        help="Imprimir progreso detallado")
+    parser.add_argument("--lr", type=float, default=LEARNING_RATE,
+                        help="Learning rate inicial")
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=[*SUPPORTED_ENGINE_MODES, *EXPERIMENTAL_ENGINE_MODES],
+        default="train",
+        help=(
+            "Modo de uso: 'train' (sandbox con bulk_truth), 'inference' "
+            "(boundary-only usando checkpoint) o 'finetune_physics' "
+            "(gancho experimental, no implementado)."
+        ),
+    )
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=None,
+        help="Ruta al checkpoint del modelo entrenado en sandbox "
+             "(solo obligatorio en mode='inference')"
+    )
+    add_standard_arguments(parser)
+    return parser
+
+
+def run_finetune_physics_mode(args):
+    """
+    Gancho explícito para un futuro ajuste físico autosupervisado.
+
+    No debe inferirse de esta ruta que exista hoy validación boundary↔bulk
+    ni una loss física operacional.
+    """
+    raise NotImplementedError(
+        "finetune_physics not implemented yet; current engine supports only "
+        "supervised train (sandbox with bulk_truth) and boundary-only inference. "
+        "No validated physics fine-tuning or boundary↔bulk consistency loop is available yet."
+    )
 
 
 # ============================================================
@@ -1934,47 +1998,7 @@ def run_train_mode(args):
 # ============================================================
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="CUERDAS - GeometrAfAE'A+aEUR(TM)AfaEURsA,A-a emergente V2.2 (con inference mode)"
-    )
-    parser.add_argument("--data-dir", type=str, default=None,
-                        help="directory con datos HDF5 de geometrAfAE'A+aEUR(TM)AfaEURsA,A-as")
-    parser.add_argument("--output-dir", type=str, default=None,
-                        help="directory de salida para modelo y predicciones")
-    parser.add_argument("--n-epochs", type=int, default=2000,
-                        help="NAfAE'A+aEUR(TM)AfaEURsA,Aomero de AfAE'A+aEUR(TM)AfaEURsA,A(C)pocas de entrenamiento (solo mode=train)")
-    parser.add_argument("--device", type=str, default="cpu",
-                        help="Dispositivo: 'cpu' o 'cuda'")
-    parser.add_argument("--hidden-dim", type=int, default=256,
-                        help="DimensiAfAE'A+aEUR(TM)AfaEURsA,A3n oculta de la red")
-    parser.add_argument("--n-layers", type=int, default=4,
-                        help="NAfAE'A+aEUR(TM)AfaEURsA,Aomero de capas residuales")
-    parser.add_argument("--batch-size", type=int, default=32,
-                        help="TamaAfAE'A+aEUR(TM)A+-o de batch")
-    parser.add_argument("--seed", type=int, default=42,
-                        help="Semilla aleatoria")
-    parser.add_argument("--verbose", action="store_true", default=True,
-                        help="Imprimir progreso detallado")
-    parser.add_argument("--lr", type=float, default=LEARNING_RATE,
-                        help="Learning rate inicial")
-    
-    # === NUEVOS ARGUMENTOS V2.2 ===
-    parser.add_argument(
-        "--mode",
-        type=str,
-        choices=["train", "inference"],
-        default="train",
-        help="Modo de Usage: 'train' (sandbox, con bulk_truth) o "
-             "'inference' (datos boundary-only, usando checkpoint pretrained)"
-    )
-    parser.add_argument(
-        "--checkpoint",
-        type=str,
-        default=None,
-        help="Ruta al checkpoint del modelo entrenado en sandbox "
-             "(solo obligatorio en mode='inference')"
-    )
-    add_standard_arguments(parser)
+    parser = build_parser()
 
     args = parse_stage_args(parser)
     ctx = StageContext.from_args(args, stage_number="02", stage_slug="emergent_geometry_engine")
@@ -2001,8 +2025,10 @@ def main():
         # Despachar segAfAE'A+aEUR(TM)AfaEURsA,Aon modo
         if args.mode == "train":
             result = run_train_mode(args)
-        else:
+        elif args.mode == "inference":
             result = run_inference_mode(args)
+        else:
+            result = run_finetune_physics_mode(args)
         if isinstance(result, dict):
             for key in ["model_path", "preds_dir", "summary_path", "output_dir", "geometry_dir", "checkpoint"]:
                 val = result.get(key)

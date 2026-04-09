@@ -54,7 +54,7 @@ import re
 import sys
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
-from typing import List, Dict, Tuple, Optional
+from typing import Any, List, Dict, Tuple, Optional
 
 import numpy as np  # type: ignore
 import h5py  # type: ignore
@@ -519,6 +519,21 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
     return geos
 
 
+@dataclass(frozen=True)
+class FocusedSamplingConfig:
+    enabled: bool = False
+    families: Tuple[str, ...] = ("ads", "lifshitz", "hyperscaling")
+    d: int = 4
+    zh_min: float = 1.0
+    zh_max: float = 1.2
+    out_of_support_frac: float = 0.0
+    out_of_support_zh_min: float = 0.8
+    out_of_support_zh_max: float = 2.0
+
+
+DEFAULT_FOCUSED_FAMILIES: Tuple[str, ...] = ("ads", "lifshitz", "hyperscaling")
+
+
 def jitter_geometry(
     base: HiddenGeometry,
     rng: np.random.Generator,
@@ -912,6 +927,7 @@ def make_geometry_instance(
     category: str,
     idx: int,
     rng: np.random.Generator,
+    focused_config: Optional[FocusedSamplingConfig] = None,
 ) -> HiddenGeometry:
     """
     Crea una copia de `base` con nombre unico y pequenos jitters en parametros
@@ -943,6 +959,9 @@ def make_geometry_instance(
         return HiddenGeometry(**params)
 
     # --- CÓDIGO ORIGINAL DE JITTER -------------------------------------
+    if focused_config is not None and focused_config.enabled:
+        return make_focused_geometry_instance(base, category, idx, rng, focused_config)
+
     params = asdict(base)
 
     # Nombre unico: base_category_idx
@@ -995,7 +1014,92 @@ def make_geometry_instance(
     return HiddenGeometry(**params)
 
 
-def main():
+def sample_focused_zh(
+    rng: np.random.Generator,
+    config: FocusedSamplingConfig,
+) -> Tuple[float, bool]:
+    """
+    Muestrea z_h en un soporte focalizado con una cola opcional fuera de soporte.
+    """
+    use_out_of_support = rng.random() < config.out_of_support_frac
+    if use_out_of_support:
+        side = rng.choice(["left", "right"])
+        if side == "left":
+            z_h = rng.uniform(config.out_of_support_zh_min, config.zh_min)
+        else:
+            z_h = rng.uniform(config.zh_max, config.out_of_support_zh_max)
+        return float(z_h), True
+    return float(rng.uniform(config.zh_min, config.zh_max)), False
+
+
+def rewrite_geometry_name_for_dimension(name: str, d_value: int) -> str:
+    dim_token_pattern = r"_d\d+(?=_|$)"
+    if re.search(dim_token_pattern, name):
+        replaced = False
+
+        def _replace_or_drop(match: re.Match[str]) -> str:
+            nonlocal replaced
+            if not replaced:
+                replaced = True
+                return f"_d{d_value}"
+            return ""
+
+        return re.sub(dim_token_pattern, _replace_or_drop, name)
+    return f"{name}_d{d_value}"
+
+
+def make_focused_geometry_instance(
+    base: HiddenGeometry,
+    category: str,
+    idx: int,
+    rng: np.random.Generator,
+    config: FocusedSamplingConfig,
+) -> HiddenGeometry:
+    """
+    Variante conservadora para retarget del sandbox al régimen empírico.
+    """
+    params = asdict(base)
+    metadata = dict(params.get("metadata") or {})
+
+    focused_base_name = rewrite_geometry_name_for_dimension(base.name, int(config.d))
+    params["name"] = f"{focused_base_name}_{category}_{idx:03d}"
+    params["family"] = base.family
+    params["d"] = int(config.d)
+
+    z_h, is_out_of_support = sample_focused_zh(rng, config)
+    params["z_h"] = z_h
+
+    family = base.family
+    if family == "lifshitz":
+        params["z_dyn"] = float(rng.uniform(1.5, 2.5))
+        params["theta"] = 0.0
+        params["deformation"] = 0.0
+    elif family == "hyperscaling":
+        max_theta = max(0.5, min(config.d - 0.5, 2.0))
+        params["theta"] = float(rng.uniform(0.3, max_theta))
+        params["z_dyn"] = float(rng.uniform(1.0, 1.8))
+        params["deformation"] = 0.0
+    elif family == "ads":
+        params["theta"] = 0.0
+        params["z_dyn"] = 1.0
+        params["deformation"] = 0.0
+
+    metadata.update(
+        {
+            "sampling_regime": "focused_real_regime",
+            "focused_family_source": base.family,
+            "focused_d": int(config.d),
+            "focused_zh_min": float(config.zh_min),
+            "focused_zh_max": float(config.zh_max),
+            "focused_out_of_support": bool(is_out_of_support),
+            "focused_out_of_support_frac": float(config.out_of_support_frac),
+        }
+    )
+    params["metadata"] = metadata
+    return HiddenGeometry(**params)
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Fase XI v3: Generacion de datos para emergencia geometrica (escalable)"
     )
@@ -1030,7 +1134,6 @@ def main():
         action="store_true",
         help="Usa EMDLifshitzSolver para familys lifshitz/hyperscaling si esta disponible",
     )
-    
     parser.add_argument(
         "--ads-only",
         action="store_true",
@@ -1044,9 +1147,92 @@ def main():
         action="store_true",
         help="Modo rapido: reduce n-known=2, n-test=1, n-unknown=1 para smoke tests",
     )
+    parser.add_argument(
+        "--focused-real-regime",
+        action="store_true",
+        help=(
+            "Retarget del sandbox al soporte empírico realista: filtra families, "
+            "fija d y focaliza el muestreo de z_h sin cambiar el comportamiento por defecto."
+        ),
+    )
+    parser.add_argument(
+        "--focused-d",
+        type=int,
+        default=4,
+        help="Valor de d a fijar cuando se activa --focused-real-regime.",
+    )
+    parser.add_argument(
+        "--focused-families",
+        nargs="+",
+        default=list(DEFAULT_FOCUSED_FAMILIES),
+        help="Families permitidas en modo focused.",
+    )
+    parser.add_argument(
+        "--zh-min",
+        type=float,
+        default=1.0,
+        help="Límite inferior del rango focalizado de z_h en modo focused.",
+    )
+    parser.add_argument(
+        "--zh-max",
+        type=float,
+        default=1.2,
+        help="Límite superior del rango focalizado de z_h en modo focused.",
+    )
+    parser.add_argument(
+        "--out-of-support-frac",
+        type=float,
+        default=0.0,
+        help="Fracción explícita de muestras de z_h fuera del rango focalizado.",
+    )
+    parser.add_argument(
+        "--out-of-support-zh-min",
+        type=float,
+        default=0.8,
+        help="Mínimo permitido para la cola fuera de soporte en modo focused.",
+    )
+    parser.add_argument(
+        "--out-of-support-zh-max",
+        type=float,
+        default=2.0,
+        help="Máximo permitido para la cola fuera de soporte en modo focused.",
+    )
     add_standard_arguments(parser)
+    return parser
+
+
+def build_focused_sampling_config(args: argparse.Namespace) -> FocusedSamplingConfig:
+    families = tuple(str(fam).lower() for fam in getattr(args, "focused_families", []))
+    if not families:
+        raise ValueError("focused_real_regime requiere al menos una family en --focused-families")
+    if args.zh_min >= args.zh_max:
+        raise ValueError("--zh-min debe ser menor que --zh-max")
+    if not (0.0 <= args.out_of_support_frac <= 1.0):
+        raise ValueError("--out-of-support-frac debe estar en [0, 1]")
+    if args.out_of_support_zh_min < 0.3:
+        raise ValueError("--out-of-support-zh-min debe ser >= 0.3")
+    if args.out_of_support_zh_min > args.zh_min:
+        raise ValueError("--out-of-support-zh-min no puede exceder --zh-min")
+    if args.out_of_support_zh_max < args.zh_max:
+        raise ValueError("--out-of-support-zh-max no puede ser menor que --zh-max")
+
+    return FocusedSamplingConfig(
+        enabled=bool(args.focused_real_regime),
+        families=families,
+        d=int(args.focused_d),
+        zh_min=float(args.zh_min),
+        zh_max=float(args.zh_max),
+        out_of_support_frac=float(args.out_of_support_frac),
+        out_of_support_zh_min=float(args.out_of_support_zh_min),
+        out_of_support_zh_max=float(args.out_of_support_zh_max),
+    )
+
+
+def main():
+    parser = build_parser()
 
     args = parse_stage_args(parser)
+    focused_config = build_focused_sampling_config(args)
     
     # --quick-test: reducir cantidades para smoke tests rapidos
     if getattr(args, 'quick_test', False):
@@ -1096,7 +1282,25 @@ def main():
                     "ads-only solicitado, pero get_phase11_geometries() no contiene ninguna family='ads'."
                 )
             print("[MODO CONTROL POSITIVO] Filtrando sandbox a family='ads' unicamente.")
-        
+
+        if focused_config.enabled:
+            base_geometries = [
+                (geo, cat)
+                for (geo, cat) in base_geometries
+                if geo.family in focused_config.families
+            ]
+            if not base_geometries:
+                raise RuntimeError(
+                    "focused_real_regime solicitado, pero no hay geometrias base "
+                    f"para families={list(focused_config.families)}."
+                )
+            print("[MODO FOCUSED] Retarget del sandbox activado.")
+            print(
+                f"[MODO FOCUSED] families={list(focused_config.families)}, "
+                f"d={focused_config.d}, z_h∈[{focused_config.zh_min:.3f}, {focused_config.zh_max:.3f}], "
+                f"out_of_support_frac={focused_config.out_of_support_frac:.3f}"
+            )
+
         geometries: List[Tuple[HiddenGeometry, str]] = []
 
         # expandir con jitter
@@ -1109,7 +1313,7 @@ def main():
                 n_instances = args.n_unknown
 
             for k in range(n_instances):
-                geo = make_geometry_instance(base_geo, category, k, rng)
+                geo = make_geometry_instance(base_geo, category, k, rng, focused_config=focused_config)
                 geometries.append((geo, category))
 
         # resumen inicial
@@ -1144,6 +1348,8 @@ def main():
                 "n_z": args.n_z,
                 "seed": args.seed,
                 "use_emd_lifshitz": args.use_emd_lifshitz,
+                "focused_real_regime": focused_config.enabled,
+                "focused_sampling": asdict(focused_config),
             },
         }
 
@@ -1193,6 +1399,14 @@ def main():
                 f.attrs["z_dyn"] = geo.z_dyn
                 f.attrs["deformation"] = geo.deformation
                 f.attrs["operators"] = json.dumps(operators)
+                f.attrs["sampling_regime"] = (
+                    "focused_real_regime" if focused_config.enabled else "default"
+                )
+                if focused_config.enabled:
+                    f.attrs["focused_sampling"] = json.dumps(asdict(focused_config))
+                    f.attrs["focused_out_of_support"] = bool(
+                        geo.metadata.get("focused_out_of_support", False)
+                    )
 
                 # boundary
                 bgrp = f.create_group("boundary")
@@ -1234,6 +1448,8 @@ def main():
                     "d": geo.d,
                     "file": str(output_path.name),
                     "operators": [op["name"] for op in operators],
+                    "sampling_regime": "focused_real_regime" if focused_config.enabled else "default",
+                    "metadata": geo.metadata,
                 }
             )
 
