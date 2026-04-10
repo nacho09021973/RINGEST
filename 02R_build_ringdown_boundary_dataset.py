@@ -33,13 +33,28 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+from tools.g2_representation_contract import (
+    G2RepresentationContractError,
+    build_stage02_contract_attrs,
+    canonicalize_g2_representation,
+)
 
 try:
     import h5py
 except Exception as e:
     raise SystemExit(f"[ERROR] h5py not available: {e}")
 
-SCRIPT_VERSION = "02R_build_ringdown_boundary_dataset.py v1.0 (2026-01-12)"
+SCRIPT_VERSION = "02R_build_ringdown_boundary_dataset.py v1.1 (2026-04-10)"
+
+SANDBOX_OMEGA_MIN = 0.1
+SANDBOX_OMEGA_MAX = 3.0
+SANDBOX_N_OMEGA = 256
+SANDBOX_K_MIN = 0.0
+SANDBOX_K_MAX = 5.0
+SANDBOX_N_K = 30
+SANDBOX_X_MIN = 1e-3
+SANDBOX_X_MAX = 10.0
+SANDBOX_N_X = 100
 
 
 # ----------------------------
@@ -321,6 +336,21 @@ def poles_to_g2(
     return G2
 
 
+def make_sandbox_compatible_gr(gr_column: np.ndarray, n_k: int = SANDBOX_N_K) -> np.ndarray:
+    """
+    Broadcast a single-k response onto the sandbox k-grid expected by Stage 02.
+    This is a contract-compatibility view, not a new physical inference.
+    """
+    gr_column = np.asarray(gr_column, dtype=np.float64)
+    if gr_column.ndim == 2 and gr_column.shape[1] == 1:
+        gr_line = gr_column[:, 0]
+    elif gr_column.ndim == 1:
+        gr_line = gr_column
+    else:
+        gr_line = gr_column.reshape(-1)
+    return np.repeat(gr_line[np.newaxis, :], int(n_k), axis=0)
+
+
 # ----------------------------
 # Main
 # ----------------------------
@@ -342,11 +372,18 @@ def main() -> int:
     ap.add_argument("--gr-normalization", type=str, default="unit_peak", choices=["unit_peak", "none"],
                     help="Normalize GR by max |GR| (unit_peak) or leave raw (none)")
 
-    ap.add_argument("--n-x", type=int, default=256, help="Number of x grid points (dimensionless damping units)")
+    ap.add_argument("--n-x", type=int, default=256, help="Number of x grid points for raw ringdown embedding (dimensionless damping units)")
     ap.add_argument("--x-min-dimless", type=float, default=1e-3, help="Min dimensionless x (x = t * gamma_dom)")
     ap.add_argument("--x-max-dimless", type=float, default=10.0, help="Max dimensionless x (~10 damping times)")
     ap.add_argument("--g2-normalization", type=str, default="unit_peak", choices=["unit_peak", "none"],
                     help="Normalize G2 by max (unit_peak) or leave raw (none)")
+    ap.add_argument(
+        "--compat-mode",
+        type=str,
+        default="stage02_sandbox_v5",
+        choices=["none", "stage02_sandbox_v5"],
+        help="Compatibility view to emit in canonical boundary datasets.",
+    )
 
     args = ap.parse_args()
 
@@ -389,6 +426,7 @@ def main() -> int:
             "x_min_dimless": float(args.x_min_dimless),
             "x_max_dimless": float(args.x_max_dimless),
             "g2_normalization": args.g2_normalization,
+            "compat_mode": args.compat_mode,
             "k_grid": [0.0],
             "embedding_space": "dimensionless_dominant_pole",
         },
@@ -464,26 +502,68 @@ def main() -> int:
         omega_dom_rads, gamma_dom_inv_s = get_normalization_scales(poles)
 
         # Build dimensionless grids and surrogate boundary embeddings
-        omega_grid_dimless = build_omega_grid_dimless(
+        omega_grid_dimless_raw = build_omega_grid_dimless(
             poles, args.n_omega, omega_dom_rads, args.fmin_hz, args.fmax_hz
         )
-        k_grid = np.array([0.0], dtype=np.float64)
+        k_grid_raw = np.array([0.0], dtype=np.float64)
 
-        GR_real, GR_imag = poles_to_gr(
-            omega_grid_dimless,
+        GR_real_raw, GR_imag_raw = poles_to_gr(
+            omega_grid_dimless_raw,
             poles,
             omega_dom_rads,
             normalization=args.gr_normalization,
         )
 
-        x_grid = build_x_grid_dimless(args.n_x, args.x_min_dimless, args.x_max_dimless)
-        G2_ringdown = poles_to_g2(
-            x_grid,
+        x_grid_raw = build_x_grid_dimless(args.n_x, args.x_min_dimless, args.x_max_dimless)
+        G2_ringdown_raw = poles_to_g2(
+            x_grid_raw,
             poles,
             omega_dom_rads,
             gamma_dom_inv_s,
             normalization=args.g2_normalization,
         )
+
+        if args.compat_mode == "stage02_sandbox_v5":
+            omega_grid_dimless = np.linspace(SANDBOX_OMEGA_MIN, SANDBOX_OMEGA_MAX, SANDBOX_N_OMEGA, dtype=np.float64)
+            k_grid = np.linspace(SANDBOX_K_MIN, SANDBOX_K_MAX, SANDBOX_N_K, dtype=np.float64)
+            GR_real_line, GR_imag_line = poles_to_gr(
+                omega_grid_dimless,
+                poles,
+                omega_dom_rads,
+                normalization=args.gr_normalization,
+            )
+            GR_real = make_sandbox_compatible_gr(GR_real_line, SANDBOX_N_K)
+            GR_imag = make_sandbox_compatible_gr(GR_imag_line, SANDBOX_N_K)
+            try:
+                g2_contract = canonicalize_g2_representation(
+                    x_grid_raw,
+                    G2_ringdown_raw,
+                    n_points=SANDBOX_N_X,
+                    x_min=SANDBOX_X_MIN,
+                    x_max=SANDBOX_X_MAX,
+                )
+            except G2RepresentationContractError as exc:
+                raise SystemExit(
+                    f"[ERROR] failed to canonicalize G2 representation for {event_id}: {exc}"
+                ) from exc
+            x_grid = g2_contract.x_grid
+            G2_ringdown = g2_contract.g2_canonical
+            contract_attrs = build_stage02_contract_attrs(
+                x_grid_raw=x_grid_raw,
+                x_grid_canon=x_grid,
+                omega_grid_raw=omega_grid_dimless_raw,
+                omega_grid_compat=omega_grid_dimless,
+                g_r_raw_shape=tuple(GR_real_raw.shape),
+                g_r_compat_shape=tuple(GR_real.shape),
+            )
+        else:
+            omega_grid_dimless = omega_grid_dimless_raw
+            k_grid = k_grid_raw
+            x_grid = x_grid_raw
+            GR_real = GR_real_raw
+            GR_imag = GR_imag_raw
+            G2_ringdown = G2_ringdown_raw
+            contract_attrs = {}
 
         # Output HDF5
         system_name = f"{event_id}__{rd_rel.name}"
@@ -501,16 +581,33 @@ def main() -> int:
 
             # boundary group (what Stage 02 consumes)
             b = f.create_group("boundary")
+            if args.compat_mode == "stage02_sandbox_v5":
+                b.create_dataset("omega_grid_raw", data=omega_grid_dimless_raw)
+                b.create_dataset("k_grid_raw", data=k_grid_raw)
+                b.create_dataset("G_R_real_raw", data=GR_real_raw)
+                b.create_dataset("G_R_imag_raw", data=GR_imag_raw)
+                b.create_dataset("x_grid_raw", data=x_grid_raw)
+                b.create_dataset("G2_ringdown_raw", data=G2_ringdown_raw)
             b.create_dataset("omega_grid", data=omega_grid_dimless)
             b.create_dataset("k_grid", data=k_grid)
             # Normalization scales (for reproducibility and inverse-mapping)
             b.attrs["omega_dom_rads"] = float(omega_dom_rads)
             b.attrs["gamma_dom_inv_s"] = float(gamma_dom_inv_s)
             b.attrs["embedding_space"] = "dimensionless_omega_dom"
+            b.attrs["compat_mode"] = args.compat_mode
+            if args.compat_mode == "stage02_sandbox_v5":
+                for attr_key, attr_value in contract_attrs.items():
+                    b.attrs[attr_key] = attr_value
+                b.attrs["g2_eps"] = float(g2_contract.eps)
+                b.attrs["g2_valid_points"] = int(g2_contract.n_valid_points)
+                b.attrs["g2_unique_points"] = int(g2_contract.n_unique_points)
             b.create_dataset("G_R_real", data=GR_real)
             b.create_dataset("G_R_imag", data=GR_imag)
             b.create_dataset("x_grid", data=x_grid)
             b.create_dataset("G2_ringdown", data=G2_ringdown)
+            if args.compat_mode == "stage02_sandbox_v5":
+                b.create_dataset("G2_O1", data=G2_ringdown)
+                b.create_dataset("central_charge_eff", data=np.array([0.0], dtype=np.float64))
 
             b.attrs["d"] = int(args.d)
             b.attrs["temperature"] = float(args.temperature)

@@ -523,11 +523,11 @@ def main() -> int:
     
     # V3: Usar StageContext si está disponible
     ctx = None
-    if HAS_STAGE_UTILS and StageContext is not None:
+    if args.run_dir:
+        run_dir = Path(args.run_dir)
+    elif HAS_STAGE_UTILS and StageContext is not None:
         ctx = StageContext.from_args(args, stage_number="03", stage_slug="discover_bulk_equations")
         run_dir = ctx.run_root
-    elif args.run_dir:
-        run_dir = Path(args.run_dir)
     elif hasattr(args, 'experiment') and args.experiment:
         run_dir = Path("runs") / args.experiment
     else:
