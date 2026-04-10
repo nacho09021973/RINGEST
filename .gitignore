@@ -19,6 +19,7 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+ringest.egg-info/
 
 # ── Jupyter ────────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
