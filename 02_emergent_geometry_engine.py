@@ -170,6 +170,19 @@ def compute_mae(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float(np.mean(np.abs(y_true[mask] - y_pred[mask])))
 
 
+def safe_relative_path(path: Path, *base_paths: Optional[Path]) -> str:
+    """Serializa una ruta de forma estable sin fallar si no cae bajo la base principal."""
+    resolved_path = path.resolve()
+    for base_path in base_paths:
+        if base_path is None:
+            continue
+        try:
+            return str(resolved_path.relative_to(Path(base_path).resolve()))
+        except ValueError:
+            continue
+    return str(resolved_path)
+
+
 # ============================================================
 # EXTRACCIAfAE'A+aEUR(TM)AfAcAcaEURsA!A...aEURoeN DE FEATURES DEL BOUNDARY
 # ============================================================
@@ -2002,6 +2015,7 @@ def main():
 
     args = parse_stage_args(parser)
     ctx = StageContext.from_args(args, stage_number="02", stage_slug="emergent_geometry_engine")
+    project_root = Path(__file__).resolve().parent
 
     if args.data_dir is None:
         args.data_dir = str(ctx.run_root / "01_generate_sandbox_geometries")
@@ -2042,7 +2056,7 @@ def main():
                 pass
         ctx.write_manifest(
             outputs={
-                "geometry_engine_dir": str(Path(args.output_dir).resolve().relative_to(ctx.run_root))
+                "geometry_engine_dir": safe_relative_path(Path(args.output_dir), ctx.run_root, project_root)
             },
             metadata={"command": " ".join(sys.argv), "mode": args.mode},
         )

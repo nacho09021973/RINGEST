@@ -1,0 +1,109 @@
+{
+  "registry_name": "estimator_tools_registry_v1",
+  "schema_version": "v1",
+  "repo_root": "/home/ignac/RINGEST/repo",
+  "freeze_policy_default": "pinned_commit_required",
+  "integration_mode_default": "read_only_until_validated",
+  "tools": [
+    {
+      "tool_id": "pydantic",
+      "repo_name": "pydantic",
+      "local_repo_path": "/home/ignac/RINGEST/repo/pydantic",
+      "required_for_estimators": [
+        "E00"
+      ],
+      "role": "Schema and contract validation for boundary and estimator-facing payloads.",
+      "repo_expected": true,
+      "status": "present_local",
+      "freeze_policy": "pinned_commit_required",
+      "integration_mode": "read_only_until_validated",
+      "notes": "Declared for E00 contract guards. Local repo not materialized yet."
+    },
+    {
+      "tool_id": "scikit_learn",
+      "repo_name": "scikit_learn",
+      "local_repo_path": "/home/ignac/RINGEST/repo/scikit_learn",
+      "required_for_estimators": [
+        "E10",
+        "E20",
+        "E40"
+      ],
+      "role": "Baseline classical estimators and calibration-capable models for gates and features baselines.",
+      "repo_expected": true,
+      "status": "missing_local",
+      "freeze_policy": "pinned_commit_required",
+      "integration_mode": "read_only_until_validated",
+      "notes": "Declared for information gate and baseline features."
+    },
+    {
+      "tool_id": "dingo",
+      "repo_name": "dingo",
+      "local_repo_path": "/home/ignac/RINGEST/repo/dingo",
+      "required_for_estimators": [
+        "E30"
+      ],
+      "role": "Premium posterior estimation backend for ringdown latent inference.",
+      "repo_expected": true,
+      "status": "present_local",
+      "freeze_policy": "pinned_commit_required",
+      "integration_mode": "read_only_until_validated",
+      "notes": "Real local repo present and pinned by repo_contract.json."
+    },
+    {
+      "tool_id": "evidently",
+      "repo_name": "evidently",
+      "local_repo_path": "/home/ignac/RINGEST/repo/evidently",
+      "required_for_estimators": [
+        "E40"
+      ],
+      "role": "Reliability, monitoring and drift-oriented reporting support for calibration layers.",
+      "repo_expected": true,
+      "status": "missing_local",
+      "freeze_policy": "pinned_commit_required",
+      "integration_mode": "read_only_until_validated",
+      "notes": "Declared for calibration reporting. Local repo not materialized yet."
+    },
+    {
+      "tool_id": "alibi_detect",
+      "repo_name": "alibi_detect",
+      "local_repo_path": "/home/ignac/RINGEST/repo/alibi_detect",
+      "required_for_estimators": [
+        "E50"
+      ],
+      "role": "Out-of-distribution and drift detection support for null and OOD guards.",
+      "repo_expected": true,
+      "status": "missing_local",
+      "freeze_policy": "pinned_commit_required",
+      "integration_mode": "read_only_until_validated",
+      "notes": "Declared for E50 OOD detection. Local repo not materialized yet."
+    },
+    {
+      "tool_id": "art",
+      "repo_name": "art",
+      "local_repo_path": "/home/ignac/RINGEST/repo/art",
+      "required_for_estimators": [
+        "E50"
+      ],
+      "role": "Adversarial robustness tooling for null and OOD stress tests.",
+      "repo_expected": true,
+      "status": "missing_local",
+      "freeze_policy": "pinned_commit_required",
+      "integration_mode": "read_only_until_validated",
+      "notes": "Declared for E50 robustness checks. Local repo not materialized yet."
+    },
+    {
+      "tool_id": "captum",
+      "repo_name": "captum",
+      "local_repo_path": "/home/ignac/RINGEST/repo/captum",
+      "required_for_estimators": [
+        "E60"
+      ],
+      "role": "Attribution and ablation tooling for estimator audits.",
+      "repo_expected": true,
+      "status": "missing_local",
+      "freeze_policy": "pinned_commit_required",
+      "integration_mode": "read_only_until_validated",
+      "notes": "Declared for E60 attribution and ablation. Local repo not materialized yet."
+    }
+  ]
+}

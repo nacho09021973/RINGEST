@@ -1,0 +1,295 @@
+{
+  "registry_name": "estimators_v1",
+  "schema_version": "v1",
+  "governance_mode": "contract_first_layered_estimation",
+  "summary": {
+    "baseline_role": "The canonical 20-feature vector is baseline_features_v1, not premium.",
+    "premium_role": "The premium estimator operates on ringdown signal, ASD/PSD, and instrument metadata.",
+    "blocking_rule": "No physical interpretation is allowed before all required guards pass."
+  },
+  "execution_order": [
+    "E00",
+    "E10",
+    "E20",
+    "E30",
+    "E40",
+    "E50",
+    "E60"
+  ],
+  "global_blocking_rules": [
+    {
+      "if": "E00.contract_ok == false",
+      "then": "abort_run"
+    },
+    {
+      "if": "E10.decision == 'INSUFFICIENT_INFO'",
+      "then": "block_interpretation"
+    },
+    {
+      "if": "E40.calibration_ok == false",
+      "then": "block_interpretation"
+    },
+    {
+      "if": "E50.null_pass == false",
+      "then": "block_interpretation"
+    },
+    {
+      "if": "E30.outperforms_E20 != true",
+      "then": "premium_not_eligible"
+    }
+  ],
+  "estimators": [
+    {
+      "id": "E00",
+      "name": "input_contract_guard_v1",
+      "role": "Validate that the boundary input exists contractually and that the representation is admissible.",
+      "stage_kind": "guard",
+      "primary_inputs": [
+        "boundary_hdf5_raw_view",
+        "boundary_hdf5_canonical_view",
+        "boundary_attrs",
+        "source_hashes"
+      ],
+      "primary_outputs": [
+        "contract_ok",
+        "failure_reason",
+        "representation_fingerprint",
+        "RUN_VALID"
+      ],
+      "hard_requirements": [
+        "canonical_x_grid_len_100",
+        "canonical_x_grid_float64",
+        "canonical_x_grid_strictly_positive",
+        "qnm_attrs_present",
+        "raw_view_preserved"
+      ],
+      "artifacts": [
+        "runs/<run_id>/experiment/estimators_v1/input_contract_guard/manifest.json",
+        "runs/<run_id>/experiment/estimators_v1/input_contract_guard/stage_summary.json",
+        "runs/<run_id>/experiment/estimators_v1/input_contract_guard/outputs/contract_report.json"
+      ]
+    },
+    {
+      "id": "E10",
+      "name": "information_gate_v1",
+      "role": "Estimate whether the event contains usable ringdown information or is indistinguishable from noise.",
+      "stage_kind": "gate",
+      "primary_inputs": [
+        "ringdown_window_or_whitened_strain",
+        "asd_or_psd",
+        "ifo_metadata",
+        "sampling_metadata",
+        "optional_support_features"
+      ],
+      "primary_outputs": [
+        "p_information",
+        "decision",
+        "uncertainty",
+        "calibrated_score"
+      ],
+      "recommended_models": [
+        "LogisticRegression",
+        "HistGradientBoosting",
+        "explicit_calibration"
+      ],
+      "acceptance_criteria": [
+        "ECE<=0.05",
+        "null_FPR_below_threshold",
+        "stable_under_nonsemantic_perturbations"
+      ],
+      "artifacts": [
+        "runs/<run_id>/experiment/estimators_v1/information_gate/manifest.json",
+        "runs/<run_id>/experiment/estimators_v1/information_gate/stage_summary.json",
+        "runs/<run_id>/experiment/estimators_v1/information_gate/outputs/p_information.json"
+      ]
+    },
+    {
+      "id": "E20",
+      "name": "baseline_features_v1",
+      "role": "Auditable baseline built on the canonical 20-feature representation.",
+      "stage_kind": "baseline",
+      "primary_inputs": [
+        "canonical_feature_vector_20"
+      ],
+      "feature_blocks": {
+        "G2": [
+          0,
+          9
+        ],
+        "thermal": [
+          9,
+          13
+        ],
+        "QNM": [
+          13,
+          16
+        ],
+        "response": [
+          16,
+          18
+        ],
+        "global": [
+          18,
+          20
+        ]
+      },
+      "primary_outputs": [
+        "baseline_score_or_simple_posterior",
+        "block_importance",
+        "calibration_report",
+        "representation_sensitivity"
+      ],
+      "recommended_models": [
+        "LogisticRegression",
+        "Ridge",
+        "ElasticNet",
+        "HistGradientBoosting",
+        "small_ensemble"
+      ],
+      "governance_rules": [
+        "always_present",
+        "premium_must_beat_E20"
+      ],
+      "artifacts": [
+        "runs/<run_id>/experiment/estimators_v1/baseline_features/manifest.json",
+        "runs/<run_id>/experiment/estimators_v1/baseline_features/stage_summary.json",
+        "runs/<run_id>/experiment/estimators_v1/baseline_features/outputs/baseline_scores.json",
+        "runs/<run_id>/experiment/estimators_v1/baseline_features/outputs/block_importance.json"
+      ]
+    },
+    {
+      "id": "E30",
+      "name": "premium_posterior_estimator_v1",
+      "role": "Premium posterior estimator over ringdown latent parameters.",
+      "stage_kind": "premium",
+      "primary_inputs": [
+        "ringdown_window_or_whitened_strain",
+        "asd_or_psd",
+        "instrument_metadata",
+        "optional_analysis_window_mask"
+      ],
+      "primary_outputs": [
+        "posterior_samples",
+        "posterior_summary",
+        "credible_intervals",
+        "coverage_diagnostics",
+        "configuration_log"
+      ],
+      "target_latents": [
+        "f0",
+        "tau0",
+        "effective_amplitude",
+        "overtone_ratios",
+        "instrument_nuisance_parameters"
+      ],
+      "valid_backends": [
+        "DINGO",
+        "generic_SBI"
+      ],
+      "acceptance_criteria": [
+        "reasonable_coverage",
+        "stable_across_reruns",
+        "no_collapse_on_nulls",
+        "clear_improvement_over_E20",
+        "controlled_nonsemantic_sensitivity"
+      ],
+      "artifacts": [
+        "runs/<run_id>/experiment/estimators_v1/premium_posterior/manifest.json",
+        "runs/<run_id>/experiment/estimators_v1/premium_posterior/stage_summary.json",
+        "runs/<run_id>/experiment/estimators_v1/premium_posterior/outputs/posterior_samples.h5",
+        "runs/<run_id>/experiment/estimators_v1/premium_posterior/outputs/posterior_summary.json"
+      ]
+    },
+    {
+      "id": "E40",
+      "name": "calibration_layer_v1",
+      "role": "Measure and correct probabilistic honesty for E10 and E30.",
+      "stage_kind": "calibration",
+      "primary_inputs": [
+        "uncalibrated_scores_or_posteriors",
+        "validated_golden_set"
+      ],
+      "primary_outputs": [
+        "calibrated_model",
+        "reliability_curves",
+        "ece_report",
+        "empirical_coverage"
+      ],
+      "valid_methods": [
+        "isotonic",
+        "temperature_scaling",
+        "conformal_if_applicable"
+      ],
+      "governance_rules": [
+        "uncalibrated_score_not_interpretable",
+        "posterior_without_coverage_not_interpretable"
+      ],
+      "artifacts": [
+        "runs/<run_id>/experiment/estimators_v1/calibration/manifest.json",
+        "runs/<run_id>/experiment/estimators_v1/calibration/stage_summary.json",
+        "runs/<run_id>/experiment/estimators_v1/calibration/outputs/ece.json",
+        "runs/<run_id>/experiment/estimators_v1/calibration/outputs/reliability.json"
+      ]
+    },
+    {
+      "id": "E50",
+      "name": "null_ood_guard_v1",
+      "role": "Block false positives and out-of-distribution behavior.",
+      "stage_kind": "guard",
+      "primary_inputs": [
+        "outputs_from_E10_E20_E30",
+        "null_datasets",
+        "contract_equivalent_perturbations",
+        "synthetic_negatives"
+      ],
+      "primary_outputs": [
+        "null_pass",
+        "ood_score",
+        "false_positive_report"
+      ],
+      "recommended_methods": [
+        "Mahalanobis_on_embeddings",
+        "energy_distance",
+        "conformal_p_values",
+        "null_run_battery"
+      ],
+      "acceptance_criteria": [
+        "premium_does_not_systematically_see_structure_in_nulls"
+      ],
+      "artifacts": [
+        "runs/<run_id>/experiment/estimators_v1/null_ood_guard/manifest.json",
+        "runs/<run_id>/experiment/estimators_v1/null_ood_guard/stage_summary.json",
+        "runs/<run_id>/experiment/estimators_v1/null_ood_guard/outputs/null_report.json",
+        "runs/<run_id>/experiment/estimators_v1/null_ood_guard/outputs/ood_report.json"
+      ]
+    },
+    {
+      "id": "E60",
+      "name": "ablation_audit_v1",
+      "role": "Localize which block sustains the decision and quantify dependence.",
+      "stage_kind": "audit",
+      "primary_inputs": [
+        "estimator_from_E20_or_E30",
+        "feature_or_signal_blocks"
+      ],
+      "primary_outputs": [
+        "block_delta",
+        "dependency_ranking",
+        "g2_ablation_sensitivity",
+        "qnm_ablation_sensitivity"
+      ],
+      "required_blocks": [
+        "G2",
+        "thermal",
+        "QNM",
+        "response",
+        "global"
+      ],
+      "artifacts": [
+        "runs/<run_id>/experiment/estimators_v1/ablation_audit/manifest.json",
+        "runs/<run_id>/experiment/estimators_v1/ablation_audit/stage_summary.json",
+        "runs/<run_id>/experiment/estimators_v1/ablation_audit/outputs/ablation_report.json"
+      ]
+    }
+  ]
+}
