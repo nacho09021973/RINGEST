@@ -35,7 +35,6 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 from tools.g2_representation_contract import (
     G2RepresentationContractError,
-    build_stage02_contract_attrs,
     canonicalize_g2_representation,
 )
 
@@ -538,7 +537,7 @@ def main() -> int:
                 g2_contract = canonicalize_g2_representation(
                     x_grid_raw,
                     G2_ringdown_raw,
-                    n_points=SANDBOX_N_X,
+                    n_x=SANDBOX_N_X,
                     x_min=SANDBOX_X_MIN,
                     x_max=SANDBOX_X_MAX,
                 )
@@ -546,16 +545,24 @@ def main() -> int:
                 raise SystemExit(
                     f"[ERROR] failed to canonicalize G2 representation for {event_id}: {exc}"
                 ) from exc
-            x_grid = g2_contract.x_grid
-            G2_ringdown = g2_contract.g2_canonical
-            contract_attrs = build_stage02_contract_attrs(
-                x_grid_raw=x_grid_raw,
-                x_grid_canon=x_grid,
-                omega_grid_raw=omega_grid_dimless_raw,
-                omega_grid_compat=omega_grid_dimless,
-                g_r_raw_shape=tuple(GR_real_raw.shape),
-                g_r_compat_shape=tuple(GR_real.shape),
-            )
+            x_grid = g2_contract["x_grid"]
+            G2_ringdown = g2_contract["G2_ringdown"]
+            contract_attrs = {
+                "x_grid_raw_range": np.asarray(g2_contract["meta"]["x_grid_raw_range"], dtype=np.float64),
+                "x_grid_canon_range": np.asarray(g2_contract["meta"]["x_grid_canon_range"], dtype=np.float64),
+                "omega_grid_raw_range": np.asarray(
+                    [float(np.nanmin(omega_grid_dimless_raw)), float(np.nanmax(omega_grid_dimless_raw))],
+                    dtype=np.float64,
+                ),
+                "omega_grid_compat_range": np.asarray(
+                    [float(np.nanmin(omega_grid_dimless)), float(np.nanmax(omega_grid_dimless))],
+                    dtype=np.float64,
+                ),
+                "G_R_raw_shape": np.asarray(GR_real_raw.shape, dtype=np.int64),
+                "G_R_compat_shape": np.asarray(GR_real.shape, dtype=np.int64),
+                "g2_interp_mode": g2_contract["meta"]["g2_interp_mode"],
+                "g2_norm_mode": g2_contract["meta"]["g2_norm_mode"],
+            }
         else:
             omega_grid_dimless = omega_grid_dimless_raw
             k_grid = k_grid_raw
@@ -598,9 +605,9 @@ def main() -> int:
             if args.compat_mode == "stage02_sandbox_v5":
                 for attr_key, attr_value in contract_attrs.items():
                     b.attrs[attr_key] = attr_value
-                b.attrs["g2_eps"] = float(g2_contract.eps)
-                b.attrs["g2_valid_points"] = int(g2_contract.n_valid_points)
-                b.attrs["g2_unique_points"] = int(g2_contract.n_unique_points)
+                b.attrs["g2_eps"] = float(g2_contract["meta"]["eps"])
+                b.attrs["g2_valid_points"] = int(g2_contract["meta"]["n_valid_after_filter"])
+                b.attrs["g2_unique_points"] = int(g2_contract["meta"]["n_unique_after_dedup"])
             b.create_dataset("G_R_real", data=GR_real)
             b.create_dataset("G_R_imag", data=GR_imag)
             b.create_dataset("x_grid", data=x_grid)
@@ -665,9 +672,9 @@ def main() -> int:
 
             # raw ringdown JSON snapshots (for full traceability)
             raw = f.create_group("ringdown_raw")
-            raw.create_dataset("poles_json", data=np.string_(json.dumps(poles_payload)))
-            raw.create_dataset("coincident_pairs_json", data=np.string_(json.dumps(cp_payload)))
-            raw.create_dataset("null_test_json", data=np.string_(json.dumps(null_payload)))
+            raw.create_dataset("poles_json", data=np.bytes_(json.dumps(poles_payload)))
+            raw.create_dataset("coincident_pairs_json", data=np.bytes_(json.dumps(cp_payload)))
+            raw.create_dataset("null_test_json", data=np.bytes_(json.dumps(null_payload)))
 
         # manifest entry
         manifest["geometries"].append(
