@@ -144,6 +144,50 @@ def set_torch_seed(seed: int = 42):
     np.random.seed(seed)
 
 
+def resolve_runtime_device(requested_device: str) -> torch.device:
+    """
+    Resuelve el dispositivo de ejecución con fallback no intrusivo a CPU.
+
+    Reglas:
+    - Si se pide CUDA y no está disponible, avisa y cae a CPU.
+    - Si el string de dispositivo es inválido, avisa y cae a CPU.
+    - Siempre imprime el dispositivo realmente usado.
+    """
+    requested = (requested_device or "cpu").strip().lower()
+
+    if requested.startswith("cuda") and not torch.cuda.is_available():
+        print(
+            f"[WARN] Se solicitó --device {requested_device!r}, pero CUDA no está disponible. "
+            "Fallback a cpu."
+        )
+        resolved = torch.device("cpu")
+        print(f"[INFO] Dispositivo real en uso: {resolved}")
+        return resolved
+
+    try:
+        resolved = torch.device(requested)
+    except Exception as exc:
+        print(
+            f"[WARN] Dispositivo inválido {requested_device!r}: {exc}. "
+            "Fallback a cpu."
+        )
+        resolved = torch.device("cpu")
+        print(f"[INFO] Dispositivo real en uso: {resolved}")
+        return resolved
+
+    if resolved.type == "cuda":
+        device_count = torch.cuda.device_count()
+        if resolved.index is not None and resolved.index >= device_count:
+            print(
+                f"[WARN] Se solicitó {requested_device!r}, pero solo hay {device_count} "
+                "dispositivos CUDA visibles. Fallback a cpu."
+            )
+            resolved = torch.device("cpu")
+
+    print(f"[INFO] Dispositivo real en uso: {resolved}")
+    return resolved
+
+
 def compute_r2(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     """RAfAE'Aca,!A!A2 clAfAE'A+aEUR(TM)AfaEURsA,A!sico, con protecciAfAE'A+aEUR(TM)AfaEURsA,A3n para casos degenerados."""
     y_true = np.asarray(y_true).flatten()
@@ -1302,6 +1346,8 @@ def run_inference_mode(args):
     print("=" * 70)
     print("FASE XI V2.2 - inference mode (BOUNDARY-ONLY)")
     print("=" * 70)
+
+    device = resolve_runtime_device(args.device)
     
     # Validar argumentos
     if args.checkpoint is None:
@@ -1316,7 +1362,6 @@ def run_inference_mode(args):
     
     data_dir = Path(args.data_dir)
     output_dir = Path(args.output_dir)
-    device = torch.device(args.device)
     
     print(f"  Checkpoint:   {checkpoint_path}")
     print(f"  Datos:        {data_dir}")
@@ -1581,7 +1626,7 @@ def run_train_mode(args):
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    device = torch.device(args.device)
+    device = resolve_runtime_device(args.device)
     
     print("=" * 70)
     print("EMERGENT GEOMETRY ENGINE (MODO TRAIN)")

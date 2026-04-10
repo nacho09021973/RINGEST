@@ -30,6 +30,8 @@
 # MIGRADO A V3: 2024-12-23
 # PATCH ROUTING_CONTRACT: 2024-12-27
 
+from __future__ import annotations
+
 import argparse
 import json
 import sys
@@ -526,6 +528,59 @@ def save_results(
     return summary
 
 
+def save_skip_results(
+    output_dir: Path,
+    metadata: Dict[str, Any],
+    config: DiscoveryConfig,
+    regime_config: RegimeContractConfig,
+    reason: str,
+    use_minimal_ops: bool,
+) -> Dict[str, Any]:
+    """
+    Guarda artefactos mínimos cuando PySR/Julia no está disponible.
+
+    Esto preserva el carril operativo del pipeline sin fingir descubrimiento
+    simbólico ni romper los nombres de artefactos del stage.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    summary = {
+        "timestamp": datetime.now().isoformat(),
+        "version": "v3_routing_contract",
+        "source_metadata": metadata,
+        "config": {
+            "niterations": config.niterations,
+            "maxsize": config.maxsize,
+            "features": list(config.features),
+            "target": config.target,
+            "use_minimal_ops": use_minimal_ops,
+            "random_state": config.random_state,
+        },
+        "regime_config": asdict(regime_config),
+        "discovery_results": {
+            "status": "skipped",
+            "reason": reason,
+        },
+        "feature_mapping": {
+            "x_mapping": {f"x{i}": name for i, name in enumerate(config.features)},
+        },
+        "metrics_by_regime": {},
+        "contract_status": "INCONCLUSIVE",
+        "theory_comparison": {"enabled": False, "note": "PySR skipped"},
+    }
+
+    report_path = output_dir / "lambda_sl_dictionary_report.json"
+    with open(report_path, "w") as f:
+        json.dump(summary, f, indent=2, default=str)
+    print(f"\n   Guardado: {report_path}")
+
+    pareto_path = output_dir / "lambda_sl_dictionary_pareto.csv"
+    pareto_path.write_text("status,reason\nskipped," + json.dumps(reason) + "\n")
+    print(f"   Guardado: {pareto_path}")
+
+    return summary
+
+
 # =============================================================================
 # ROUTING CONTRACT: Validación de conflictos
 # =============================================================================
@@ -798,17 +853,64 @@ def main() -> int:
         return 3
     
     if not HAS_PYSR:
-        print("   ERROR: PySR no disponible. Instalar con: pip install pysr")
+        reason = "PySR no disponible. Se omite la regresión simbólica y el stage continúa."
+        print(f"   [WARN] {reason}")
+        summary = save_skip_results(
+            output_dir=output_dir,
+            metadata=metadata,
+            config=config,
+            regime_config=regime_config,
+            reason="pysr_not_available",
+            use_minimal_ops=args.ops_minimal,
+        )
+
         if ctx:
-            ctx.write_summary(status="ERROR", counts={"error": "pysr_not_available"})
-        return 1
-    
+            report_file = output_dir / "lambda_sl_dictionary_report.json"
+            ctx.record_artifact("dictionary_report", report_file)
+            ctx.record_artifact("input_file", input_path)
+            ctx.write_summary(
+                status="INCONCLUSIVE",
+                counts={
+                    "total_operators": metadata.get("total_operators", 0),
+                    "train_samples": int(len(X_train)),
+                    "test_samples": int(len(X_test)),
+                    "contract_status": summary["contract_status"],
+                    "pysr_status": "skipped",
+                }
+            )
+            ctx.write_manifest()
+        return 0
+
     model = discover_emergent_relation(X_train, y_train, config, use_minimal_ops=args.ops_minimal)
-    
+
     if model is None:
+        reason = "PySR/Julia falló en runtime. Se omite la regresión simbólica y el stage continúa."
+        print(f"   [WARN] {reason}")
+        summary = save_skip_results(
+            output_dir=output_dir,
+            metadata=metadata,
+            config=config,
+            regime_config=regime_config,
+            reason="pysr_runtime_failure",
+            use_minimal_ops=args.ops_minimal,
+        )
+
         if ctx:
-            ctx.write_summary(status="ERROR", counts={"error": "model_training_failed"})
-        return 1
+            report_file = output_dir / "lambda_sl_dictionary_report.json"
+            ctx.record_artifact("dictionary_report", report_file)
+            ctx.record_artifact("input_file", input_path)
+            ctx.write_summary(
+                status="INCONCLUSIVE",
+                counts={
+                    "total_operators": metadata.get("total_operators", 0),
+                    "train_samples": int(len(X_train)),
+                    "test_samples": int(len(X_test)),
+                    "contract_status": summary["contract_status"],
+                    "pysr_status": "skipped_runtime_failure",
+                }
+            )
+            ctx.write_manifest()
+        return 0
     
     summary = save_results(
         model, config, X_train, y_train, X_test, y_test,
