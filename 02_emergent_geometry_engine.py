@@ -109,6 +109,23 @@ try:
 except ImportError:
     HAS_CUERDAS_IO = False
 
+# V3 contract: feature support audit (C2 — QNM block removed)
+HAS_FEATURE_SUPPORT = False
+FEATURE_NAMES_V3 = None
+CRITICAL_FEATURES_V3 = None
+audit_feature_support = None
+audit_train_feature_support = None
+try:
+    from feature_support import (
+        FEATURE_NAMES_V3,
+        CRITICAL_FEATURES_V3,
+        audit_feature_support,
+        audit_train_feature_support,
+    )
+    HAS_FEATURE_SUPPORT = True
+except ImportError:
+    pass
+
 
 # ============================================================
 # CONFIGURACIAfAE'A+aEUR(TM)AfAcAcaEURsA!A...aEURoeN DE PESOS DE LOSS (MODIFICAR AQUAfAE'A+aEUR(TM)AfaEURsA,A?)
@@ -572,6 +589,87 @@ def build_feature_vector(boundary_data: Dict[str, Any], operators: List[Dict]) -
     # Correlador: 9 (4 orig + 3 running + 2 stats)
     # Termicos: 4, QNM: 3 (Q0/f1f0/g1g0), Respuesta: 2, Globales: 2
     return np.array(all_features, dtype=np.float32)
+
+
+def build_feature_vector_v3(boundary_data: Dict[str, Any], operators: List[Dict]) -> np.ndarray:
+    """
+    V3 feature vector — Camino C2 contract (17 features).
+
+    Identical to build_feature_vector except the QNM block (qnm_Q0, qnm_f1f0,
+    qnm_g1g0) is intentionally absent.  This makes the vector interoperable
+    between the holographic sandbox (Kerr analytical, Q0≈2–7) and the real
+    GWOSC bridge (ESPRIT 250 ms window, Q0≈100–10000) without the 795σ
+    extrapolation that killed the V2.5 gate.
+
+    Feature ordering (must stay in sync with FEATURE_NAMES_V3 in feature_support.py):
+      0–8:   G2 correlator (9): log_slope, log_curvature, small_x, large_x,
+             slope_UV, slope_IR, slope_running, G2_std, G2_skew
+      9–12:  Thermal (4): temperature, has_horizon, thermal_scale, exponential_decay
+      13–14: Response G_R (2): GR_peak_height, GR_peak_width
+      15:    central_charge_eff (1)
+      16:    d (1)
+    """
+    all_features: List[float] = []
+
+    # 1. G2 correlator (9)
+    x_grid = boundary_data.get("x_grid", np.linspace(0.1, 10, 100))
+    G2 = None
+    for key in boundary_data:
+        if key.startswith("G2_") and isinstance(boundary_data[key], np.ndarray):
+            G2 = boundary_data[key]
+            break
+    if G2 is not None:
+        corr_feats = extract_correlator_features(G2, x_grid)
+        for k in ["G2_log_slope", "G2_log_curvature", "G2_small_x", "G2_large_x",
+                  "slope_UV", "slope_IR", "slope_running", "G2_std", "G2_skew"]:
+            all_features.append(corr_feats.get(k, 0.0))
+    else:
+        all_features.extend([0.0] * 9)
+
+    # 2. Thermal (4)
+    T = boundary_data.get("temperature", boundary_data.get("T", 0.0))
+    if isinstance(T, np.ndarray):
+        T = float(T.ravel()[0]) if T.size > 0 else 0.0
+    if G2 is not None:
+        thermal_feats = extract_thermal_features(G2, x_grid, T)
+        for k in ["temperature", "has_horizon", "thermal_scale", "exponential_decay"]:
+            all_features.append(thermal_feats.get(k, 0.0))
+    else:
+        all_features.extend([float(T), float(T > 1e-10), 0.0, 0.0])
+
+    # QNM block intentionally absent (V3 / Camino C2)
+
+    # 3. Response G_R (2)
+    if "G_R_real" in boundary_data and "G_R_imag" in boundary_data:
+        resp_feats = extract_response_features(
+            boundary_data["G_R_real"],
+            boundary_data["G_R_imag"],
+            boundary_data.get("omega_grid", np.linspace(0.1, 10, 50)),
+            boundary_data.get("k_grid", np.linspace(0, 5, 30)),
+        )
+        all_features.append(resp_feats.get("GR_peak_height", 0.0))
+        all_features.append(resp_feats.get("GR_peak_width", 0.0))
+    else:
+        all_features.extend([0.0, 0.0])
+
+    # 4. central_charge_eff (1)
+    c_eff = boundary_data.get("central_charge_eff", None)
+    if c_eff is not None:
+        c_eff_arr = np.asarray(c_eff, dtype=float)
+        c_eff_val = float(c_eff_arr.ravel()[0]) if c_eff_arr.size > 0 else 0.0
+    else:
+        c_eff_val = 0.0
+    all_features.append(c_eff_val)
+
+    # 5. d (1)
+    d = boundary_data.get("d", 4)
+    if isinstance(d, np.ndarray):
+        d = int(d.ravel()[0]) if d.size > 0 else 4
+    all_features.append(float(d))
+
+    # Total: 17 features
+    return np.array(all_features, dtype=np.float32)
+
 
 # ============================================================
 # CARGA SEGURA DE DATOS (BULK vs BOUNDARY)
@@ -1438,7 +1536,8 @@ def run_inference_mode(args):
     loader = CuerdasDataLoader(mode="inference")  # BLOQUEA acceso a bulk_truth
     
     summary_entries = []
-    
+    _n_gate_fail = 0
+
     for geo_info in geometries:
         name = geo_info["name"]
         h5_path = data_dir / f"{name}.h5"
@@ -1459,8 +1558,26 @@ def run_inference_mode(args):
             d_boundary = int(d_boundary.ravel()[0])
         boundary_data["d"] = d_boundary
         
-        # Construir features
-        X = build_feature_vector(boundary_data, operators)
+        # Construir features (V3 — 17 features, no QNM block)
+        X = build_feature_vector_v3(boundary_data, operators)
+
+        # Feature support audit (V3 gate)
+        if HAS_FEATURE_SUPPORT and audit_feature_support is not None:
+            _x_mean_flat = X_mean.flatten() if hasattr(X_mean, 'flatten') else np.asarray(X_mean).flatten()
+            _x_std_flat = (X_std.flatten() if hasattr(X_std, 'flatten') else np.asarray(X_std).flatten())
+            gate_report = audit_feature_support(
+                feature_vector=X,
+                X_mean=_x_mean_flat,
+                X_std=_x_std_flat,
+                feature_names=list(FEATURE_NAMES_V3),
+                critical_features=list(CRITICAL_FEATURES_V3),
+            )
+            if gate_report.verdict == "FAIL":
+                _n_gate_fail += 1
+                print(f"   [GATE FAIL] {name}: {gate_report.verdict_reason}")
+                continue  # skip normalization + inference for this system
+            elif gate_report.verdict == "WARN":
+                print(f"   [GATE WARN] {name}: {gate_report.verdict_reason}")
 
         # NaN/Inf-safe features (inference): evita que el modelo propague NaNs
         if not np.all(np.isfinite(X)):
@@ -1550,13 +1667,16 @@ def run_inference_mode(args):
         })
         
         print(f"      -> family_pred={preds['family_name']}, zh_pred={preds['zh_pred']:.3f}")
-    
-    # === ESCRIBIR SUMMARY ===
-    summary = {
+
+    # === GATE FAIL CHECK ===
+    # Write summary before raising so the caller can inspect it (test contract)
+    _summary_pre: Dict[str, Any] = {
         "version": "V2.2",
         "mode": "inference",
+        "feature_contract": "v3",
+        "n_features": 17,
         "description": (
-            "GeometrAfAE'A+aEUR(TM)AfaEURsA,A-a emergente inferida desde datos boundary-only "
+            "Geometría emergente inferida desde datos boundary-only "
             "usando modelo entrenado en sandbox"
         ),
         "checkpoint": str(checkpoint_path),
@@ -1567,12 +1687,17 @@ def run_inference_mode(args):
             "n_points": len(z_grid),
         },
         "systems": summary_entries,
-        "metrics": None,  # No hay mAfAE'A+aEUR(TM)AfaEURsA,A(C)tricas train/test en inference
+        "metrics": None,
     }
-    
-    summary_path = output_dir / "emergent_geometry_summary.json"
-    summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False, default=str))
-    
+    _summary_path_pre = output_dir / "emergent_geometry_summary.json"
+    _summary_path_pre.write_text(json.dumps(_summary_pre, indent=2, ensure_ascii=False, default=str))
+
+    if _n_gate_fail > 0:
+        raise RuntimeError(
+            f"UNSUPPORTED_FEATURE_REGIME: {_n_gate_fail}/{len(summary_entries)} systems failed "
+            "the V3 feature support gate. Inference aborted."
+        )
+
     # === ESCRIBIR RUN_MANIFEST (IO v2) ===
     if HAS_CUERDAS_IO:
         manifest_artifacts = {
@@ -1605,7 +1730,7 @@ def run_inference_mode(args):
     print("\n" + "=" * 70)
     print("[OK] FASE XI V2.2 - inference mode COMPLETADO")
     print(f"  GeometrAfAE'A+aEUR(TM)AfaEURsA,A-as:   {geom_dir}")
-    print(f"  Summary:      {summary_path}")
+    print(f"  Summary:      {_summary_path_pre}")
     print(f"  Sistemas:     {len(summary_entries)}")
     print("=" * 70)
     print("Next step: 03_discover_bulk_equations.py")
@@ -1685,7 +1810,7 @@ def run_train_mode(args):
         # AAfAE'A+aEUR(TM)A+-adir d a boundary_data para feature extraction
         boundary_data["d"] = d_value_local
 
-        X = build_feature_vector(boundary_data, operators)
+        X = build_feature_vector_v3(boundary_data, operators)
         family_id = family_map.get(family, 4)
 
         if category == "known":
@@ -1732,13 +1857,30 @@ def run_train_mode(args):
         if count > 0:
             print(f"     {fam_name}: {count}")
     
+    # === FEATURE SUPPORT AUDIT (V3 train gate) ===
+    if HAS_FEATURE_SUPPORT and audit_train_feature_support is not None:
+        _X_std_raw = X_train.std(axis=0)
+        _train_audit = audit_train_feature_support(
+            feature_names=list(FEATURE_NAMES_V3),
+            X_mean=X_train.mean(axis=0),
+            X_std=_X_std_raw,
+            critical_features=list(CRITICAL_FEATURES_V3),
+        )
+        print(f"\n   Train feature audit: verdict={_train_audit['verdict']}")
+        if _train_audit["verdict_reason"]:
+            print(f"     {_train_audit['verdict_reason']}")
+        if _train_audit["verdict"] == "FAIL":
+            raise RuntimeError(
+                f"TRAIN_FEATURE_SUPPORT_FAIL: {_train_audit['verdict_reason']}"
+            )
+
     # === NORMALIZACIAfAE'A+aEUR(TM)AfAcAcaEURsA!A...aEURoeN ===
-    
+
     # Features
     X_mean = X_train.mean(axis=0, keepdims=True)
     X_std = X_train.std(axis=0, keepdims=True) + 1e-8
     X_train_norm = (X_train - X_mean) / X_std
-    
+
     # Targets
     normalizer = TargetNormalizer()
     normalizer.fit(Y_A_train, Y_f_train, Y_R_train)
@@ -2105,11 +2247,11 @@ def main():
             },
             metadata={"command": " ".join(sys.argv), "mode": args.mode},
         )
-    except Exception as exc:  # pragma: no cover - infra guardrail
+    except Exception as exc:
         status = STATUS_ERROR
         exit_code = EXIT_ERROR
         error_message = str(exc)
-        raise
+        # Do NOT re-raise: allow finally to write summary and call sys.exit(EXIT_ERROR)
     finally:
         summary_path = ctx.stage_dir / "stage_summary.json"
         try:
@@ -2117,7 +2259,7 @@ def main():
         except Exception:
             pass
         ctx.write_summary(status=status, exit_code=exit_code, error_message=error_message)
-    sys.exit(exit_code)
+        sys.exit(exit_code)
 
 
 if __name__ == "__main__":

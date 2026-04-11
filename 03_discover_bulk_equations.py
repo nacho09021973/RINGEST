@@ -256,9 +256,11 @@ def discover_geometric_relations(
     print(f"     CV:   {results['R_statistics']['coefficient_of_variation']:.4f}")
     
     if not HAS_PYSR:
-        results["pysr_available"] = False
-        return results
-    
+        raise RuntimeError(
+            "PY_SR_UNAVAILABLE: PySR (pysr) is not installed. "
+            "Install it with: pip install pysr"
+        )
+
     results["pysr_available"] = True
     
     # === Test 1: R es funcion constante? ===
@@ -538,6 +540,13 @@ def main() -> int:
     error_message: Optional[str] = None
 
     try:
+        # CONTRACT: PySR must be installed — fail fast before touching the FS.
+        if not HAS_PYSR:
+            raise RuntimeError(
+                "PY_SR_UNAVAILABLE: PySR (pysr) is not installed. "
+                "Install it with: pip install pysr"
+            )
+
         # === RESOLVER GEOMETRÍAS ===
         geometries_dir = resolve_geometries_dir(args, run_dir)
         
@@ -626,11 +635,25 @@ def main() -> int:
             json_path.parent.mkdir(exist_ok=True)
             json_path.write_text(json.dumps(geo_results, indent=2, default=str))
     
+        # CONTRACT: at least one geometry must have produced a symbolic equation.
+        n_with_equations = sum(
+            1 for g in all_results["geometries"]
+            if g["results"].get("R_equation") is not None
+        )
+        if n_with_equations == 0:
+            n_geo = len(all_results["geometries"])
+            raise RuntimeError(
+                f"NO_SYMBOLIC_EQUATIONS_DISCOVERED: PySR ran on {n_geo} "
+                f"geometr{'y' if n_geo == 1 else 'ies'} but produced no "
+                f"symbolic equations. Ensure each geometry has at least 10 "
+                f"finite, bounded R values."
+            )
+
         # GLOBAL SUMMARY
         print("\n" + "=" * 70)
         print("GLOBAL SUMMARY")
         print("=" * 70)
-        
+
         verdicts = [g["validation"]["verdict"] for g in all_results["geometries"]]
         n_einstein = sum(1 for v in verdicts if v == "LIKELY_EINSTEIN_VACUUM")
         n_possibly = sum(1 for v in verdicts if v == "POSSIBLY_EINSTEIN_WITH_MATTER")
@@ -647,10 +670,12 @@ def main() -> int:
         
         all_results["summary"] = {
             "n_geometries": n_total,
+            "n_with_equations": n_with_equations,
             "n_likely_einstein": n_einstein,
             "n_possibly_einstein": n_possibly,
             "n_non_einstein": n_non,
-            "average_einstein_score": float(avg_score)
+            "average_einstein_score": float(avg_score),
+            "pysr_available": True,
         }
         
         summary_path = output_dir / "einstein_discovery_summary.json"

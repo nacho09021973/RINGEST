@@ -31,9 +31,12 @@ import numpy as np
 try:
     from pysr import PySRRegressor
     HAS_PYSR = True
-except ImportError:
+except Exception as exc:
     HAS_PYSR = False
-    print("[WARN] PySR no disponible. Solo se hará análisis preliminar.")
+    print(
+        "[WARN] PySR no disponible. Solo se hará análisis preliminar. "
+        f"Import error: {exc}"
+    )
 
 
 def load_ground_truth(json_path: Path) -> List[Dict[str, Any]]:
@@ -42,29 +45,108 @@ def load_ground_truth(json_path: Path) -> List[Dict[str, Any]]:
     Filtra entradas donde lambda_sl es null.
     """
     data = json.loads(json_path.read_text())
-    
+
+    systems = data.get("systems")
+    if not isinstance(systems, list):
+        raise RuntimeError(
+            "INPUT_SCHEMA_MISMATCH: expected top-level 'systems' list"
+        )
+
     pairs = []
-    for system in data.get("systems", []):
-        d = system["d"]
-        system_name = system["system"]
-        
-        for op in system.get("operators", []):
-            lambda_sl = op.get("lambda_sl")
-            delta = op.get("Delta")
-            
-            # Filtrar si lambda_sl es null o None
-            if lambda_sl is None:
-                continue
-            if delta is None:
-                continue
-                
-            pairs.append({
-                "system": system_name,
-                "d": d,
-                "lambda_sl": float(lambda_sl),
-                "Delta": float(delta),
-                "name": op.get("name", "unknown"),
-            })
+    for idx, system in enumerate(systems):
+        if not isinstance(system, dict):
+            raise RuntimeError(
+                f"INPUT_SCHEMA_MISMATCH: systems[{idx}] must be an object"
+            )
+
+        is_legacy = "system" in system and "operators" in system
+        is_stage06 = (
+            "geometry_name" in system
+            and "lambda_sl_bulk" in system
+            and "Delta_bulk_uv" in system
+        )
+
+        if is_legacy:
+            if "d" not in system:
+                raise RuntimeError(
+                    f"INPUT_SCHEMA_MISMATCH: systems[{idx}] missing required key 'd'"
+                )
+
+            d = system["d"]
+            system_name = system["system"]
+            operators = system.get("operators", [])
+            if not isinstance(operators, list):
+                raise RuntimeError(
+                    f"INPUT_SCHEMA_MISMATCH: systems[{idx}].operators must be a list"
+                )
+
+            for op in operators:
+                lambda_sl = op.get("lambda_sl")
+                delta = op.get("Delta")
+
+                # Filtrar si lambda_sl o Delta es null o None
+                if lambda_sl is None:
+                    continue
+                if delta is None:
+                    continue
+
+                pairs.append({
+                    "system": system_name,
+                    "d": d,
+                    "lambda_sl": float(lambda_sl),
+                    "Delta": float(delta),
+                    "name": op.get("name", "unknown"),
+                })
+            continue
+
+        if is_stage06:
+            if "d" not in system:
+                raise RuntimeError(
+                    f"INPUT_SCHEMA_MISMATCH: systems[{idx}] missing required key 'd'"
+                )
+
+            lambda_vals = system["lambda_sl_bulk"]
+            delta_vals = system["Delta_bulk_uv"]
+
+            if not isinstance(lambda_vals, list):
+                raise RuntimeError(
+                    f"INPUT_SCHEMA_MISMATCH: systems[{idx}].lambda_sl_bulk must be a list"
+                )
+            if not isinstance(delta_vals, list):
+                raise RuntimeError(
+                    f"INPUT_SCHEMA_MISMATCH: systems[{idx}].Delta_bulk_uv must be a list"
+                )
+            if len(lambda_vals) != len(delta_vals):
+                raise RuntimeError(
+                    "INPUT_SCHEMA_MISMATCH: "
+                    f"systems[{idx}] has {len(lambda_vals)} lambda_sl_bulk values "
+                    f"but {len(delta_vals)} Delta_bulk_uv values"
+                )
+
+            d = system["d"]
+            system_name = system["geometry_name"]
+            for mode_idx, (lambda_sl, delta) in enumerate(zip(lambda_vals, delta_vals)):
+                # Mantener el mismo criterio que legacy: ignorar pares incompletos.
+                if lambda_sl is None:
+                    continue
+                if delta is None:
+                    continue
+
+                pairs.append({
+                    "system": system_name,
+                    "d": d,
+                    "lambda_sl": float(lambda_sl),
+                    "Delta": float(delta),
+                    "name": f"mode_{mode_idx}",
+                })
+            continue
+
+        raise RuntimeError(
+            "INPUT_SCHEMA_MISMATCH: "
+            f"systems[{idx}] does not match legacy "
+            "('system' + 'operators') or stage06 canonical "
+            "('geometry_name' + 'lambda_sl_bulk' + 'Delta_bulk_uv') schema"
+        )
     
     return pairs
 
