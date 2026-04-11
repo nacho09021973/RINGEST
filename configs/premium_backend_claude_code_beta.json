@@ -1,0 +1,50 @@
+{
+  "adapter_contract": {
+    "must_emit_estimator_name": true,
+    "must_emit_estimator_version": true,
+    "must_emit_input_artifacts": true,
+    "must_emit_provenance_hash": true,
+    "must_emit_summary_metrics": true
+  },
+  "backend_kind": "external_agent",
+  "backend_name": "claude_code_beta",
+  "enabled": false,
+  "expected_outputs": {
+    "block_downstream_unless_pass": true,
+    "degraded_condition": "stage_summary.status == 'DEGRADED'",
+    "pass_condition": "stage_summary.status == 'PASS'",
+    "required": [
+      "stage_summary.json",
+      "outputs/premium_estimate.json",
+      "outputs/premium_features.npz",
+      "outputs/provenance.json"
+    ]
+  },
+  "inputs": {
+    "optional": [
+      "baseline_ringdown_json",
+      "window_spec_json",
+      "detector_metadata_json"
+    ],
+    "required": [
+      "event_id",
+      "baseline_boundary_h5"
+    ]
+  },
+  "invocation": {
+    "command_template": [],
+    "entry_mode": "manual_adapter",
+    "network_access_required": false,
+    "timeout_s": 1800
+  },
+  "notes": [
+    "Disabled until backend adapter is implemented",
+    "Claude Code beta is treated as an external backend, not as a source of truth",
+    "Downstream remains blocked unless required canonical outputs are produced"
+  ],
+  "schema_version": "premium-backend-config-0.1",
+  "write_policy": {
+    "allowed_root": "runs/<run_id>/premium_estimator/",
+    "forbid_writes_outside_run": true
+  }
+}
