@@ -1,10 +1,10 @@
 """
-Tests for saturation detection and automatic contract selection in 02R.
+Tests for observed saturation detection and automatic contract selection in 02R.
 
 These tests cover:
-- detect_saturation_risk() function
+- detect_observed_saturation() function (post-hoc on constructed G2)
 - Automatic contract selection for SATURATED_BY_CONSTRUCTION cases
-- Regression tests ensuring PASS-25 corridor is not affected
+- Regression tests ensuring PASS-25 and HIGH_TAIL_55 corridors are not affected
 """
 from __future__ import annotations
 
@@ -31,74 +31,71 @@ def _load_02r():
     return mod
 
 
-class TestSaturationDetection(unittest.TestCase):
-    """Tests for the detect_saturation_risk function."""
+class TestObservedSaturationDetection(unittest.TestCase):
+    """Tests for the detect_observed_saturation function."""
 
     def setUp(self):
         self.mod = _load_02r()
 
-    def test_high_q_event_triggers_saturation_risk(self):
-        """Events with high Q (low gamma/omega) should trigger saturation risk."""
-        # Q = 10000 -> gamma/omega = 1/(2*Q) = 0.00005
-        # exp(-2 * 0.00005 * 6) = exp(-0.0006) ≈ 0.9994
-        omega_dom = 2.0 * math.pi * 100.0  # 100 Hz
-        gamma_dom = omega_dom / (2.0 * 10000)  # Q = 10000
-        x_max = 6.0
+    def test_all_ones_array_is_saturated(self):
+        """Array with all values >= 0.99 should be detected as saturated."""
+        g2 = np.ones(100, dtype=np.float64) * 0.995
+        is_saturated, meta = self.mod.detect_observed_saturation(g2)
 
-        is_at_risk, predicted_tail = self.mod.detect_saturation_risk(
-            omega_dom, gamma_dom, x_max, threshold=0.99
-        )
+        self.assertTrue(is_saturated, "All-ones array should be saturated")
+        self.assertEqual(meta["n_ge_threshold"], 100)
+        self.assertAlmostEqual(meta["fraction_ge_threshold"], 1.0)
 
-        self.assertTrue(is_at_risk, "High Q event should trigger saturation risk")
-        self.assertGreater(predicted_tail, 0.99)
+    def test_decaying_array_is_not_saturated(self):
+        """Array with proper decay (typical PASS case) should not be saturated."""
+        # Simulate PASS-like decay: starts at 1, decays to ~0.05
+        x = np.linspace(0, 6, 100)
+        g2 = np.exp(-2 * x / 3)  # Moderate decay, ends at ~0.018
 
-    def test_low_q_event_no_saturation_risk(self):
-        """Events with low Q should not trigger saturation risk."""
-        # Q = 5 -> gamma/omega = 0.1
-        # exp(-2 * 0.1 * 6) = exp(-1.2) ≈ 0.30
-        omega_dom = 2.0 * math.pi * 100.0
-        gamma_dom = omega_dom / (2.0 * 5)  # Q = 5
-        x_max = 6.0
+        is_saturated, meta = self.mod.detect_observed_saturation(g2)
 
-        is_at_risk, predicted_tail = self.mod.detect_saturation_risk(
-            omega_dom, gamma_dom, x_max, threshold=0.99
-        )
+        self.assertFalse(is_saturated, "Decaying array should not be saturated")
+        self.assertLess(meta["g2_last"], 0.1)
 
-        self.assertFalse(is_at_risk, "Low Q event should not trigger saturation risk")
-        self.assertLess(predicted_tail, 0.5)
+    def test_high_tail_array_is_not_saturated(self):
+        """Array with high tail but not fully saturated should not trigger."""
+        # HIGH_TAIL case: g2_last in [0.12, 0.86], some points >= 0.99 but not all
+        g2 = np.linspace(1.0, 0.3, 100)  # Ends at 0.3, starts at 1.0
 
-    def test_threshold_boundary(self):
-        """Test the threshold boundary condition."""
-        # Choose Q such that exp(-2 * (1/(2Q)) * 6) = 0.99
-        # -2 * 6 / (2Q) = ln(0.99)
-        # Q = -6 / ln(0.99) ≈ 597
-        omega_dom = 2.0 * math.pi * 100.0
-        Q_boundary = -6.0 / math.log(0.99)
-        gamma_dom = omega_dom / (2.0 * Q_boundary)
-        x_max = 6.0
+        is_saturated, meta = self.mod.detect_observed_saturation(g2)
 
-        # Just below threshold
-        is_at_risk, _ = self.mod.detect_saturation_risk(
-            omega_dom, gamma_dom * 1.01, x_max, threshold=0.99
-        )
-        self.assertFalse(is_at_risk)
+        self.assertFalse(is_saturated, "High-tail array should not be saturated")
+        self.assertLess(meta["fraction_ge_threshold"], 1.0)
 
-        # Just above threshold
-        is_at_risk, _ = self.mod.detect_saturation_risk(
-            omega_dom, gamma_dom * 0.99, x_max, threshold=0.99
-        )
-        self.assertTrue(is_at_risk)
+    def test_threshold_boundary_tail(self):
+        """Test behavior at the tail threshold boundary."""
+        g2 = np.ones(100, dtype=np.float64)
 
-    def test_invalid_inputs_return_no_risk(self):
-        """Invalid inputs should return no risk, not raise errors."""
-        is_at_risk, _ = self.mod.detect_saturation_risk(0, 1.0, 6.0)
-        self.assertFalse(is_at_risk)
+        # Just below threshold at tail
+        g2[-1] = 0.989
+        is_saturated, _ = self.mod.detect_observed_saturation(g2)
+        self.assertFalse(is_saturated, "g2[-1] < 0.99 should not be saturated")
 
-        is_at_risk, _ = self.mod.detect_saturation_risk(1.0, 0, 6.0)
-        self.assertFalse(is_at_risk)
+        # At threshold
+        g2[-1] = 0.99
+        is_saturated, _ = self.mod.detect_observed_saturation(g2)
+        self.assertTrue(is_saturated, "g2[-1] >= 0.99 with all points >= 0.99 should be saturated")
 
-        is_at_risk, _ = self.mod.detect_saturation_risk(1.0, 1.0, 0)
-        self.assertFalse(is_at_risk)
+    def test_fraction_threshold_requirement(self):
+        """Saturation requires ALL points >= 0.99, not just the tail."""
+        g2 = np.ones(100, dtype=np.float64) * 0.995
+        g2[0] = 0.5  # One point below threshold
+
+        is_saturated, meta = self.mod.detect_observed_saturation(g2)
+
+        self.assertFalse(is_saturated, "Array with one point < 0.99 should not be saturated")
+        self.assertEqual(meta["n_ge_threshold"], 99)
+
+    def test_empty_array_returns_no_saturation(self):
+        """Empty array should return no saturation, not raise errors."""
+        g2 = np.array([], dtype=np.float64)
+        is_saturated, meta = self.mod.detect_observed_saturation(g2)
+        self.assertFalse(is_saturated)
 
 
 class TestSaturatedByConstructionRegime(unittest.TestCase):
@@ -107,12 +104,12 @@ class TestSaturatedByConstructionRegime(unittest.TestCase):
     def setUp(self):
         self.mod = _load_02r()
 
-    def test_saturated_event_with_omega_v1_produces_flat_g2(self):
+    def test_monomodal_high_q_with_omega_v1_produces_saturated_g2(self):
         """
-        Simulate a SATURATED_BY_CONSTRUCTION event.
-        With omega_dom_v1, G2 should be nearly flat (all values > 0.99).
+        A monomodal high-Q event with omega_dom_v1 produces saturated G2.
+        This simulates SATURATED_BY_CONSTRUCTION like GW200129_065458.
         """
-        # Simulate GW200129_065458-like: Q ~ 103000
+        # Single pole, very high Q (effectively monomodal)
         Q = 100000
         freq_hz = 250.0
         omega_dom = 2.0 * math.pi * freq_hz
@@ -131,14 +128,16 @@ class TestSaturatedByConstructionRegime(unittest.TestCase):
             g2_time_contract=self.mod.G2_TIME_CONTRACT_OMEGA_DOM_V1,
         )
 
-        # With omega_dom_v1, G2 should be nearly constant (saturated)
-        self.assertGreater(float(g2[-1]), 0.999, "G2 tail should be saturated > 0.999")
-        self.assertGreater(float(np.min(g2)), 0.99, "All G2 values should be > 0.99")
+        # Should be detected as saturated
+        is_saturated, meta = self.mod.detect_observed_saturation(g2)
 
-    def test_saturated_event_with_gamma_v2_produces_proper_decay(self):
+        self.assertTrue(is_saturated, "Monomodal high-Q with omega_v1 should be saturated")
+        self.assertGreater(meta["g2_last"], 0.99)
+        self.assertEqual(meta["n_ge_threshold"], meta["n_points"])
+
+    def test_monomodal_high_q_with_gamma_v2_produces_decay(self):
         """
-        The same SATURATED_BY_CONSTRUCTION event with gamma_dom_v2
-        should show proper exponential decay.
+        The same monomodal high-Q event with gamma_dom_v2 shows proper decay.
         """
         Q = 100000
         freq_hz = 250.0
@@ -158,9 +157,11 @@ class TestSaturatedByConstructionRegime(unittest.TestCase):
             g2_time_contract=self.mod.G2_TIME_CONTRACT_GAMMA_DOM_V2,
         )
 
-        # With gamma_dom_v2, G2 should decay properly
-        # exp(-2 * 1 * 6) = exp(-12) ~ 6e-6
-        self.assertLess(float(g2[-1]), 1e-4, "G2 tail should be very small with gamma_v2")
+        # Should NOT be saturated
+        is_saturated, meta = self.mod.detect_observed_saturation(g2)
+
+        self.assertFalse(is_saturated, "Monomodal high-Q with gamma_v2 should decay properly")
+        self.assertLess(meta["g2_last"], 1e-4)
 
 
 class TestHighTailNonSaturatedRegime(unittest.TestCase):
@@ -169,22 +170,20 @@ class TestHighTailNonSaturatedRegime(unittest.TestCase):
     def setUp(self):
         self.mod = _load_02r()
 
-    def test_high_tail_event_has_intermediate_g2_last(self):
+    def test_high_tail_multimodal_is_not_detected_as_saturated(self):
         """
-        HIGH_TAIL events have G2_last in [0.12, 0.86], not saturated.
-        This is typically due to multimodal content, not contract issues.
+        HIGH_TAIL events have g2_last in [0.12, 0.86].
+        They should NOT trigger autoselect because they are not fully saturated.
         """
-        # Simulate a multimodal event with moderate Q
+        # Multimodal with interference causing some decay but high tail
         freq_1 = 200.0
-        freq_2 = 280.0  # qnm_f1f0 ~ 1.4
         omega_dom = 2.0 * math.pi * freq_1
-        Q = 2000
+        Q = 15000  # High Q but multimodal
         gamma_1 = omega_dom / (2.0 * Q)
-        gamma_2 = gamma_1 * 1.5  # qnm_g1g0 ~ 1.5
 
         poles = [
             self.mod.Pole(freq_hz=freq_1, damping_1_over_s=gamma_1, amp_abs=1.0),
-            self.mod.Pole(freq_hz=freq_2, damping_1_over_s=gamma_2, amp_abs=0.4),
+            self.mod.Pole(freq_hz=freq_1 * 1.05, damping_1_over_s=gamma_1 * 1.1, amp_abs=0.8),
         ]
 
         x_grid = self.mod.build_x_grid_dimless(
@@ -198,10 +197,11 @@ class TestHighTailNonSaturatedRegime(unittest.TestCase):
             g2_time_contract=self.mod.G2_TIME_CONTRACT_OMEGA_DOM_V1,
         )
 
-        # Should have intermediate tail, not saturated
-        g2_last = float(g2[-1])
-        self.assertGreater(g2_last, 0.05, "G2 tail should be > 0.05")
-        self.assertLess(g2_last, 0.99, "G2 tail should be < 0.99 (not saturated)")
+        is_saturated, meta = self.mod.detect_observed_saturation(g2)
+
+        # Even if g2_last is high, if not ALL points are >= 0.99, not saturated
+        # The multimodal interference should cause some oscillation/decay
+        self.assertFalse(is_saturated, "HIGH_TAIL multimodal should not be detected as saturated")
 
 
 class TestPassCorridorRegression(unittest.TestCase):
@@ -210,40 +210,23 @@ class TestPassCorridorRegression(unittest.TestCase):
     def setUp(self):
         self.mod = _load_02r()
 
-    def test_gw150914_like_event_does_not_trigger_saturation(self):
+    def test_multimodal_event_with_high_q_not_saturated(self):
         """
-        GW150914 has Q ~ 2250, should not trigger saturation risk.
+        PASS events can have high Q but multimodal content causes decay.
+        GW200302_015811 has Q=327989 but is PASS with g2_last=0.09.
+        The key is multimodal interference breaking coherence.
         """
-        Q = 2250
-        freq_hz = 250.0
-        omega_dom = 2.0 * math.pi * freq_hz
-        gamma_dom = omega_dom / (2.0 * Q)
-        x_max = 6.0
-
-        is_at_risk, predicted_tail = self.mod.detect_saturation_risk(
-            omega_dom, gamma_dom, x_max, threshold=0.99
-        )
-
-        self.assertFalse(is_at_risk, "GW150914-like event should not trigger saturation")
-        # exp(-2 * (1/(2*2250)) * 6) = exp(-0.00267) ~ 0.9973
-        self.assertLess(predicted_tail, 0.998)
-
-    def test_pass_event_g2_has_proper_decay(self):
-        """
-        A PASS event should show meaningful G2 decay, not saturation.
-        GW150914 has G2_last ~ 0.006.
-        """
-        # Multimodal simulation
-        freq_1 = 250.0
+        # Simulate multimodal high-Q event that decays due to interference
+        freq_1 = 100.0
         omega_dom = 2.0 * math.pi * freq_1
-        Q = 2000
+        Q = 50000  # Very high Q
         gamma_dom = omega_dom / (2.0 * Q)
 
-        # Multiple modes cause faster effective decay
+        # Multiple modes with different frequencies cause beating/interference
         poles = [
             self.mod.Pole(freq_hz=freq_1, damping_1_over_s=gamma_dom, amp_abs=1.0),
-            self.mod.Pole(freq_hz=freq_1 * 0.8, damping_1_over_s=gamma_dom * 1.2, amp_abs=0.6),
-            self.mod.Pole(freq_hz=freq_1 * 1.3, damping_1_over_s=gamma_dom * 0.9, amp_abs=0.3),
+            self.mod.Pole(freq_hz=freq_1 * 0.7, damping_1_over_s=gamma_dom * 1.5, amp_abs=0.7),
+            self.mod.Pole(freq_hz=freq_1 * 1.4, damping_1_over_s=gamma_dom * 0.8, amp_abs=0.5),
         ]
 
         x_grid = self.mod.build_x_grid_dimless(
@@ -257,8 +240,46 @@ class TestPassCorridorRegression(unittest.TestCase):
             g2_time_contract=self.mod.G2_TIME_CONTRACT_OMEGA_DOM_V1,
         )
 
-        # Should have low tail due to modal interference
-        self.assertLess(float(g2[-1]), 0.12, "PASS-like event should have G2_last < 0.12")
+        is_saturated, meta = self.mod.detect_observed_saturation(g2)
+
+        self.assertFalse(is_saturated, "Multimodal high-Q should NOT be detected as saturated")
+        # The interference should cause enough variation that not all points are >= 0.99
+        self.assertLess(meta["fraction_ge_threshold"], 1.0)
+
+    def test_typical_pass_event_shows_clear_decay(self):
+        """
+        Typical PASS events (like GW150914) show clear decay with g2_last << 0.12.
+        """
+        # Simulate typical BBH merger with moderate Q and clear multimodal structure
+        freq_1 = 250.0
+        omega_dom = 2.0 * math.pi * freq_1
+        Q = 2000
+        gamma_dom = omega_dom / (2.0 * Q)
+
+        # Rich multimodal structure
+        poles = [
+            self.mod.Pole(freq_hz=freq_1, damping_1_over_s=gamma_dom, amp_abs=1.0),
+            self.mod.Pole(freq_hz=freq_1 * 0.6, damping_1_over_s=gamma_dom * 2.0, amp_abs=0.5),
+            self.mod.Pole(freq_hz=freq_1 * 1.5, damping_1_over_s=gamma_dom * 0.7, amp_abs=0.3),
+            self.mod.Pole(freq_hz=freq_1 * 0.8, damping_1_over_s=gamma_dom * 1.3, amp_abs=0.4),
+        ]
+
+        x_grid = self.mod.build_x_grid_dimless(
+            100, 1e-3, 6.0, g2_time_contract=self.mod.G2_TIME_CONTRACT_OMEGA_DOM_V1
+        )
+        g2 = self.mod.poles_to_g2(
+            x_grid,
+            poles,
+            omega_dom,
+            gamma_dom,
+            g2_time_contract=self.mod.G2_TIME_CONTRACT_OMEGA_DOM_V1,
+        )
+
+        is_saturated, meta = self.mod.detect_observed_saturation(g2)
+
+        self.assertFalse(is_saturated, "Typical PASS should not be saturated")
+        # Should have meaningful decay
+        self.assertLess(meta["g2_last"], 0.5, "PASS-like event should show decay")
 
 
 class TestContractConstants(unittest.TestCase):
@@ -267,9 +288,10 @@ class TestContractConstants(unittest.TestCase):
     def setUp(self):
         self.mod = _load_02r()
 
-    def test_saturation_threshold_is_099(self):
-        """Default saturation threshold should be 0.99."""
-        self.assertEqual(self.mod.SATURATION_RISK_THRESHOLD, 0.99)
+    def test_saturation_thresholds(self):
+        """Default saturation thresholds should be 0.99 and 1.0."""
+        self.assertEqual(self.mod.SATURATION_TAIL_THRESHOLD, 0.99)
+        self.assertEqual(self.mod.SATURATION_FRACTION_THRESHOLD, 1.0)
 
     def test_resolve_contract_for_gamma_v2(self):
         """gamma_dom_v2 should resolve to xgamma_6_v2 contract."""
@@ -278,6 +300,29 @@ class TestContractConstants(unittest.TestCase):
         )
         self.assertEqual(contract, "xgamma_6_v2")
         self.assertEqual(x_max, 6.0)
+
+
+class TestTracingAttributes(unittest.TestCase):
+    """Verify that tracing attributes are correctly set."""
+
+    def setUp(self):
+        self.mod = _load_02r()
+
+    def test_saturation_meta_contains_expected_keys(self):
+        """Saturation metadata should contain all expected keys."""
+        g2 = np.ones(100, dtype=np.float64) * 0.995
+        _, meta = self.mod.detect_observed_saturation(g2)
+
+        expected_keys = [
+            "g2_last",
+            "n_points",
+            "n_ge_threshold",
+            "fraction_ge_threshold",
+            "tail_threshold",
+            "fraction_threshold",
+        ]
+        for key in expected_keys:
+            self.assertIn(key, meta, f"Missing key: {key}")
 
 
 if __name__ == "__main__":

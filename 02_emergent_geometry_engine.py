@@ -115,12 +115,16 @@ FEATURE_NAMES_V3 = None
 CRITICAL_FEATURES_V3 = None
 audit_feature_support = None
 audit_train_feature_support = None
+SUPPORT_MODE_STRICT = "strict"
+SUPPORT_MODE_PERMISSIVE_OOD = "permissive_ood"
 try:
     from feature_support import (
         FEATURE_NAMES_V3,
         CRITICAL_FEATURES_V3,
         audit_feature_support,
         audit_train_feature_support,
+        SUPPORT_MODE_STRICT,
+        SUPPORT_MODE_PERMISSIVE_OOD,
     )
     HAS_FEATURE_SUPPORT = True
 except ImportError:
@@ -801,6 +805,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Ruta al checkpoint del modelo entrenado en sandbox "
              "(solo obligatorio en mode='inference')"
+    )
+    parser.add_argument(
+        "--support-mode",
+        type=str,
+        choices=["strict", "permissive_ood"],
+        default="strict",
+        help=(
+            "Feature support gate mode. 'strict' (default) fails on OOD critical "
+            "features (canonical behavior). 'permissive_ood' allows inference with "
+            "explicit OOD flag for events outside training support."
+        ),
     )
     add_standard_arguments(parser)
     return parser
@@ -1562,6 +1577,10 @@ def run_inference_mode(args):
         X = build_feature_vector_v3(boundary_data, operators)
 
         # Feature support audit (V3 gate)
+        # Resolve support_mode from args (default: strict)
+        _support_mode = getattr(args, 'support_mode', SUPPORT_MODE_STRICT)
+        gate_report = None  # Will hold gate metadata for H5 output
+
         if HAS_FEATURE_SUPPORT and audit_feature_support is not None:
             _x_mean_flat = X_mean.flatten() if hasattr(X_mean, 'flatten') else np.asarray(X_mean).flatten()
             _x_std_flat = (X_std.flatten() if hasattr(X_std, 'flatten') else np.asarray(X_std).flatten())
@@ -1571,11 +1590,18 @@ def run_inference_mode(args):
                 X_std=_x_std_flat,
                 feature_names=list(FEATURE_NAMES_V3),
                 critical_features=list(CRITICAL_FEATURES_V3),
+                support_mode=_support_mode,
             )
             if gate_report.verdict == "FAIL":
                 _n_gate_fail += 1
                 print(f"   [GATE FAIL] {name}: {gate_report.verdict_reason}")
                 continue  # skip normalization + inference for this system
+            elif gate_report.verdict == "OOD_PASS":
+                # permissive_ood mode: allow inference with explicit OOD flag
+                _n_ood_pass = getattr(args, '_n_ood_pass', 0) + 1
+                setattr(args, '_n_ood_pass', _n_ood_pass)
+                print(f"   [OOD PASS] {name}: {gate_report.verdict_reason}")
+                # Continue with inference but gate_report carries OOD metadata
             elif gate_report.verdict == "WARN":
                 print(f"   [GATE WARN] {name}: {gate_report.verdict_reason}")
 
@@ -1624,6 +1650,21 @@ def run_inference_mode(args):
             f_out.attrs["provenance_detail"] = "inference_from_boundary_using_sandbox_model"
             f_out.attrs["zh_pred"] = preds["zh_pred"]
             f_out.attrs["checkpoint_source"] = str(checkpoint_path)
+
+            # OOD-permissive mode metadata (support_mode gate contract)
+            if gate_report is not None:
+                f_out.attrs["support_mode"] = gate_report.support_mode
+                f_out.attrs["ood_status"] = gate_report.ood_status
+                f_out.attrs["g2_large_x_status"] = gate_report.g2_large_x_status
+                f_out.attrs["run_policy"] = gate_report.run_policy
+                if gate_report.ood_features:
+                    f_out.attrs["ood_features"] = json.dumps(gate_report.ood_features)
+            else:
+                # Fallback when feature_support not available
+                f_out.attrs["support_mode"] = _support_mode
+                f_out.attrs["ood_status"] = "none"
+                f_out.attrs["g2_large_x_status"] = "unknown"
+                f_out.attrs["run_policy"] = "canonical_strict" if _support_mode == "strict" else "ood_permissive"
 
             # Datasets (IO_CONTRACTS_V1) AfAE'A,AcAfAcAca,!A!A,A!AfAcAcaEURsA!A,A? nombres canAfAE'A+aEUR(TM)AfaEURsA,A3nicos
             f_out.create_dataset("z_grid", data=z_grid)

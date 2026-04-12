@@ -69,30 +69,48 @@ def resolve_g2_repr_contract(g2_time_contract: str) -> Tuple[str, float]:
     raise ValueError(f"Unsupported g2_time_contract: {g2_time_contract}")
 
 
-# Saturation detection threshold: exp(-2 * (gamma/omega) * x_max) > this → saturation risk
-SATURATION_RISK_THRESHOLD = 0.99
+# Saturation detection: based on OBSERVED G2 curve, not predicted
+SATURATION_TAIL_THRESHOLD = 0.99
+SATURATION_FRACTION_THRESHOLD = 1.0  # all points must be >= 0.99
 
 
-def detect_saturation_risk(
-    omega_dom_rads: float,
-    gamma_dom_inv_s: float,
-    x_max_dimless: float,
-    threshold: float = SATURATION_RISK_THRESHOLD,
-) -> Tuple[bool, float]:
+def detect_observed_saturation(
+    g2_array: np.ndarray,
+    tail_threshold: float = SATURATION_TAIL_THRESHOLD,
+    fraction_threshold: float = SATURATION_FRACTION_THRESHOLD,
+) -> Tuple[bool, Dict[str, Any]]:
     """
-    Detect if omega_dom_v1 contract will produce a saturated G2 observable.
+    Detect if an observed G2 curve is saturated (nearly constant 1 across all points).
 
-    For a single dominant mode, G2(x_max) ≈ exp(-2 * (gamma_dom / omega_dom) * x_max).
-    When this value exceeds `threshold`, the observable is degenerate (nearly constant 1).
+    Saturation signature (strict):
+      - g2[-1] >= tail_threshold (0.99)
+      - fraction of points >= tail_threshold equals fraction_threshold (1.0 = all points)
+
+    This is a POST-HOC check on the constructed observable, not a predictive heuristic.
 
     Returns:
-        (is_at_risk, predicted_g2_tail): tuple of risk flag and predicted G2 at x_max.
+        (is_saturated, meta): tuple of saturation flag and diagnostic metadata.
     """
-    if omega_dom_rads <= 0 or gamma_dom_inv_s <= 0 or x_max_dimless <= 0:
-        return False, 0.0
-    gamma_over_omega = gamma_dom_inv_s / omega_dom_rads
-    predicted_g2_tail = math.exp(-2.0 * gamma_over_omega * x_max_dimless)
-    return predicted_g2_tail > threshold, predicted_g2_tail
+    if g2_array is None or g2_array.size == 0:
+        return False, {"error": "empty_array"}
+
+    g2 = np.asarray(g2_array, dtype=np.float64).ravel()
+    n_points = g2.size
+    g2_last = float(g2[-1])
+    n_ge_threshold = int(np.sum(g2 >= tail_threshold))
+    fraction_ge_threshold = n_ge_threshold / n_points if n_points > 0 else 0.0
+
+    is_saturated = (g2_last >= tail_threshold) and (fraction_ge_threshold >= fraction_threshold)
+
+    meta = {
+        "g2_last": g2_last,
+        "n_points": n_points,
+        "n_ge_threshold": n_ge_threshold,
+        "fraction_ge_threshold": fraction_ge_threshold,
+        "tail_threshold": tail_threshold,
+        "fraction_threshold": fraction_threshold,
+    }
+    return is_saturated, meta
 
 
 # ----------------------------
@@ -439,14 +457,13 @@ def main() -> int:
         "--g2-contract-autoselect",
         action="store_true",
         default=False,
-        help="Automatically switch to gamma_dom_v2 if omega_dom_v1 would produce saturated G2.",
+        help="Automatically switch to gamma_dom_v2 if observed G2 is saturated (all points >= 0.99).",
     )
     ap.add_argument(
-        "--saturation-risk-threshold",
+        "--saturation-tail-threshold",
         type=float,
-        default=SATURATION_RISK_THRESHOLD,
-        help=f"Threshold for saturation detection (default: {SATURATION_RISK_THRESHOLD}). "
-             "If predicted G2 tail exceeds this, contract is switched when --g2-contract-autoselect is set.",
+        default=SATURATION_TAIL_THRESHOLD,
+        help=f"Threshold for saturation detection on observed G2 (default: {SATURATION_TAIL_THRESHOLD}).",
     )
     ap.add_argument(
         "--compat-mode",
@@ -499,7 +516,7 @@ def main() -> int:
             "g2_normalization": args.g2_normalization,
             "g2_time_contract": args.g2_time_contract,
             "g2_contract_autoselect": args.g2_contract_autoselect,
-            "saturation_risk_threshold": args.saturation_risk_threshold,
+            "saturation_tail_threshold": args.saturation_tail_threshold,
             "compat_mode": args.compat_mode,
             "k_grid": [0.0],
             "embedding_space": "dimensionless_dominant_pole",
@@ -575,30 +592,7 @@ def main() -> int:
         # comparable to sandbox embeddings trained in AdS natural units)
         omega_dom_rads, gamma_dom_inv_s = get_normalization_scales(poles)
 
-        # Saturation detection and automatic contract selection
-        effective_g2_time_contract = args.g2_time_contract
-        g2_contract_autoselected = False
-        saturation_risk_detected = False
-        predicted_g2_tail_omega_v1 = None
-
-        if args.g2_contract_autoselect and args.g2_time_contract == G2_TIME_CONTRACT_OMEGA_DOM_V1:
-            is_at_risk, predicted_tail = detect_saturation_risk(
-                omega_dom_rads,
-                gamma_dom_inv_s,
-                args.x_max_dimless,
-                threshold=args.saturation_risk_threshold,
-            )
-            predicted_g2_tail_omega_v1 = predicted_tail
-            if is_at_risk:
-                saturation_risk_detected = True
-                effective_g2_time_contract = G2_TIME_CONTRACT_GAMMA_DOM_V2
-                g2_contract_autoselected = True
-                print(f"  [AUTOSELECT] Saturation risk detected for {event_id}: "
-                      f"predicted G2 tail = {predicted_tail:.6f} > {args.saturation_risk_threshold}. "
-                      f"Switching to {G2_TIME_CONTRACT_GAMMA_DOM_V2}.")
-
         # Build dimensionless grids and surrogate boundary embeddings
-        g2_repr_contract, g2_canonical_x_max = resolve_g2_repr_contract(effective_g2_time_contract)
         omega_grid_dimless_raw = build_omega_grid_dimless(
             poles, args.n_omega, omega_dom_rads, args.fmin_hz, args.fmax_hz
         )
@@ -611,11 +605,12 @@ def main() -> int:
             normalization=args.gr_normalization,
         )
 
+        # Step 1: Build G2 with the requested contract
         x_grid_raw = build_x_grid_dimless(
             args.n_x,
             args.x_min_dimless,
             args.x_max_dimless,
-            g2_time_contract=effective_g2_time_contract,
+            g2_time_contract=args.g2_time_contract,
         )
         G2_ringdown_raw = poles_to_g2(
             x_grid_raw,
@@ -623,8 +618,46 @@ def main() -> int:
             omega_dom_rads,
             gamma_dom_inv_s,
             normalization=args.g2_normalization,
-            g2_time_contract=effective_g2_time_contract,
+            g2_time_contract=args.g2_time_contract,
         )
+
+        # Step 2: Detect observed saturation and autoselect if needed
+        effective_g2_time_contract = args.g2_time_contract
+        g2_contract_autoselected = False
+        observed_saturation_detected = False
+        saturation_meta: Dict[str, Any] = {}
+
+        if args.g2_contract_autoselect and args.g2_time_contract == G2_TIME_CONTRACT_OMEGA_DOM_V1:
+            is_saturated, saturation_meta = detect_observed_saturation(
+                G2_ringdown_raw,
+                tail_threshold=args.saturation_tail_threshold,
+                fraction_threshold=SATURATION_FRACTION_THRESHOLD,
+            )
+            if is_saturated:
+                observed_saturation_detected = True
+                effective_g2_time_contract = G2_TIME_CONTRACT_GAMMA_DOM_V2
+                g2_contract_autoselected = True
+                print(f"  [AUTOSELECT] Observed saturation for {event_id}: "
+                      f"g2_last={saturation_meta['g2_last']:.6f}, "
+                      f"n_ge_threshold={saturation_meta['n_ge_threshold']}/{saturation_meta['n_points']}. "
+                      f"Rebuilding with {G2_TIME_CONTRACT_GAMMA_DOM_V2}.")
+                # Step 3: Rebuild G2 with gamma_dom_v2
+                x_grid_raw = build_x_grid_dimless(
+                    args.n_x,
+                    args.x_min_dimless,
+                    args.x_max_dimless,
+                    g2_time_contract=effective_g2_time_contract,
+                )
+                G2_ringdown_raw = poles_to_g2(
+                    x_grid_raw,
+                    poles,
+                    omega_dom_rads,
+                    gamma_dom_inv_s,
+                    normalization=args.g2_normalization,
+                    g2_time_contract=effective_g2_time_contract,
+                )
+
+        g2_repr_contract, g2_canonical_x_max = resolve_g2_repr_contract(effective_g2_time_contract)
 
         if args.compat_mode == "stage02_sandbox_v5":
             omega_grid_dimless = np.linspace(SANDBOX_OMEGA_MIN, SANDBOX_OMEGA_MAX, SANDBOX_N_OMEGA, dtype=np.float64)
@@ -710,9 +743,11 @@ def main() -> int:
             b.attrs["g2_time_contract"] = effective_g2_time_contract
             b.attrs["g2_time_contract_requested"] = args.g2_time_contract
             b.attrs["g2_contract_autoselected"] = g2_contract_autoselected
-            b.attrs["saturation_risk_detected"] = saturation_risk_detected
-            if predicted_g2_tail_omega_v1 is not None:
-                b.attrs["predicted_g2_tail_omega_v1"] = float(predicted_g2_tail_omega_v1)
+            b.attrs["observed_saturation_detected"] = observed_saturation_detected
+            if saturation_meta:
+                b.attrs["saturation_g2_last"] = float(saturation_meta.get("g2_last", 0.0))
+                b.attrs["saturation_n_ge_threshold"] = int(saturation_meta.get("n_ge_threshold", 0))
+                b.attrs["saturation_fraction_ge_threshold"] = float(saturation_meta.get("fraction_ge_threshold", 0.0))
             b.attrs["g2_time_scale_attr"] = (
                 "gamma_dom_inv_s"
                 if effective_g2_time_contract == G2_TIME_CONTRACT_GAMMA_DOM_V2

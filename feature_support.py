@@ -124,6 +124,64 @@ CRITICAL_FEATURES_V3: Tuple[str, ...] = (
     "G2_large_x",
 )
 
+# -----------------------------------------------------------------------
+# V4 contract — G2_large_x demotion (2026-04-12 governance decision)
+#
+# G2_large_x is demoted from CRITICAL to OOD_SIGNAL based on evidence that:
+# - OOD cohort (55 events) passes Stage 03/04 identically to canonical (33)
+# - No downstream contract damage observed
+# - Feature remains informative for metadata/trazability
+#
+# Decision artifact: runs/reopen_v1/g2_demotion_governance_decision_2026-04-12.json
+# Evidence: runs/reopen_v1/ood_vs_canonical_comparison_summary.json
+#
+# CRITICAL_FEATURES_V4: Features that still cause FAIL in strict mode
+# OOD_SIGNAL_FEATURES_V4: Features that mark OOD but don't block
+# -----------------------------------------------------------------------
+CRITICAL_FEATURES_V4: Tuple[str, ...] = (
+    "has_horizon",
+    # G2_large_x removed — demoted to OOD signal
+)
+
+OOD_SIGNAL_FEATURES_V4: Tuple[str, ...] = (
+    "G2_large_x",  # Demoted from CRITICAL per governance decision 2026-04-12
+)
+
+# -----------------------------------------------------------------------
+# Support policy versions
+# -----------------------------------------------------------------------
+SUPPORT_POLICY_V3: str = "v3"
+SUPPORT_POLICY_V4: str = "v4"
+DEFAULT_SUPPORT_POLICY: str = SUPPORT_POLICY_V3  # Preserve backward compat
+VALID_SUPPORT_POLICIES: Tuple[str, ...] = (SUPPORT_POLICY_V3, SUPPORT_POLICY_V4)
+
+# -----------------------------------------------------------------------
+# Support modes (opt-in OOD permissive mode)
+# -----------------------------------------------------------------------
+SUPPORT_MODE_STRICT: str = "strict"
+SUPPORT_MODE_PERMISSIVE_OOD: str = "permissive_ood"
+VALID_SUPPORT_MODES: Tuple[str, ...] = (SUPPORT_MODE_STRICT, SUPPORT_MODE_PERMISSIVE_OOD)
+
+# -----------------------------------------------------------------------
+# OOD status values (for metadata)
+# -----------------------------------------------------------------------
+OOD_STATUS_NONE: str = "none"
+OOD_STATUS_G2_LARGE_X: str = "g2_large_x_ood"
+
+# -----------------------------------------------------------------------
+# G2_large_x status values (for metadata)
+# -----------------------------------------------------------------------
+G2_STATUS_PASS: str = "pass"
+G2_STATUS_CRITICAL_FAIL: str = "critical_fail"
+G2_STATUS_OOD_OVERRIDE: str = "ood_override"
+G2_STATUS_OOD_SIGNAL: str = "ood_signal_non_excluding"  # V4: marks but doesn't block
+
+# -----------------------------------------------------------------------
+# Run policy values (for metadata)
+# -----------------------------------------------------------------------
+RUN_POLICY_CANONICAL_STRICT: str = "canonical_strict"
+RUN_POLICY_OOD_PERMISSIVE: str = "ood_permissive"
+
 
 # -----------------------------------------------------------------------
 # Data structures
@@ -150,8 +208,18 @@ class FeatureSupportReport:
     n_clip_risk: int
     rows: List[FeatureRow] = field(default_factory=list)
     critical_features_triggered: List[str] = field(default_factory=list)
-    verdict: str = "PASS"            # "PASS" | "WARN" | "FAIL"
+    verdict: str = "PASS"            # "PASS" | "WARN" | "FAIL" | "OOD_PASS"
     verdict_reason: str = ""
+    # OOD-permissive mode fields (all have safe defaults for strict mode)
+    support_mode: str = SUPPORT_MODE_STRICT
+    ood_status: str = OOD_STATUS_NONE
+    g2_large_x_status: str = G2_STATUS_PASS
+    run_policy: str = RUN_POLICY_CANONICAL_STRICT
+    ood_features: List[str] = field(default_factory=list)
+    # V4 governance: support policy version for audit trail
+    support_policy_version: str = DEFAULT_SUPPORT_POLICY
+    # V4: OOD signal features (marked but not blocking in strict mode)
+    ood_signal_features_triggered: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict:
         return {
@@ -162,6 +230,15 @@ class FeatureSupportReport:
             "critical_features_triggered": self.critical_features_triggered,
             "verdict": self.verdict,
             "verdict_reason": self.verdict_reason,
+            # OOD-permissive mode fields
+            "support_mode": self.support_mode,
+            "ood_status": self.ood_status,
+            "g2_large_x_status": self.g2_large_x_status,
+            "run_policy": self.run_policy,
+            "ood_features": self.ood_features,
+            # V4 governance fields
+            "support_policy_version": self.support_policy_version,
+            "ood_signal_features_triggered": self.ood_signal_features_triggered,
             "rows": [
                 {
                     "feature": r.feature,
@@ -192,6 +269,8 @@ def audit_feature_support(
     off_support_threshold: float = OFF_SUPPORT_THRESHOLD,
     clip_risk_threshold: float = CLIP_RISK_THRESHOLD,
     critical_features: Sequence[str] = CRITICAL_FEATURES,
+    support_mode: str = SUPPORT_MODE_STRICT,
+    support_policy_version: str = DEFAULT_SUPPORT_POLICY,
 ) -> FeatureSupportReport:
     """
     Audits whether a feature vector is within the training support.
@@ -212,12 +291,40 @@ def audit_feature_support(
     clip_risk_threshold : float
         |z| above this will be hard-clipped by the normaliser.
     critical_features : sequence of str
-        Feature names that trigger a FAIL verdict.
+        Feature names that trigger a FAIL verdict. Overridden by support_policy_version.
+    support_mode : str
+        Gate behavior mode. Default "strict" fails on critical OOD features.
+        "permissive_ood" allows inference with explicit OOD flag.
+    support_policy_version : str
+        Contract version for governance audit trail. Default "v3" preserves legacy behavior.
+        "v4": G2_large_x demoted to OOD signal (marks but doesn't block in strict mode).
 
     Returns
     -------
     FeatureSupportReport
     """
+    # Validate support_mode
+    if support_mode not in VALID_SUPPORT_MODES:
+        raise ValueError(
+            f"Invalid support_mode: {support_mode!r}. "
+            f"Valid modes: {VALID_SUPPORT_MODES}"
+        )
+
+    # Validate support_policy_version
+    if support_policy_version not in VALID_SUPPORT_POLICIES:
+        raise ValueError(
+            f"Invalid support_policy_version: {support_policy_version!r}. "
+            f"Valid versions: {VALID_SUPPORT_POLICIES}"
+        )
+
+    # Determine effective critical and OOD signal features based on policy version
+    if support_policy_version == SUPPORT_POLICY_V4:
+        effective_critical = set(CRITICAL_FEATURES_V4)
+        ood_signal_set = set(OOD_SIGNAL_FEATURES_V4)
+    else:
+        # V3 (default): G2_large_x remains critical
+        effective_critical = set(critical_features)
+        ood_signal_set = set()
     x = np.asarray(feature_vector, dtype=float).flatten()
     mu = np.asarray(X_mean, dtype=float).flatten()
     sigma = np.asarray(X_std, dtype=float).flatten()
@@ -235,7 +342,7 @@ def audit_feature_support(
     n_off_support = 0
     n_clip_risk = 0
     critical_triggered: List[str] = []
-    crit_set = set(critical_features)
+    ood_signal_triggered: List[str] = []  # V4: features that mark OOD but don't block
 
     for i, name in enumerate(names):
         x_real = float(x[i])
@@ -277,11 +384,16 @@ def audit_feature_support(
                     "check QNM computation pipeline for ordering/normalisation errors"
                 )
 
-        # Critical gate: triggered by tiny std OR off-support on critical feature
-        is_critical = name in crit_set
+        # Gate condition: tiny std OR off-support
         gate_condition = tiny or (z_score is not None and abs(z_score) > off_support_threshold)
-        if is_critical and gate_condition:
+
+        # Critical gate: uses effective_critical (policy-dependent)
+        if name in effective_critical and gate_condition:
             critical_triggered.append(name)
+
+        # OOD signal gate (V4): marks but doesn't block in strict mode
+        if name in ood_signal_set and gate_condition:
+            ood_signal_triggered.append(name)
 
         rows.append(FeatureRow(
             feature=name,
@@ -295,15 +407,65 @@ def audit_feature_support(
             semantic_warning=semantic_warning,
         ))
 
-    # Verdict determination
+    # Verdict determination with support_mode and policy version handling
+    # Initialize OOD metadata with safe defaults
+    ood_features: List[str] = []
+    ood_status = OOD_STATUS_NONE
+    g2_large_x_status = G2_STATUS_PASS
+    run_policy = RUN_POLICY_CANONICAL_STRICT if support_mode == SUPPORT_MODE_STRICT else RUN_POLICY_OOD_PERMISSIVE
+
+    # Adjust run_policy for V4
+    if support_policy_version == SUPPORT_POLICY_V4 and support_mode == SUPPORT_MODE_STRICT:
+        run_policy = "canonical_v4"
+
+    # Check if G2_large_x specifically triggered (in critical OR ood_signal)
+    g2_in_critical = "G2_large_x" in critical_triggered
+    g2_in_ood_signal = "G2_large_x" in ood_signal_triggered
+
     if critical_triggered or n_clip_risk > 0:
-        verdict = "FAIL"
-        parts: List[str] = []
-        if critical_triggered:
-            parts.append(f"critical_features_triggered={critical_triggered}")
-        if n_clip_risk > 0:
-            parts.append(f"n_clip_risk={n_clip_risk}")
-        verdict_reason = "UNSUPPORTED_FEATURE_REGIME: " + "; ".join(parts)
+        if support_mode == SUPPORT_MODE_STRICT:
+            # STRICT MODE: Hard fail on critical features (unchanged behavior)
+            verdict = "FAIL"
+            parts: List[str] = []
+            if critical_triggered:
+                parts.append(f"critical_features_triggered={critical_triggered}")
+            if n_clip_risk > 0:
+                parts.append(f"n_clip_risk={n_clip_risk}")
+            verdict_reason = "UNSUPPORTED_FEATURE_REGIME: " + "; ".join(parts)
+            # Set G2_large_x status for metadata (only if in critical, not ood_signal)
+            if g2_in_critical:
+                g2_large_x_status = G2_STATUS_CRITICAL_FAIL
+        elif support_mode == SUPPORT_MODE_PERMISSIVE_OOD:
+            # PERMISSIVE_OOD MODE: Allow inference with explicit OOD flag
+            verdict = "OOD_PASS"
+            ood_features = list(critical_triggered)
+            parts: List[str] = [f"ood_features={ood_features}"]
+            if n_clip_risk > 0:
+                parts.append(f"n_clip_risk={n_clip_risk}")
+            verdict_reason = "OOD_PERMISSIVE: " + "; ".join(parts)
+            # Set OOD metadata
+            if g2_in_critical:
+                ood_status = OOD_STATUS_G2_LARGE_X
+                g2_large_x_status = G2_STATUS_OOD_OVERRIDE
+    elif ood_signal_triggered:
+        # V4: OOD signal features triggered but no critical features
+        # This is PASS (or OOD_PASS) with explicit OOD marking
+        if support_mode == SUPPORT_MODE_STRICT:
+            # V4 STRICT: OOD signal allows PASS but marks OOD metadata
+            verdict = "OOD_PASS"
+            ood_features = list(ood_signal_triggered)
+            verdict_reason = f"OOD_SIGNAL_V4: ood_signal_features={ood_signal_triggered}"
+            if g2_in_ood_signal:
+                ood_status = OOD_STATUS_G2_LARGE_X
+                g2_large_x_status = G2_STATUS_OOD_SIGNAL
+        else:
+            # PERMISSIVE_OOD: same behavior
+            verdict = "OOD_PASS"
+            ood_features = list(ood_signal_triggered)
+            verdict_reason = f"OOD_SIGNAL_V4: ood_signal_features={ood_signal_triggered}"
+            if g2_in_ood_signal:
+                ood_status = OOD_STATUS_G2_LARGE_X
+                g2_large_x_status = G2_STATUS_OOD_SIGNAL
     elif n_tiny_std > 0:
         verdict = "WARN"
         verdict_reason = f"WARN: n_tiny_std={n_tiny_std} (non-critical features with frozen train std)"
@@ -320,6 +482,13 @@ def audit_feature_support(
         critical_features_triggered=critical_triggered,
         verdict=verdict,
         verdict_reason=verdict_reason,
+        support_mode=support_mode,
+        ood_status=ood_status,
+        g2_large_x_status=g2_large_x_status,
+        run_policy=run_policy,
+        ood_features=ood_features,
+        support_policy_version=support_policy_version,
+        ood_signal_features_triggered=ood_signal_triggered,
     )
 
 

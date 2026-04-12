@@ -1014,5 +1014,408 @@ class TestInferenceProbeV3ContractNoQNMDependency(unittest.TestCase):
                              f"summary n_features must be {N_V3}")
 
 
+# ---------------------------------------------------------------------------
+# Tests 12–16: support_mode permissive_ood (OOD-permissive gate contract)
+# ---------------------------------------------------------------------------
+
+from feature_support import (  # noqa: E402
+    SUPPORT_MODE_STRICT,
+    SUPPORT_MODE_PERMISSIVE_OOD,
+    OOD_STATUS_NONE,
+    OOD_STATUS_G2_LARGE_X,
+    G2_STATUS_PASS,
+    G2_STATUS_CRITICAL_FAIL,
+    G2_STATUS_OOD_OVERRIDE,
+    RUN_POLICY_CANONICAL_STRICT,
+    RUN_POLICY_OOD_PERMISSIVE,
+)
+
+
+class TestPermissiveOODModeV3(unittest.TestCase):
+    """
+    Tests for support_mode='permissive_ood' behavior with V3 features.
+
+    Contract:
+    - strict mode (default) fails on G2_large_x OOD → verdict=FAIL
+    - permissive_ood mode allows inference with explicit OOD flag → verdict=OOD_PASS
+    - Clean events pass identically in both modes → verdict=PASS
+    - Invalid support_mode raises ValueError
+    """
+
+    def setUp(self):
+        self.mu, self.sigma = _make_normal_stats_v3()
+        # G2_large_x at z=7 (off-support but not clip-risk)
+        idx = _feature_idx_v3("G2_large_x")
+        self.mu[idx] = 1.0
+        self.sigma[idx] = 1.0
+        self.x_ood = np.ones(N_V3, dtype=float)
+        self.x_ood[idx] = 1.0 + 7.0 * 1.0  # z=7, triggers off-support
+        # Clean feature vector (all within support)
+        self.x_clean = np.ones(N_V3, dtype=float)
+
+    def test_strict_mode_fails_on_g2_large_x_ood(self):
+        """Default strict mode should FAIL on G2_large_x OOD."""
+        report = audit_feature_support(
+            feature_vector=self.x_ood,
+            X_mean=self.mu,
+            X_std=self.sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_STRICT,
+        )
+        self.assertEqual(report.verdict, "FAIL")
+        self.assertIn("G2_large_x", report.critical_features_triggered)
+        self.assertEqual(report.support_mode, SUPPORT_MODE_STRICT)
+        self.assertEqual(report.ood_status, OOD_STATUS_NONE)
+        self.assertEqual(report.g2_large_x_status, G2_STATUS_CRITICAL_FAIL)
+        self.assertEqual(report.run_policy, RUN_POLICY_CANONICAL_STRICT)
+        self.assertEqual(report.ood_features, [])
+
+    def test_permissive_ood_mode_ood_passes_with_flag(self):
+        """permissive_ood mode should OOD_PASS with explicit ood_features."""
+        report = audit_feature_support(
+            feature_vector=self.x_ood,
+            X_mean=self.mu,
+            X_std=self.sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_PERMISSIVE_OOD,
+        )
+        self.assertEqual(report.verdict, "OOD_PASS")
+        self.assertIn("G2_large_x", report.ood_features)
+        self.assertEqual(report.support_mode, SUPPORT_MODE_PERMISSIVE_OOD)
+        self.assertEqual(report.ood_status, OOD_STATUS_G2_LARGE_X)
+        self.assertEqual(report.g2_large_x_status, G2_STATUS_OOD_OVERRIDE)
+        self.assertEqual(report.run_policy, RUN_POLICY_OOD_PERMISSIVE)
+
+    def test_clean_event_passes_same_in_strict_mode(self):
+        """An event within support should PASS in strict mode."""
+        report = audit_feature_support(
+            feature_vector=self.x_clean,
+            X_mean=self.mu,
+            X_std=self.sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_STRICT,
+        )
+        self.assertEqual(report.verdict, "PASS")
+        self.assertEqual(report.ood_features, [])
+        self.assertEqual(report.ood_status, OOD_STATUS_NONE)
+        self.assertEqual(report.g2_large_x_status, G2_STATUS_PASS)
+        self.assertEqual(report.run_policy, RUN_POLICY_CANONICAL_STRICT)
+
+    def test_clean_event_passes_same_in_permissive_mode(self):
+        """An event within support should PASS in permissive_ood mode too."""
+        report = audit_feature_support(
+            feature_vector=self.x_clean,
+            X_mean=self.mu,
+            X_std=self.sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_PERMISSIVE_OOD,
+        )
+        self.assertEqual(report.verdict, "PASS")
+        self.assertEqual(report.ood_features, [])
+        self.assertEqual(report.ood_status, OOD_STATUS_NONE)
+        # run_policy reflects mode even for clean events
+        self.assertEqual(report.run_policy, RUN_POLICY_OOD_PERMISSIVE)
+
+    def test_invalid_support_mode_raises_value_error(self):
+        """Invalid support_mode should raise ValueError."""
+        with self.assertRaises(ValueError) as ctx:
+            audit_feature_support(
+                feature_vector=self.x_clean,
+                X_mean=self.mu,
+                X_std=self.sigma,
+                feature_names=FEATURE_NAMES_V3,
+                critical_features=CRITICAL_FEATURES_V3,
+                support_mode="invalid_mode",
+            )
+        self.assertIn("invalid_mode", str(ctx.exception))
+
+    def test_to_dict_includes_ood_metadata(self):
+        """to_dict() must include all OOD metadata fields."""
+        report = audit_feature_support(
+            feature_vector=self.x_ood,
+            X_mean=self.mu,
+            X_std=self.sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_PERMISSIVE_OOD,
+        )
+        d = report.to_dict()
+        self.assertIn("support_mode", d)
+        self.assertIn("ood_status", d)
+        self.assertIn("g2_large_x_status", d)
+        self.assertIn("run_policy", d)
+        self.assertIn("ood_features", d)
+        self.assertEqual(d["support_mode"], SUPPORT_MODE_PERMISSIVE_OOD)
+        self.assertEqual(d["ood_status"], OOD_STATUS_G2_LARGE_X)
+        self.assertEqual(d["g2_large_x_status"], G2_STATUS_OOD_OVERRIDE)
+        self.assertEqual(d["run_policy"], RUN_POLICY_OOD_PERMISSIVE)
+        self.assertIn("G2_large_x", d["ood_features"])
+
+
+# ---------------------------------------------------------------------------
+# Tests 17–21: support_policy_version V4 (G2_large_x demotion governance)
+# ---------------------------------------------------------------------------
+
+from feature_support import (
+    SUPPORT_POLICY_V3,
+    SUPPORT_POLICY_V4,
+    DEFAULT_SUPPORT_POLICY,
+    VALID_SUPPORT_POLICIES,
+    CRITICAL_FEATURES_V4,
+    OOD_SIGNAL_FEATURES_V4,
+    G2_STATUS_OOD_SIGNAL,
+)
+
+
+class TestSupportPolicyV4Demotion(unittest.TestCase):
+    """
+    Tests for support_policy_version='v4' behavior.
+
+    V4 governance decision (2026-04-12):
+    - G2_large_x demoted from CRITICAL to OOD signal
+    - G2_large_x no longer blocks in strict mode
+    - G2_large_x still marks OOD metadata for trazability
+    - has_horizon remains CRITICAL (blocks in strict mode)
+
+    Evidence: runs/reopen_v1/g2_demotion_governance_decision_2026-04-12.json
+    """
+
+    def setUp(self):
+        # Use V3 features for testing (17 features)
+        self.mu, self.sigma = _make_normal_stats_v3()
+        # Set G2_large_x off-support (z=7)
+        idx = _feature_idx_v3("G2_large_x")
+        self.mu[idx] = 0.0
+        self.sigma[idx] = 1.0
+        self.x = np.ones(len(FEATURE_NAMES_V3), dtype=float)
+        self.x[idx] = 7.0  # z = 7 > 5 → off-support
+
+    def test_v3_default_preserved_g2_is_critical(self):
+        """V3 (default): G2_large_x should still be CRITICAL and cause FAIL."""
+        report = audit_feature_support(
+            feature_vector=self.x,
+            X_mean=self.mu,
+            X_std=self.sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_STRICT,
+            support_policy_version=SUPPORT_POLICY_V3,
+        )
+        self.assertEqual(report.verdict, "FAIL")
+        self.assertIn("G2_large_x", report.critical_features_triggered)
+        self.assertEqual(report.g2_large_x_status, G2_STATUS_CRITICAL_FAIL)
+        self.assertEqual(report.support_policy_version, SUPPORT_POLICY_V3)
+        self.assertEqual(len(report.ood_signal_features_triggered), 0)
+
+    def test_v4_g2_demoted_to_ood_signal(self):
+        """V4: G2_large_x should be OOD signal (not CRITICAL), verdict=OOD_PASS."""
+        report = audit_feature_support(
+            feature_vector=self.x,
+            X_mean=self.mu,
+            X_std=self.sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,  # ignored, overridden by v4
+            support_mode=SUPPORT_MODE_STRICT,
+            support_policy_version=SUPPORT_POLICY_V4,
+        )
+        self.assertEqual(report.verdict, "OOD_PASS")
+        self.assertNotIn("G2_large_x", report.critical_features_triggered)
+        self.assertIn("G2_large_x", report.ood_signal_features_triggered)
+        self.assertEqual(report.g2_large_x_status, G2_STATUS_OOD_SIGNAL)
+        self.assertEqual(report.ood_status, OOD_STATUS_G2_LARGE_X)
+        self.assertEqual(report.support_policy_version, SUPPORT_POLICY_V4)
+        self.assertEqual(report.run_policy, "canonical_v4")
+
+    def test_v4_has_horizon_still_critical(self):
+        """V4: has_horizon should remain CRITICAL and cause FAIL."""
+        # Set has_horizon off-support
+        mu, sigma = _make_normal_stats_v3()
+        idx = _feature_idx_v3("has_horizon")
+        mu[idx] = 0.0
+        sigma[idx] = 1.0
+        x = np.ones(len(FEATURE_NAMES_V3), dtype=float)
+        x[idx] = 7.0  # z = 7 > 5
+
+        report = audit_feature_support(
+            feature_vector=x,
+            X_mean=mu,
+            X_std=sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_STRICT,
+            support_policy_version=SUPPORT_POLICY_V4,
+        )
+        self.assertEqual(report.verdict, "FAIL")
+        self.assertIn("has_horizon", report.critical_features_triggered)
+        self.assertEqual(report.support_policy_version, SUPPORT_POLICY_V4)
+
+    def test_v4_normal_data_passes(self):
+        """V4: Normal data (all z-scores ~0) should PASS."""
+        mu, sigma = _make_normal_stats_v3()
+        x = np.ones(len(FEATURE_NAMES_V3), dtype=float)
+
+        report = audit_feature_support(
+            feature_vector=x,
+            X_mean=mu,
+            X_std=sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_STRICT,
+            support_policy_version=SUPPORT_POLICY_V4,
+        )
+        self.assertEqual(report.verdict, "PASS")
+        self.assertEqual(report.support_policy_version, SUPPORT_POLICY_V4)
+        self.assertEqual(len(report.critical_features_triggered), 0)
+        self.assertEqual(len(report.ood_signal_features_triggered), 0)
+
+    def test_v4_metadata_persisted_in_to_dict(self):
+        """V4: to_dict() should include support_policy_version and ood_signal_features_triggered."""
+        report = audit_feature_support(
+            feature_vector=self.x,
+            X_mean=self.mu,
+            X_std=self.sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_STRICT,
+            support_policy_version=SUPPORT_POLICY_V4,
+        )
+        d = report.to_dict()
+        self.assertIn("support_policy_version", d)
+        self.assertIn("ood_signal_features_triggered", d)
+        self.assertEqual(d["support_policy_version"], SUPPORT_POLICY_V4)
+        self.assertIn("G2_large_x", d["ood_signal_features_triggered"])
+
+    def test_invalid_policy_version_raises(self):
+        """Invalid support_policy_version should raise ValueError."""
+        mu, sigma = _make_normal_stats_v3()
+        x = np.ones(len(FEATURE_NAMES_V3), dtype=float)
+        with self.assertRaises(ValueError) as ctx:
+            audit_feature_support(
+                feature_vector=x,
+                X_mean=mu,
+                X_std=sigma,
+                feature_names=FEATURE_NAMES_V3,
+                support_policy_version="v99_invalid",
+            )
+        self.assertIn("Invalid support_policy_version", str(ctx.exception))
+
+    def test_default_policy_is_v3(self):
+        """DEFAULT_SUPPORT_POLICY should be 'v3' for backward compatibility."""
+        self.assertEqual(DEFAULT_SUPPORT_POLICY, SUPPORT_POLICY_V3)
+
+    def test_critical_features_v4_has_horizon_only(self):
+        """CRITICAL_FEATURES_V4 should only contain has_horizon."""
+        self.assertEqual(CRITICAL_FEATURES_V4, ("has_horizon",))
+
+    def test_ood_signal_features_v4_has_g2_large_x(self):
+        """OOD_SIGNAL_FEATURES_V4 should contain G2_large_x."""
+        self.assertEqual(OOD_SIGNAL_FEATURES_V4, ("G2_large_x",))
+
+
+class TestV3ToV4MigrationContract(unittest.TestCase):
+    """
+    Contract tests ensuring V3 → V4 migration is clean and auditable.
+
+    Key guarantees:
+    1. V3 behavior is unchanged (G2_large_x blocks)
+    2. V4 behavior is new (G2_large_x marks but doesn't block)
+    3. Both are selectable via explicit parameter
+    4. Metadata clearly distinguishes which policy was used
+    """
+
+    def test_same_input_different_policy_different_verdict(self):
+        """Same input should yield FAIL (V3) vs OOD_PASS (V4)."""
+        mu, sigma = _make_normal_stats_v3()
+        idx = _feature_idx_v3("G2_large_x")
+        mu[idx] = 0.0
+        sigma[idx] = 1.0
+        x = np.ones(len(FEATURE_NAMES_V3), dtype=float)
+        x[idx] = 7.0  # z = 7 > 5
+
+        report_v3 = audit_feature_support(
+            feature_vector=x,
+            X_mean=mu,
+            X_std=sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_STRICT,
+            support_policy_version=SUPPORT_POLICY_V3,
+        )
+
+        report_v4 = audit_feature_support(
+            feature_vector=x,
+            X_mean=mu,
+            X_std=sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_STRICT,
+            support_policy_version=SUPPORT_POLICY_V4,
+        )
+
+        self.assertEqual(report_v3.verdict, "FAIL")
+        self.assertEqual(report_v4.verdict, "OOD_PASS")
+        self.assertEqual(report_v3.support_policy_version, SUPPORT_POLICY_V3)
+        self.assertEqual(report_v4.support_policy_version, SUPPORT_POLICY_V4)
+
+    def test_v3_and_v4_metadata_clearly_distinguishable(self):
+        """V3 and V4 outputs should have clearly different metadata."""
+        mu, sigma = _make_normal_stats_v3()
+        idx = _feature_idx_v3("G2_large_x")
+        mu[idx] = 0.0
+        sigma[idx] = 1.0
+        x = np.ones(len(FEATURE_NAMES_V3), dtype=float)
+        x[idx] = 7.0
+
+        d_v3 = audit_feature_support(
+            feature_vector=x,
+            X_mean=mu,
+            X_std=sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_STRICT,
+            support_policy_version=SUPPORT_POLICY_V3,
+        ).to_dict()
+
+        d_v4 = audit_feature_support(
+            feature_vector=x,
+            X_mean=mu,
+            X_std=sigma,
+            feature_names=FEATURE_NAMES_V3,
+            critical_features=CRITICAL_FEATURES_V3,
+            support_mode=SUPPORT_MODE_STRICT,
+            support_policy_version=SUPPORT_POLICY_V4,
+        ).to_dict()
+
+        # V3: G2_large_x in critical_features_triggered
+        self.assertIn("G2_large_x", d_v3["critical_features_triggered"])
+        self.assertEqual(d_v3["g2_large_x_status"], G2_STATUS_CRITICAL_FAIL)
+        self.assertEqual(d_v3["ood_signal_features_triggered"], [])
+
+        # V4: G2_large_x in ood_signal_features_triggered
+        self.assertNotIn("G2_large_x", d_v4["critical_features_triggered"])
+        self.assertIn("G2_large_x", d_v4["ood_signal_features_triggered"])
+        self.assertEqual(d_v4["g2_large_x_status"], G2_STATUS_OOD_SIGNAL)
+
+
+# ---------------------------------------------------------------------------
+# Helpers for V3 feature tests
+# ---------------------------------------------------------------------------
+
+def _make_normal_stats_v3() -> tuple[np.ndarray, np.ndarray]:
+    """Return (X_mean, X_std) for V3 features (17 features)."""
+    n = len(FEATURE_NAMES_V3)
+    mu = np.ones(n, dtype=float)
+    sigma = np.ones(n, dtype=float)
+    return mu, sigma
+
+
+def _feature_idx_v3(name: str) -> int:
+    return list(FEATURE_NAMES_V3).index(name)
+
+
 if __name__ == "__main__":
     unittest.main()
