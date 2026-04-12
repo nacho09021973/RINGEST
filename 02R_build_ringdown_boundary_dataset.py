@@ -44,6 +44,11 @@ except Exception as e:
     raise SystemExit(f"[ERROR] h5py not available: {e}")
 
 SCRIPT_VERSION = "02R_build_ringdown_boundary_dataset.py v1.1 (2026-04-10)"
+G2_TIME_CONTRACT_OMEGA_DOM_V1 = "omega_dom_v1"
+G2_TIME_CONTRACT_GAMMA_DOM_V2 = "gamma_dom_v2"
+DEFAULT_G2_TIME_CONTRACT = G2_TIME_CONTRACT_OMEGA_DOM_V1
+G2_REPR_CONTRACT_OMEGA_DOM_V1 = "xmax_10_omega_dom_v1"
+G2_REPR_CONTRACT_GAMMA_DOM_V2 = "xgamma_6_v2"
 
 SANDBOX_OMEGA_MIN = 0.1
 SANDBOX_OMEGA_MAX = 3.0
@@ -54,6 +59,58 @@ SANDBOX_N_K = 30
 SANDBOX_X_MIN = 1e-3
 SANDBOX_X_MAX = 10.0
 SANDBOX_N_X = 100
+
+
+def resolve_g2_repr_contract(g2_time_contract: str) -> Tuple[str, float]:
+    if g2_time_contract == G2_TIME_CONTRACT_GAMMA_DOM_V2:
+        return G2_REPR_CONTRACT_GAMMA_DOM_V2, 6.0
+    if g2_time_contract == G2_TIME_CONTRACT_OMEGA_DOM_V1:
+        return G2_REPR_CONTRACT_OMEGA_DOM_V1, SANDBOX_X_MAX
+    raise ValueError(f"Unsupported g2_time_contract: {g2_time_contract}")
+
+
+# Saturation detection: based on OBSERVED G2 curve, not predicted
+SATURATION_TAIL_THRESHOLD = 0.99
+SATURATION_FRACTION_THRESHOLD = 1.0  # all points must be >= 0.99
+
+
+def detect_observed_saturation(
+    g2_array: np.ndarray,
+    tail_threshold: float = SATURATION_TAIL_THRESHOLD,
+    fraction_threshold: float = SATURATION_FRACTION_THRESHOLD,
+) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Detect if an observed G2 curve is saturated (nearly constant 1 across all points).
+
+    Saturation signature (strict):
+      - g2[-1] >= tail_threshold (0.99)
+      - fraction of points >= tail_threshold equals fraction_threshold (1.0 = all points)
+
+    This is a POST-HOC check on the constructed observable, not a predictive heuristic.
+
+    Returns:
+        (is_saturated, meta): tuple of saturation flag and diagnostic metadata.
+    """
+    if g2_array is None or g2_array.size == 0:
+        return False, {"error": "empty_array"}
+
+    g2 = np.asarray(g2_array, dtype=np.float64).ravel()
+    n_points = g2.size
+    g2_last = float(g2[-1])
+    n_ge_threshold = int(np.sum(g2 >= tail_threshold))
+    fraction_ge_threshold = n_ge_threshold / n_points if n_points > 0 else 0.0
+
+    is_saturated = (g2_last >= tail_threshold) and (fraction_ge_threshold >= fraction_threshold)
+
+    meta = {
+        "g2_last": g2_last,
+        "n_points": n_points,
+        "n_ge_threshold": n_ge_threshold,
+        "fraction_ge_threshold": fraction_ge_threshold,
+        "tail_threshold": tail_threshold,
+        "fraction_threshold": fraction_threshold,
+    }
+    return is_saturated, meta
 
 
 # ----------------------------
@@ -273,20 +330,27 @@ def build_x_grid_dimless(
     n_x: int,
     x_min_dimless: float = 1e-3,
     x_max_dimless: float = 10.0,
+    g2_time_contract: str = DEFAULT_G2_TIME_CONTRACT,
 ) -> np.ndarray:
     """
-    Dimensionless x grid: x_dimless = t_seconds * omega_dom_rads.
+    Build the dimensionless x grid for the selected G2 time contract.
 
-    Normalizing by omega_dom (frequency unit) instead of gamma_dom makes the
-    G2 decay at rate gamma/omega = 1/Q, which is comparable (~0.05-0.5) to
-    the holographic AdS spatial correlator decay rate in sandbox units.
-    x_max_dimless=10 covers ~10 oscillation periods of the dominant mode.
+    omega_dom_v1:
+      x_dimless = t_seconds * omega_dom_rads
+
+    gamma_dom_v2:
+      x_dimless = t_seconds * gamma_dom_inv_s
+
+    The grid itself remains [x_min_dimless, x_max_dimless]; the contract only
+    changes the physical meaning of the dimensionless unit used later in G2.
     """
     n_x = int(n_x)
     x0 = max(float(x_min_dimless), 1e-6)
     x1 = float(x_max_dimless)
     if not (x1 > x0 > 0.0):
         raise ValueError(f"Invalid dimless x range: x_min={x0}, x_max={x1}")
+    if g2_time_contract not in (G2_TIME_CONTRACT_OMEGA_DOM_V1, G2_TIME_CONTRACT_GAMMA_DOM_V2):
+        raise ValueError(f"Unsupported g2_time_contract: {g2_time_contract}")
     return np.linspace(x0, x1, n_x, dtype=np.float64)
 
 
@@ -296,16 +360,16 @@ def poles_to_g2(
     omega_dom_rads: float,
     gamma_dom_inv_s: float,
     normalization: str = "unit_peak",
+    g2_time_contract: str = DEFAULT_G2_TIME_CONTRACT,
 ) -> np.ndarray:
     """
     G2(x̃) = |Σ aₙ exp((-γ̃ₙ + iω̃ₙ) x̃)|²
 
-    where  γ̃ₙ = γₙ / omega_dom_rads  and  ω̃ₙ = 2πfₙ / omega_dom_rads.
+    omega_dom_v1:
+      γ̃ₙ = γₙ / omega_dom_rads,  ω̃ₙ = 2πfₙ / omega_dom_rads,  x̃ = t * omega_dom
 
-    x̃ = t * omega_dom, so the dominant mode oscillates at ω̃=1 and decays
-    at rate γ̃ = γ/ω_dom = 1/Q (~0.05 for Kerr). This decay rate is
-    comparable to the holographic AdS sandbox G2 log-slope (~-1 to -2),
-    placing LIGO embeddings in the correct feature region.
+    gamma_dom_v2:
+      γ̃ₙ = γₙ / gamma_dom_inv_s, ω̃ₙ = 2πfₙ / gamma_dom_inv_s, x̃ = t * gamma_dom
     """
     Nx = int(x_grid_dimless.size)
     if not poles or Nx <= 0:
@@ -319,10 +383,16 @@ def poles_to_g2(
     x = x_grid_dimless.astype(np.float64).reshape(-1, 1)
     s = np.zeros((Nx, 1), dtype=np.complex128)
 
+    if g2_time_contract == G2_TIME_CONTRACT_OMEGA_DOM_V1:
+        time_scale = omega_dom_rads
+    elif g2_time_contract == G2_TIME_CONTRACT_GAMMA_DOM_V2:
+        time_scale = gamma_dom_inv_s
+    else:
+        raise ValueError(f"Unsupported g2_time_contract: {g2_time_contract}")
+
     for p, a in zip(poles, amps):
-        # Both rates normalized by omega_dom → decay rate = 1/Q
-        g_dimless = float(p.damping_1_over_s) / omega_dom_rads
-        w_dimless = (2.0 * math.pi * float(p.freq_hz)) / omega_dom_rads
+        g_dimless = float(p.damping_1_over_s) / time_scale
+        w_dimless = (2.0 * math.pi * float(p.freq_hz)) / time_scale
         s[:, 0] += float(a) * np.exp((-g_dimless + 1j * w_dimless) * x[:, 0])
 
     G2 = (np.abs(s[:, 0]) ** 2).astype(np.float64)
@@ -372,10 +442,29 @@ def main() -> int:
                     help="Normalize GR by max |GR| (unit_peak) or leave raw (none)")
 
     ap.add_argument("--n-x", type=int, default=256, help="Number of x grid points for raw ringdown embedding (dimensionless damping units)")
-    ap.add_argument("--x-min-dimless", type=float, default=1e-3, help="Min dimensionless x (x = t * gamma_dom)")
-    ap.add_argument("--x-max-dimless", type=float, default=10.0, help="Max dimensionless x (~10 damping times)")
+    ap.add_argument("--x-min-dimless", type=float, default=1e-3, help="Min dimensionless x for the selected G2 time contract")
+    ap.add_argument("--x-max-dimless", type=float, default=10.0, help="Max dimensionless x for the selected G2 time contract")
     ap.add_argument("--g2-normalization", type=str, default="unit_peak", choices=["unit_peak", "none"],
                     help="Normalize G2 by max (unit_peak) or leave raw (none)")
+    ap.add_argument(
+        "--g2-time-contract",
+        type=str,
+        default=DEFAULT_G2_TIME_CONTRACT,
+        choices=[G2_TIME_CONTRACT_OMEGA_DOM_V1, G2_TIME_CONTRACT_GAMMA_DOM_V2],
+        help="Dimensionless time contract for G2 construction: legacy omega_dom_v1 or versioned gamma_dom_v2.",
+    )
+    ap.add_argument(
+        "--g2-contract-autoselect",
+        action="store_true",
+        default=False,
+        help="Automatically switch to gamma_dom_v2 if observed G2 is saturated (all points >= 0.99).",
+    )
+    ap.add_argument(
+        "--saturation-tail-threshold",
+        type=float,
+        default=SATURATION_TAIL_THRESHOLD,
+        help=f"Threshold for saturation detection on observed G2 (default: {SATURATION_TAIL_THRESHOLD}).",
+    )
     ap.add_argument(
         "--compat-mode",
         type=str,
@@ -425,6 +514,9 @@ def main() -> int:
             "x_min_dimless": float(args.x_min_dimless),
             "x_max_dimless": float(args.x_max_dimless),
             "g2_normalization": args.g2_normalization,
+            "g2_time_contract": args.g2_time_contract,
+            "g2_contract_autoselect": args.g2_contract_autoselect,
+            "saturation_tail_threshold": args.saturation_tail_threshold,
             "compat_mode": args.compat_mode,
             "k_grid": [0.0],
             "embedding_space": "dimensionless_dominant_pole",
@@ -513,14 +605,59 @@ def main() -> int:
             normalization=args.gr_normalization,
         )
 
-        x_grid_raw = build_x_grid_dimless(args.n_x, args.x_min_dimless, args.x_max_dimless)
+        # Step 1: Build G2 with the requested contract
+        x_grid_raw = build_x_grid_dimless(
+            args.n_x,
+            args.x_min_dimless,
+            args.x_max_dimless,
+            g2_time_contract=args.g2_time_contract,
+        )
         G2_ringdown_raw = poles_to_g2(
             x_grid_raw,
             poles,
             omega_dom_rads,
             gamma_dom_inv_s,
             normalization=args.g2_normalization,
+            g2_time_contract=args.g2_time_contract,
         )
+
+        # Step 2: Detect observed saturation and autoselect if needed
+        effective_g2_time_contract = args.g2_time_contract
+        g2_contract_autoselected = False
+        observed_saturation_detected = False
+        saturation_meta: Dict[str, Any] = {}
+
+        if args.g2_contract_autoselect and args.g2_time_contract == G2_TIME_CONTRACT_OMEGA_DOM_V1:
+            is_saturated, saturation_meta = detect_observed_saturation(
+                G2_ringdown_raw,
+                tail_threshold=args.saturation_tail_threshold,
+                fraction_threshold=SATURATION_FRACTION_THRESHOLD,
+            )
+            if is_saturated:
+                observed_saturation_detected = True
+                effective_g2_time_contract = G2_TIME_CONTRACT_GAMMA_DOM_V2
+                g2_contract_autoselected = True
+                print(f"  [AUTOSELECT] Observed saturation for {event_id}: "
+                      f"g2_last={saturation_meta['g2_last']:.6f}, "
+                      f"n_ge_threshold={saturation_meta['n_ge_threshold']}/{saturation_meta['n_points']}. "
+                      f"Rebuilding with {G2_TIME_CONTRACT_GAMMA_DOM_V2}.")
+                # Step 3: Rebuild G2 with gamma_dom_v2
+                x_grid_raw = build_x_grid_dimless(
+                    args.n_x,
+                    args.x_min_dimless,
+                    args.x_max_dimless,
+                    g2_time_contract=effective_g2_time_contract,
+                )
+                G2_ringdown_raw = poles_to_g2(
+                    x_grid_raw,
+                    poles,
+                    omega_dom_rads,
+                    gamma_dom_inv_s,
+                    normalization=args.g2_normalization,
+                    g2_time_contract=effective_g2_time_contract,
+                )
+
+        g2_repr_contract, g2_canonical_x_max = resolve_g2_repr_contract(effective_g2_time_contract)
 
         if args.compat_mode == "stage02_sandbox_v5":
             omega_grid_dimless = np.linspace(SANDBOX_OMEGA_MIN, SANDBOX_OMEGA_MAX, SANDBOX_N_OMEGA, dtype=np.float64)
@@ -539,17 +676,17 @@ def main() -> int:
                     G2_ringdown_raw,
                     n_x=SANDBOX_N_X,
                     x_min=SANDBOX_X_MIN,
-                    x_max=SANDBOX_X_MAX,
+                    x_max=g2_canonical_x_max,
                 )
             except G2RepresentationContractError as exc:
                 raise SystemExit(
                     f"[ERROR] failed to canonicalize G2 representation for {event_id}: {exc}"
                 ) from exc
-            x_grid = g2_contract["x_grid"]
-            G2_ringdown = g2_contract["G2_ringdown"]
+            x_grid = g2_contract.x_grid
+            G2_ringdown = g2_contract.g2_canonical
             contract_attrs = {
-                "x_grid_raw_range": np.asarray(g2_contract["meta"]["x_grid_raw_range"], dtype=np.float64),
-                "x_grid_canon_range": np.asarray(g2_contract["meta"]["x_grid_canon_range"], dtype=np.float64),
+                "x_grid_raw_range": np.asarray(g2_contract.meta["x_grid_raw_range"], dtype=np.float64),
+                "x_grid_canon_range": np.asarray(g2_contract.meta["x_grid_canon_range"], dtype=np.float64),
                 "omega_grid_raw_range": np.asarray(
                     [float(np.nanmin(omega_grid_dimless_raw)), float(np.nanmax(omega_grid_dimless_raw))],
                     dtype=np.float64,
@@ -560,8 +697,10 @@ def main() -> int:
                 ),
                 "G_R_raw_shape": np.asarray(GR_real_raw.shape, dtype=np.int64),
                 "G_R_compat_shape": np.asarray(GR_real.shape, dtype=np.int64),
-                "g2_interp_mode": g2_contract["meta"]["g2_interp_mode"],
-                "g2_norm_mode": g2_contract["meta"]["g2_norm_mode"],
+                "g2_interp_mode": g2_contract.meta["g2_interp_mode"],
+                "g2_norm_mode": g2_contract.meta["g2_norm_mode"],
+                "g2_repr_contract": g2_repr_contract,
+                "g2_canonical_x_max": float(g2_canonical_x_max),
             }
         else:
             omega_grid_dimless = omega_grid_dimless_raw
@@ -601,13 +740,33 @@ def main() -> int:
             b.attrs["omega_dom_rads"] = float(omega_dom_rads)
             b.attrs["gamma_dom_inv_s"] = float(gamma_dom_inv_s)
             b.attrs["embedding_space"] = "dimensionless_omega_dom"
+            b.attrs["g2_time_contract"] = effective_g2_time_contract
+            b.attrs["g2_time_contract_requested"] = args.g2_time_contract
+            b.attrs["g2_contract_autoselected"] = g2_contract_autoselected
+            b.attrs["observed_saturation_detected"] = observed_saturation_detected
+            if saturation_meta:
+                b.attrs["saturation_g2_last"] = float(saturation_meta.get("g2_last", 0.0))
+                b.attrs["saturation_n_ge_threshold"] = int(saturation_meta.get("n_ge_threshold", 0))
+                b.attrs["saturation_fraction_ge_threshold"] = float(saturation_meta.get("fraction_ge_threshold", 0.0))
+            b.attrs["g2_time_scale_attr"] = (
+                "gamma_dom_inv_s"
+                if effective_g2_time_contract == G2_TIME_CONTRACT_GAMMA_DOM_V2
+                else "omega_dom_rads"
+            )
+            b.attrs["g2_time_space"] = (
+                "dimensionless_gamma_dom"
+                if effective_g2_time_contract == G2_TIME_CONTRACT_GAMMA_DOM_V2
+                else "dimensionless_omega_dom"
+            )
+            b.attrs["g2_repr_contract"] = g2_repr_contract
+            b.attrs["g2_canonical_x_max"] = float(g2_canonical_x_max)
             b.attrs["compat_mode"] = args.compat_mode
             if args.compat_mode == "stage02_sandbox_v5":
                 for attr_key, attr_value in contract_attrs.items():
                     b.attrs[attr_key] = attr_value
-                b.attrs["g2_eps"] = float(g2_contract["meta"]["eps"])
-                b.attrs["g2_valid_points"] = int(g2_contract["meta"]["n_valid_after_filter"])
-                b.attrs["g2_unique_points"] = int(g2_contract["meta"]["n_unique_after_dedup"])
+                b.attrs["g2_eps"] = float(g2_contract.meta["eps"])
+                b.attrs["g2_valid_points"] = int(g2_contract.meta["n_valid_after_filter"])
+                b.attrs["g2_unique_points"] = int(g2_contract.meta["n_unique_after_dedup"])
             b.create_dataset("G_R_real", data=GR_real)
             b.create_dataset("G_R_imag", data=GR_imag)
             b.create_dataset("x_grid", data=x_grid)

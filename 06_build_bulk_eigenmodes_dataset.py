@@ -279,6 +279,68 @@ def write_csv(rows: List[Row], out_csv: Path) -> None:
             )
 
 
+def audit_uv_exponents(uv_list: List[Any], d: int) -> Dict[str, Any]:
+    """
+    Audita una lista de exponentes UV devuelta por el solver.
+
+    Detecta el colapso a d: ocurre cuando λ_sl ≈ 0 y la fórmula
+    Δ = (d + sqrt(d² + 4λ)) / 2 satura a d en float64.
+
+    Devuelve un dict con:
+      - suspicious: bool — True si la lista es sospechosa
+      - reason: str — motivo legible
+      - all_equal_d: bool — todos los valores son float-iguales a d
+      - all_identical: bool — todos los valores son idénticos entre sí
+      - n_values: int
+      - n_equal_d: int — cuántos son iguales a float(d)
+    """
+    if not uv_list:
+        return {
+            "suspicious": False,
+            "reason": "empty_list",
+            "all_equal_d": False,
+            "all_identical": False,
+            "n_values": 0,
+            "n_equal_d": 0,
+        }
+
+    d_f = float(d)
+    finite_vals = [float(v) for v in uv_list if v is not None and np.isfinite(float(v))]
+    n = len(finite_vals)
+    if n == 0:
+        return {
+            "suspicious": True,
+            "reason": "no_finite_values",
+            "all_equal_d": False,
+            "all_identical": False,
+            "n_values": len(uv_list),
+            "n_equal_d": 0,
+        }
+
+    n_equal_d = sum(1 for v in finite_vals if v == d_f)
+    all_equal_d = n_equal_d == n
+    # Todos idénticos (pero no necesariamente == d)
+    all_identical = len(set(finite_vals)) == 1
+
+    suspicious = False
+    reason = "ok"
+    if all_equal_d:
+        suspicious = True
+        reason = "all_values_equal_d__eigenvalues_near_zero"
+    elif all_identical:
+        suspicious = True
+        reason = "all_values_identical_but_not_d"
+
+    return {
+        "suspicious": suspicious,
+        "reason": reason,
+        "all_equal_d": all_equal_d,
+        "all_identical": all_identical,
+        "n_values": n,
+        "n_equal_d": n_equal_d,
+    }
+
+
 def build_legacy_json(rows: List[Row]) -> Dict[str, Any]:
     """Construye un JSON agregador compatible con loaders legacy (por-sistema y por family-d)."""
     systems: Dict[str, Dict[str, Any]] = {}
@@ -453,7 +515,10 @@ def main() -> int:
         "boundary_extractions": 0,
         "solver_extractions": 0,
         "no_delta": 0,
+        "solver_uv_collapsed": 0,  # sistemas donde uv_exponents colapsa a d
     }
+    # Auditoría UV por sistema
+    uv_exponents_audit_by_system: Dict[str, Any] = {}
     
     # Metadata de boundary extractions (para auditoría)
     boundary_metadata_by_system: Dict[str, Any] = {}
@@ -532,8 +597,21 @@ def main() -> int:
                 if used_key != "none":
                     compat_used_keys.add(used_key)
                 
-                Delta_uv_list_solver = spec.get("uv_exponents", [])
-                
+                raw_uv = spec.get("uv_exponents", [])
+                uv_audit = audit_uv_exponents(raw_uv, d)
+                uv_exponents_audit_by_system[system_name] = uv_audit
+
+                if uv_audit["suspicious"]:
+                    print(
+                        f"   [WARN] uv_exponents sospechoso ({uv_audit['reason']}): "
+                        f"{uv_audit['n_equal_d']}/{uv_audit['n_values']} valores == d={d}. "
+                        f"Delta_UV → None para este sistema."
+                    )
+                    Delta_uv_list_solver = []  # tratar como ausente
+                    stats["solver_uv_collapsed"] += 1
+                else:
+                    Delta_uv_list_solver = raw_uv
+
             except Exception as e:
                 failed.append({"system_name": system_name, "file": str(h5_path), "stage": "solver", "error": str(e)})
                 print(f"   [WARN] Fallo solver: {e}")
@@ -575,10 +653,18 @@ def main() -> int:
                 dv = Delta_uv_list_solver[mode_id]
                 if dv is not None and isinstance(dv, (int, float)) and np.isfinite(float(dv)):
                     try:
-                        Delta_uv = float(dv)
-                        quality = "ok"
-                        delta_source = "solver_uv"
-                        stats["solver_extractions"] += 1
+                        dv_f = float(dv)
+                        # Guard: rechazar valor si es float-igual a d
+                        # (síntoma de eigenvalor near-zero, no hay información UV real)
+                        if dv_f == float(d):
+                            quality = "uv_missing"
+                            delta_source = "none"
+                            stats["no_delta"] += 1
+                        else:
+                            Delta_uv = dv_f
+                            quality = "ok"
+                            delta_source = "solver_uv"
+                            stats["solver_extractions"] += 1
                     except Exception:
                         pass
             
@@ -637,6 +723,7 @@ def main() -> int:
             "boundary_extractor_available": HAS_BOUNDARY_EXTRACTOR,
             "stats": stats,
         },
+        "uv_exponents_audit": uv_exponents_audit_by_system,
         "boundary_extraction_metadata": boundary_metadata_by_system,
         "notes": [
             "CSV canónico para 07: system_name,family,d,mode_id,lambda_sl,Delta_UV (+ opcionales).",
@@ -695,6 +782,7 @@ def main() -> int:
                 "boundary_extractions": stats["boundary_extractions"],
                 "solver_extractions": stats["solver_extractions"],
                 "no_delta": stats["no_delta"],
+                "solver_uv_collapsed": stats["solver_uv_collapsed"],
             }
         )
         ctx.write_manifest()

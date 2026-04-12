@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Tuple, Optional
 
@@ -18,9 +19,37 @@ DEFAULT_X_MIN = 1e-3
 DEFAULT_X_MAX = 10.0
 MIN_VALID_POINTS = 3
 
+# -----------------------------------------------------------------------
+# Canonical grid aliases (stable public names used by tests and consumers)
+# -----------------------------------------------------------------------
+CANONICAL_N_X: int = DEFAULT_N_X
+CANONICAL_X_MIN: float = DEFAULT_X_MIN
+CANONICAL_X_MAX: float = DEFAULT_X_MAX
+
+# -----------------------------------------------------------------------
+# xmax_6 versioned contract — real-data carril (C2 / stage-02 reopening)
+#
+# x_max=6.0 was validated over x_max=10.0 for real GWOSC events because
+# ESPRIT-extracted G2 on 250 ms windows reliably covers x∈[0.001, ~5],
+# so extending to 10 forces edge-hold extrapolation that inflates G2_large_x
+# z-scores above the 5σ FAIL threshold.
+# See docs/g2_representation_xmax6_contract.md.
+# -----------------------------------------------------------------------
+XMAX6_V1_X_MAX: float = 6.0
+XMAX6_V1_CONTRACT_NAME: str = "xmax_6_v1"
+XMAX6_V1_N_X: int = DEFAULT_N_X
+
 
 class G2RepresentationContractError(RuntimeError):
     pass
+
+
+@dataclass
+class G2CanonicalResult:
+    """Return type for canonicalize_g2_representation."""
+    x_grid: np.ndarray
+    g2_canonical: np.ndarray
+    meta: Dict[str, Any]
 
 
 def canonical_x_grid(
@@ -37,6 +66,15 @@ def canonical_x_grid(
             f"invalid canonical x_grid range: x_min={x_min}, x_max={x_max}"
         )
     return np.linspace(x_min, x_max, int(n_x), dtype=np.float64)
+
+
+def build_canonical_x_grid(
+    n_x: int = CANONICAL_N_X,
+    x_min: float = CANONICAL_X_MIN,
+    x_max: float = CANONICAL_X_MAX,
+) -> np.ndarray:
+    """Public alias for canonical_x_grid with stable constant defaults."""
+    return canonical_x_grid(n_x=n_x, x_min=x_min, x_max=x_max)
 
 
 def _to_1d_float64(name: str, values: Any) -> np.ndarray:
@@ -71,7 +109,7 @@ def canonicalize_g2_representation(
     x_min: float = DEFAULT_X_MIN,
     x_max: float = DEFAULT_X_MAX,
     min_valid_points: int = MIN_VALID_POINTS,
-) -> Dict[str, Any]:
+) -> G2CanonicalResult:
     x_raw = _to_1d_float64("x_grid_raw", x_grid_raw)
     g2_raw_arr = _to_1d_float64("g2_raw", g2_raw)
     if x_raw.shape != g2_raw_arr.shape:
@@ -92,7 +130,7 @@ def canonicalize_g2_representation(
     n_valid = int(np.sum(valid_mask))
     if n_valid < int(min_valid_points):
         raise G2RepresentationContractError(
-            f"insufficient valid points for G2 canonicalization: n_input={n_input}, n_valid={n_valid}, min_valid_points={min_valid_points}"
+            f"insufficient valid G2/x samples: n_input={n_input}, n_valid={n_valid}, min_valid_points={min_valid_points}"
         )
 
     x_valid = x_raw[valid_mask]
@@ -118,20 +156,21 @@ def canonicalize_g2_representation(
         raise G2RepresentationContractError(f"invalid canonical G2 peak after interpolation: peak={peak}")
     g2_canon = (g2_canon / peak).astype(np.float64)
 
-    return {
-        "x_grid": x_canon.astype(np.float64),
-        "G2_ringdown": g2_canon.astype(np.float64),
-        "meta": {
-            "eps": eps,
-            "n_input": n_input,
-            "n_valid_after_filter": n_valid,
-            "n_unique_after_dedup": int(x_unique.size),
-            "x_grid_raw_range": [float(np.nanmin(x_raw)), float(np.nanmax(x_raw))],
-            "x_grid_canon_range": [float(x_canon[0]), float(x_canon[-1])],
-            "g2_interp_mode": "interp_logx_logg2_edge_hold_numpy",
-            "g2_norm_mode": "unit_peak",
-        },
+    meta: Dict[str, Any] = {
+        "eps": eps,
+        "n_input": n_input,
+        "n_valid_after_filter": n_valid,
+        "n_unique_after_dedup": int(x_unique.size),
+        "x_grid_raw_range": [float(np.nanmin(x_raw)), float(np.nanmax(x_raw))],
+        "x_grid_canon_range": [float(x_canon[0]), float(x_canon[-1])],
+        "g2_interp_mode": "interp_logx_logg2_edge_hold_numpy",
+        "g2_norm_mode": "unit_peak",
     }
+    return G2CanonicalResult(
+        x_grid=x_canon.astype(np.float64),
+        g2_canonical=g2_canon.astype(np.float64),
+        meta=meta,
+    )
 
 
 def _copy_nonboundary_groups(src_file: h5py.File, dst_file: h5py.File) -> None:
@@ -154,6 +193,7 @@ def contract_boundary_group(
     compat_note: str = "Preserve raw G2/x_grid view and expose canonical stage-02-compatible representation.",
     g2_repr_contract: str = DEFAULT_G2_REPR_CONTRACT,
     eps: float = DEFAULT_EPS,
+    x_max: float = DEFAULT_X_MAX,
     central_charge_fallback: float = 0.0,
 ) -> Dict[str, Any]:
     if "x_grid" not in boundary_group:
@@ -163,9 +203,9 @@ def contract_boundary_group(
 
     x_raw = np.asarray(boundary_group["x_grid"][...], dtype=np.float64)
     g2_raw = np.asarray(boundary_group["G2_ringdown"][...], dtype=np.float64)
-    canon = canonicalize_g2_representation(x_raw, g2_raw, eps=eps)
+    canon = canonicalize_g2_representation(x_raw, g2_raw, eps=eps, x_max=x_max)
 
-    out = {
+    out: Dict[str, Any] = {
         "datasets": {},
         "attrs": {},
     }
@@ -187,9 +227,9 @@ def contract_boundary_group(
     if "k_grid" in boundary_group:
         out["datasets"]["k_grid"] = np.asarray(boundary_group["k_grid"][...], dtype=np.float64)
 
-    out["datasets"]["x_grid"] = canon["x_grid"]
-    out["datasets"]["G2_ringdown"] = canon["G2_ringdown"]
-    out["datasets"]["G2_O1"] = canon["G2_ringdown"].copy()
+    out["datasets"]["x_grid"] = canon.x_grid
+    out["datasets"]["G2_ringdown"] = canon.g2_canonical
+    out["datasets"]["G2_O1"] = canon.g2_canonical.copy()
 
     for key, value in boundary_group.attrs.items():
         out["attrs"][key] = value
@@ -204,10 +244,10 @@ def contract_boundary_group(
             "compat_contract": compat_contract,
             "compat_note": compat_note,
             "g2_repr_contract": g2_repr_contract,
-            "g2_interp_mode": canon["meta"]["g2_interp_mode"],
-            "g2_norm_mode": canon["meta"]["g2_norm_mode"],
-            "x_grid_raw_range": np.asarray(canon["meta"]["x_grid_raw_range"], dtype=np.float64),
-            "x_grid_canon_range": np.asarray(canon["meta"]["x_grid_canon_range"], dtype=np.float64),
+            "g2_interp_mode": canon.meta["g2_interp_mode"],
+            "g2_norm_mode": canon.meta["g2_norm_mode"],
+            "x_grid_raw_range": np.asarray(canon.meta["x_grid_raw_range"], dtype=np.float64),
+            "x_grid_canon_range": np.asarray(canon.meta["x_grid_canon_range"], dtype=np.float64),
             "omega_grid_raw_range": np.asarray(
                 [
                     float(np.nanmin(out["datasets"]["omega_grid_raw"])) if "omega_grid_raw" in out["datasets"] else np.nan,
@@ -238,6 +278,7 @@ def write_contracted_boundary_h5(
     compat_note: str = "Preserve raw G2/x_grid view and expose canonical stage-02-compatible representation.",
     g2_repr_contract: str = DEFAULT_G2_REPR_CONTRACT,
     eps: float = DEFAULT_EPS,
+    x_max: float = DEFAULT_X_MAX,
     central_charge_fallback: float = 0.0,
 ) -> Dict[str, Any]:
     source_h5 = Path(source_h5)
@@ -255,6 +296,7 @@ def write_contracted_boundary_h5(
             compat_note=compat_note,
             g2_repr_contract=g2_repr_contract,
             eps=eps,
+            x_max=x_max,
             central_charge_fallback=central_charge_fallback,
         )
         b = dst.create_group("boundary")
@@ -268,6 +310,7 @@ def write_contracted_boundary_h5(
         "compat_mode": compat_mode,
         "contract_name": compat_contract,
         "g2_repr_contract": g2_repr_contract,
+        "x_max": x_max,
     }
 
 
@@ -355,6 +398,8 @@ def main() -> int:
     ap.add_argument("--compat-mode", default=DEFAULT_COMPAT_MODE, choices=["stage02_sandbox_v5"])
     ap.add_argument("--compat-contract", default=DEFAULT_COMPAT_CONTRACT)
     ap.add_argument("--g2-repr-contract", default=DEFAULT_G2_REPR_CONTRACT)
+    ap.add_argument("--x-max", type=float, default=DEFAULT_X_MAX,
+                    help="Canonical x_max for G2 interpolation grid (default 10.0; use 6.0 for xmax_6_v1 contract)")
     ap.add_argument("--eps", type=float, default=DEFAULT_EPS)
     args = ap.parse_args()
 
@@ -364,27 +409,38 @@ def main() -> int:
         compat_mode=args.compat_mode,
         compat_contract=args.compat_contract,
         g2_repr_contract=args.g2_repr_contract,
+        x_max=args.x_max,
         eps=args.eps,
     )
-    feature_diff = compute_feature_diff(args.source_h5, args.output_h5, engine_path=args.engine_path)
-    summary = {
+
+    # feature_diff is optional: only run when explicitly requested (V2.5 / QNM-carrying contracts)
+    feature_diff: Optional[Dict[str, Any]] = None
+    if args.feature_diff_json or args.engine_path:
+        feature_diff = compute_feature_diff(args.source_h5, args.output_h5, engine_path=args.engine_path)
+
+    summary: Dict[str, Any] = {
         "source_h5": str(Path(args.source_h5)),
         "files_created": [str(Path(args.output_h5))],
         "files_modified": [],
         "whether_02R_was_modified": False,
         "compat_mode": args.compat_mode,
         "contract_name": args.compat_contract,
-        "feature_vector_shape": feature_diff["feature_vector_shape"],
-        "feature_vector_finite": feature_diff["feature_vector_finite"],
-        "qnm_invariant": feature_diff["qnm_invariant"],
-        "max_abs_delta_g2_block": feature_diff["max_abs_delta_g2_block"],
-        "max_abs_delta_thermal_block": feature_diff["max_abs_delta_thermal_block"],
-        "max_abs_delta_qnm_block": feature_diff["max_abs_delta_qnm_block"],
-        "max_abs_delta_response_block": feature_diff["max_abs_delta_response_block"],
-        "max_abs_delta_global_block": feature_diff["max_abs_delta_global_block"],
-        "verdict": "CONTRACT_OK" if feature_diff["feature_vector_finite"] and feature_diff["qnm_invariant"] else "CONTRACT_FAIL",
-        "conclusion_short": "Canonical view changes the G2 representation block while preserving QNM invariants.",
+        "g2_repr_contract": args.g2_repr_contract,
+        "x_max": args.x_max,
     }
+    if feature_diff is not None:
+        summary.update({
+            "feature_vector_shape": feature_diff["feature_vector_shape"],
+            "feature_vector_finite": feature_diff["feature_vector_finite"],
+            "qnm_invariant": feature_diff["qnm_invariant"],
+            "max_abs_delta_g2_block": feature_diff["max_abs_delta_g2_block"],
+            "max_abs_delta_thermal_block": feature_diff["max_abs_delta_thermal_block"],
+            "max_abs_delta_qnm_block": feature_diff["max_abs_delta_qnm_block"],
+            "max_abs_delta_response_block": feature_diff["max_abs_delta_response_block"],
+            "max_abs_delta_global_block": feature_diff["max_abs_delta_global_block"],
+            "verdict": "CONTRACT_OK" if feature_diff["feature_vector_finite"] and feature_diff["qnm_invariant"] else "CONTRACT_FAIL",
+            "conclusion_short": "Canonical view changes the G2 representation block while preserving QNM invariants.",
+        })
     manifest = {
         "contract": write_info,
         "artifacts": {
@@ -394,7 +450,7 @@ def main() -> int:
             "source_used_txt": args.source_used_txt,
         },
     }
-    if args.feature_diff_json:
+    if args.feature_diff_json and feature_diff is not None:
         p = Path(args.feature_diff_json)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps(feature_diff, indent=2) + "\n", encoding="utf-8")
