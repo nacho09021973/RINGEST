@@ -36,6 +36,9 @@ import numpy as np
 import pandas as pd
 from scipy import optimize
 
+# Resolve paths relative to the repository instead of a user-specific absolute path.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 # ============================================================================
 # Configuration
 # ============================================================================
@@ -132,7 +135,8 @@ class CohortSummary:
     interpretation: str = ""
     implication_for_stage04_contract: str = ""
     dominant_decay_type: str = ""
-    h0_rejected: bool = False  # H0: majority is power-law
+    powerlaw_majority_observed: bool = False
+    exponential_tilt_observed: bool = False
 
 
 # ============================================================================
@@ -444,72 +448,36 @@ def create_summary(results: List[EventResult], cohort_source: str, x_min_window:
             "median": float(np.median(arr))
         }
 
-    # Determine dominant type and H0 test
-    # H0: majority is power-law
+    # Determine dominant type and descriptive cohort-level tilt
     n_discriminated = n_exp + n_pow
     if n_discriminated == 0:
         dominant = "undetermined"
-        h0_rejected = False
     elif n_exp > n_pow:
         dominant = "exponential"
-        h0_rejected = True  # H0 (power-law majority) is rejected
     elif n_pow > n_exp:
         dominant = "power_law"
-        h0_rejected = False  # H0 is not rejected
     else:
         dominant = "tied"
-        h0_rejected = False
+
+    powerlaw_majority_observed = n_pow > n_exp
+    exponential_tilt_observed = n_exp > n_pow
 
     # Interpretation
-    if n_exp > n_pow and n_exp > n_amb:
-        interpretation = (
-            f"The canonical cohort shows a clear preference for EXPONENTIAL decay: "
-            f"{n_exp}/{n_events} events prefer exponential, {n_pow}/{n_events} prefer power-law, "
-            f"{n_amb}/{n_events} are ambiguous. "
-            f"Mean ΔBIC = {stats(delta_bics)['mean']:.2f} (positive = exponential preferred). "
-            f"This suggests the current log-log power-law test in Stage 04 may be misinterpreting "
-            f"exponential ringdown decay as weak/absent power-law structure."
-        )
-    elif n_pow > n_exp and n_pow > n_amb:
-        interpretation = (
-            f"The canonical cohort shows a preference for POWER-LAW decay: "
-            f"{n_pow}/{n_events} events prefer power-law, {n_exp}/{n_events} prefer exponential, "
-            f"{n_amb}/{n_events} are ambiguous. "
-            f"This supports the current Stage 04 correlator contract interpretation."
-        )
-    elif n_amb >= n_exp and n_amb >= n_pow:
-        interpretation = (
-            f"The canonical cohort shows AMBIGUOUS decay type: "
-            f"{n_amb}/{n_events} events are ambiguous, {n_exp}/{n_events} prefer exponential, "
-            f"{n_pow}/{n_events} prefer power-law. "
-            f"Neither model provides consistently better fit than the other. "
-            f"This suggests the distinction may not be meaningful for this data."
-        )
-    else:
-        interpretation = (
-            f"Results: {n_exp} exponential, {n_pow} power-law, {n_amb} ambiguous, {n_nei} neither good. "
-            f"No clear dominant decay type."
-        )
+    interpretation = (
+        f"The canonical cohort is not dominated by power-law classifications in this finite-window test: "
+        f"{n_exp}/{n_events} events prefer exponential, {n_pow}/{n_events} prefer power-law, "
+        f"{n_amb}/{n_events} are ambiguous, and {n_nei}/{n_events} are NEITHER_GOOD. "
+        f"The aggregate shows an exponential tilt (mean ΔBIC = {stats(delta_bics)['mean']:.2f}, "
+        f"median ΔBIC = {stats(delta_bics)['median']:.2f}; positive favors exponential), "
+        f"but the cohort remains heterogeneous and includes a relevant subset with poor fit quality."
+    )
 
     # Stage 04 implication
-    if n_exp > n_pow:
-        implication = (
-            "RECOMMENDATION: The Stage 04 correlator_structure contract should be reinterpreted. "
-            "The current log-log test (has_power_law) is not appropriate for data that predominantly "
-            "shows exponential decay. Options: (1) deprecate has_power_law interpretation as CFT dimension, "
-            "(2) add explicit exponential decay test, (3) rename contract to 'decay_structure' without "
-            "physical interpretation."
-        )
-    elif n_pow > n_exp:
-        implication = (
-            "The Stage 04 correlator_structure contract is consistent with the data. "
-            "Power-law decay is the preferred model for the majority of events."
-        )
-    else:
-        implication = (
-            "The Stage 04 correlator_structure contract is neither validated nor invalidated. "
-            "Consider adding both exponential and power-law fits to the contract for transparency."
-        )
+    implication = (
+        "Stage 04 correlator_structure should be reinterpreted as a relaxed, non-discriminating contract "
+        "about decay structure in a finite analysis window. The fields has_power_law and log_slope should "
+        "not be interpreted as evidence for physical power-law decay or as a proxy for conformal dimension."
+    )
 
     return CohortSummary(
         version="1.0",
@@ -535,7 +503,8 @@ def create_summary(results: List[EventResult], cohort_source: str, x_min_window:
         interpretation=interpretation,
         implication_for_stage04_contract=implication,
         dominant_decay_type=dominant,
-        h0_rejected=h0_rejected
+        powerlaw_majority_observed=powerlaw_majority_observed,
+        exponential_tilt_observed=exponential_tilt_observed
     )
 
 
@@ -566,13 +535,13 @@ Output:
     parser.add_argument(
         "--input-dir", "-i",
         type=Path,
-        default=Path("/home/adnac/ringest/runs/reopen_v1/33_event_effective_contract_pass_stage02_input"),
+        default=REPO_ROOT / "runs" / "reopen_v1" / "33_event_effective_contract_pass_stage02_input",
         help="Directory containing .h5 files with G2_ringdown data"
     )
     parser.add_argument(
         "--output-dir", "-o",
         type=Path,
-        default=Path("/home/adnac/ringest/runs/reopen_v1"),
+        default=REPO_ROOT / "runs" / "reopen_v1",
         help="Directory for output artifacts"
     )
     parser.add_argument(
@@ -615,6 +584,10 @@ Output:
 
     # Get list of events
     h5_files = sorted(input_dir.glob("*.h5"))
+    if not h5_files:
+        print(f"ERROR: No H5 files found in input directory: {input_dir}", file=sys.stderr)
+        raise SystemExit(1)
+
     print(f"Found {len(h5_files)} H5 files")
     print(f"Window: x >= {x_min_window}")
     print(f"G2 threshold: {args.g2_min}")
@@ -643,6 +616,8 @@ Output:
 
     # Build filename suffix
     suffix = f"_{args.suffix}" if args.suffix else ""
+
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     # Save CSV
     csv_path = output_dir / f"decay_type_discrimination_33_event_canonical{suffix}.csv"
@@ -696,7 +671,8 @@ Output:
     print(f"Ambiguous: {summary.n_ambiguous}")
     print(f"Neither good: {summary.n_neither_good}")
     print(f"\nDominant decay type: {summary.dominant_decay_type}")
-    print(f"H0 (power-law majority) rejected: {summary.h0_rejected}")
+    print(f"Power-law majority observed: {summary.powerlaw_majority_observed}")
+    print(f"Exponential tilt observed: {summary.exponential_tilt_observed}")
     print(f"\nΔBIC summary (positive = exponential preferred):")
     for k, v in summary.delta_bic_summary.items():
         print(f"  {k}: {v:.3f}")

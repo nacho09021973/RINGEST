@@ -1366,8 +1366,10 @@ def evaluate_on_test(
     A_pred_norm = out["A"].cpu().numpy()
     f_pred_norm = out["f"].cpu().numpy()
     R_pred_norm = out["R"].cpu().numpy()
-    zh_pred = out["z_h"].cpu().numpy()
+    zh_pred_raw = out["z_h"].cpu().numpy()
+    zh_pred = np.maximum(zh_pred_raw, 0.0)
     family_logits = out["family_logits"].cpu().numpy()
+    family_probs = torch.softmax(out["family_logits"], dim=1).cpu().numpy()
     family_pred = np.argmax(family_logits, axis=1)
     
     A_pred = normalizer.denormalize_A(A_pred_norm)
@@ -1429,8 +1431,10 @@ def run_inference_single(
     A_pred_norm = out["A"].cpu().numpy()
     f_pred_norm = out["f"].cpu().numpy()
     R_pred_norm = out["R"].cpu().numpy()
-    zh_pred = out["z_h"].cpu().numpy()
+    zh_pred_raw = out["z_h"].cpu().numpy()
+    zh_pred = np.maximum(zh_pred_raw, 0.0)
     family_logits = out["family_logits"].cpu().numpy()
+    family_probs = torch.softmax(out["family_logits"], dim=1).cpu().numpy()
     
     A_pred = normalizer.denormalize_A(A_pred_norm)
     f_pred = normalizer.denormalize_f(f_pred_norm)
@@ -1439,14 +1443,26 @@ def run_inference_single(
     
     family_id = int(np.argmax(family_logits, axis=1)[0])
     family_name = family_map_inv.get(family_id, "unknown")
+    family_prob_row = family_probs[0]
+    family_order = np.argsort(family_prob_row)[::-1]
+    family_top1_score = float(family_prob_row[family_order[0]])
+    family_top2_score = float(family_prob_row[family_order[1]]) if len(family_order) > 1 else 0.0
+    family_margin = family_top1_score - family_top2_score
+    family_entropy = float(-np.sum(family_prob_row * np.log(np.clip(family_prob_row, 1e-12, 1.0))))
     
     return {
         "A_pred": A_pred[0],  # Quitar dimensiAfAE'A+aEUR(TM)AfaEURsA,A3n de batch
         "f_pred": f_pred[0],
         "R_pred": R_pred[0],
+        "zh_pred_raw": float(zh_pred_raw[0]),
         "zh_pred": float(zh_pred[0]),
+        "zh_pred_was_clipped": bool(zh_pred_raw[0] < 0.0),
         "family_pred": family_id,
         "family_name": family_name,
+        "family_top1_score": family_top1_score,
+        "family_top2_score": family_top2_score,
+        "family_margin": family_margin,
+        "family_entropy": family_entropy,
     }
 
 
@@ -1649,6 +1665,12 @@ def run_inference_mode(args):
             # Detalle de trazabilidad (no contractual)
             f_out.attrs["provenance_detail"] = "inference_from_boundary_using_sandbox_model"
             f_out.attrs["zh_pred"] = preds["zh_pred"]
+            f_out.attrs["zh_pred_raw"] = preds["zh_pred_raw"]
+            f_out.attrs["zh_pred_was_clipped"] = preds["zh_pred_was_clipped"]
+            f_out.attrs["family_top1_score"] = preds["family_top1_score"]
+            f_out.attrs["family_top2_score"] = preds["family_top2_score"]
+            f_out.attrs["family_margin"] = preds["family_margin"]
+            f_out.attrs["family_entropy"] = preds["family_entropy"]
             f_out.attrs["checkpoint_source"] = str(checkpoint_path)
 
             # OOD-permissive mode metadata (support_mode gate contract)
@@ -1690,7 +1712,12 @@ def run_inference_mode(args):
                 f_of_z=np.asarray(f_arr, dtype=np.float32),
                 R_of_z=np.asarray(R_arr, dtype=np.float32),
                 family_pred=np.array(str(preds.get('family_name','unknown')), dtype=object),
+                family_top1_score=np.array(float(preds.get('family_top1_score', float('nan'))), dtype=np.float32),
+                family_top2_score=np.array(float(preds.get('family_top2_score', float('nan'))), dtype=np.float32),
+                family_margin=np.array(float(preds.get('family_margin', float('nan'))), dtype=np.float32),
+                family_entropy=np.array(float(preds.get('family_entropy', float('nan'))), dtype=np.float32),
                 zh_pred=np.array(float(preds.get('zh_pred', float('nan'))), dtype=np.float32),
+                zh_pred_raw=np.array(float(preds.get('zh_pred_raw', float('nan'))), dtype=np.float32),
                 d=np.array(int(d_boundary), dtype=np.int32),
                 provenance=np.array('inference', dtype=object),
             )
@@ -1700,7 +1727,13 @@ def run_inference_mode(args):
             "h5_input": str(h5_path),
             "h5_output": str(out_h5_path),
             "family_pred": preds["family_name"],
+            "family_top1_score": preds["family_top1_score"],
+            "family_top2_score": preds["family_top2_score"],
+            "family_margin": preds["family_margin"],
+            "family_entropy": preds["family_entropy"],
+            "zh_pred_raw": preds["zh_pred_raw"],
             "zh_pred": preds["zh_pred"],
+            "zh_pred_was_clipped": preds["zh_pred_was_clipped"],
             "d": d_boundary,
             "provenance": "inference",
             "provenance_detail": "inference_from_boundary_using_sandbox_model",
