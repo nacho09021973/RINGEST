@@ -73,6 +73,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+# Registro canónico de familias — fuente de verdad para FAMILY_MAP
+try:
+    from family_registry import FAMILY_MAP as _REGISTRY_FAMILY_MAP
+    _HAS_FAMILY_REGISTRY = True
+except ImportError:
+    _REGISTRY_FAMILY_MAP = {}
+    _HAS_FAMILY_REGISTRY = False
+
 # V3 INFRASTRUCTURE - PATCH
 HAS_STAGE_UTILS = False
 EXIT_OK = 0
@@ -1508,7 +1517,15 @@ def run_inference_mode(args):
     n_z = ckpt["n_z"]
     hidden_dim = ckpt.get("hidden_dim", 256)
     n_layers = ckpt.get("n_layers", 4)
-    family_map = ckpt.get("family_map", {"ads": 0, "lifshitz": 1, "hyperscaling": 2, "deformed": 3, "unknown": 4})
+    # Fallback: si el checkpoint no tiene family_map, usar el registro canónico.
+    # El registro extiende el mapa original (índices 0-4 idénticos) con Tier A.
+    _default_fm = _REGISTRY_FAMILY_MAP if _HAS_FAMILY_REGISTRY else {
+        "ads": 0, "lifshitz": 1, "hyperscaling": 2, "deformed": 3, "unknown": 4,
+        "kerr": 6,
+        "charged_hvlif": 7, "gauss_bonnet": 8, "linear_axion": 9,
+        "massive_gravity": 10, "rn_ads": 11,
+    }
+    family_map = ckpt.get("family_map", _default_fm)
     family_map_inv = {v: k for k, v in family_map.items()}
     
     # NormalizaciAfAE'A+aEUR(TM)AfaEURsA,A3n de features (X)
@@ -1844,7 +1861,17 @@ def run_train_mode(args):
         raise FileNotFoundError(f"geometries_manifest.json / manifest.json not found en {data_dir}")
     manifest = json.loads(manifest_path.read_text())
     
-    family_map = {"ads": 0, "lifshitz": 1, "hyperscaling": 2, "deformed": 3, "unknown": 4, "kerr": 5}
+    # family_map: fuente canónica desde family_registry.
+    # Si el módulo no está disponible, fallback inline (mismo orden de índices).
+    if _HAS_FAMILY_REGISTRY:
+        family_map = dict(_REGISTRY_FAMILY_MAP)
+    else:
+        family_map = {
+            "ads": 0, "lifshitz": 1, "hyperscaling": 2, "deformed": 3,
+            "dpbrane": 4, "unknown": 5, "kerr": 6,
+            "charged_hvlif": 7, "gauss_bonnet": 8, "linear_axion": 9,
+            "massive_gravity": 10, "rn_ads": 11,
+        }
     family_map_inv = {v: k for k, v in family_map.items()}
     
     # Estructuras para datos
