@@ -243,6 +243,14 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--weight-decay", type=float, default=1e-4)
     ap.add_argument("--kerr-logit-penalty", type=float, default=0.25)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--unfreeze-top-layers", type=int, default=0,
+                    help="Number of top backbone residual blocks to unfreeze (0=heads-only, 2=recommended)")
+    ap.add_argument("--backbone-lr", type=float, default=5e-4,
+                    help="Learning rate for unfrozen backbone layers (should be lower than head LRs)")
+    ap.add_argument("--label-smoothing", type=float, default=0.0,
+                    help="Label smoothing for family cross-entropy loss (0.1 recommended)")
+    ap.add_argument("--zh-softplus", action="store_true", default=False,
+                    help="Replace zh head final layer with Softplus-constrained output for architectural non-negativity")
     return ap
 
 
@@ -319,8 +327,32 @@ def main() -> int:
             candidate_state["decoder_family.bias"] = family_bias.to(device=device)
             model.load_state_dict(candidate_state, strict=True)
 
+            # --- Softplus wrapping for zh non-negativity ---
+            if args.zh_softplus:
+                original_zh = model.decoder_zh
+                class _SoftplusZhWrapper(torch.nn.Module):
+                    def __init__(self, base):
+                        super().__init__()
+                        self.base = base
+                        self._softplus = torch.nn.Softplus(beta=5.0)
+                    def forward(self, x):
+                        return self._softplus(self.base(x))
+                model.decoder_zh = _SoftplusZhWrapper(original_zh).to(device)
+
+            # --- Freeze/unfreeze logic ---
+            n_backbone_layers = len(model.layers)
+            unfreeze_top = min(args.unfreeze_top_layers, n_backbone_layers)
             for name, param in model.named_parameters():
-                param.requires_grad = name.startswith("decoder_family") or name.startswith("decoder_zh")
+                is_head = name.startswith("decoder_family") or name.startswith("decoder_zh")
+                is_top_backbone = False
+                if unfreeze_top > 0:
+                    for i in range(n_backbone_layers - unfreeze_top, n_backbone_layers):
+                        if name.startswith(f"layers.{i}.") or name.startswith(f"layer_norms.{i}."):
+                            is_top_backbone = True
+                            break
+                    if name.startswith("final_norm."):
+                        is_top_backbone = True
+                param.requires_grad = is_head or is_top_backbone
 
             trainable_params = [param for param in model.parameters() if param.requires_grad]
             if not trainable_params:
@@ -332,11 +364,21 @@ def main() -> int:
             for fam_id, count in train_family_counts.items():
                 class_weights[fam_id] = len(train_family_ids) / (len(train_family_counts) * count)
 
+            # --- Optimizer with per-group LRs ---
+            param_groups = [
+                {"params": list(model.decoder_family.parameters()), "lr": args.family_lr},
+                {"params": list(model.decoder_zh.parameters()), "lr": args.zh_lr},
+            ]
+            if unfreeze_top > 0:
+                backbone_params = []
+                for name, param in model.named_parameters():
+                    if param.requires_grad and not name.startswith("decoder_"):
+                        backbone_params.append(param)
+                if backbone_params:
+                    param_groups.append({"params": backbone_params, "lr": args.backbone_lr})
+
             optimizer = torch.optim.AdamW(
-                [
-                    {"params": model.decoder_family.parameters(), "lr": args.family_lr},
-                    {"params": model.decoder_zh.parameters(), "lr": args.zh_lr},
-                ],
+                param_groups,
                 weight_decay=args.weight_decay,
             )
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.n_epochs, eta_min=min(args.family_lr, args.zh_lr) * 0.05)
@@ -362,7 +404,8 @@ def main() -> int:
                     yb_family = train_tensors["Y_family"][batch_idx]
                     yb_zh = train_tensors["Y_zh"][batch_idx]
                     out = model(xb, z_grid=z_t)
-                    loss_family = F.cross_entropy(out["family_logits"], yb_family, weight=class_weights)
+                    loss_family = F.cross_entropy(out["family_logits"], yb_family, weight=class_weights,
+                                                   label_smoothing=args.label_smoothing)
                     zh_raw = out["z_h"].view(-1)
                     loss_zh = F.smooth_l1_loss(zh_raw, yb_zh, reduction="mean")
                     loss_nonneg = torch.relu(-zh_raw).pow(2).mean()
@@ -411,12 +454,22 @@ def main() -> int:
                 if best_metrics is None or candidate_key > best_key:
                     best_metrics = val_metrics
                     best_epoch = epoch
-                    best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+                    raw_state = model.state_dict()
+                    # Unwrap Softplus wrapper keys so checkpoint is loadable by vanilla engine
+                    best_state = {}
+                    for k, v in raw_state.items():
+                        clean_k = k.replace("decoder_zh.base.", "decoder_zh.") if args.zh_softplus else k
+                        best_state[clean_k] = v.detach().cpu().clone()
 
             if best_state is None or best_metrics is None or best_epoch is None:
                 raise RuntimeError("FATAL: candidate tune did not produce a best checkpoint")
 
-            model.load_state_dict(best_state)
+            # Re-wrap keys for the current model (which may have Softplus wrapper)
+            load_state = {}
+            for k, v in best_state.items():
+                wrapped_k = k.replace("decoder_zh.", "decoder_zh.base.") if (args.zh_softplus and not k.startswith("decoder_zh.base.")) else k
+                load_state[wrapped_k] = v
+            model.load_state_dict(load_state, strict=False)
             train_metrics = _evaluate_split(model, train_tensors, dataset["train_rows"], candidate_family_map, z_t)
             test_metrics = _evaluate_split(model, test_tensors, dataset["test_rows"], candidate_family_map, z_t)
 
@@ -424,10 +477,18 @@ def main() -> int:
             candidate_ckpt = dict(ckpt)
             candidate_ckpt["model_state_dict"] = {k: v.cpu() for k, v in best_state.items()}
             candidate_ckpt["family_map"] = candidate_family_map
+            trainable_module_names = ["decoder_family", "decoder_zh"]
+            if unfreeze_top > 0:
+                for i in range(n_backbone_layers - unfreeze_top, n_backbone_layers):
+                    trainable_module_names.extend([f"layers.{i}", f"layer_norms.{i}"])
+                trainable_module_names.append("final_norm")
             candidate_ckpt["candidate_v2"] = {
                 "base_checkpoint": str(base_checkpoint),
                 "family_head_strategy": "expanded_dpbrane_class_from_old_unknown_init",
-                "trainable_modules": ["decoder_family", "decoder_zh"],
+                "trainable_modules": trainable_module_names,
+                "unfreeze_top_layers": unfreeze_top,
+                "zh_softplus": args.zh_softplus,
+                "label_smoothing": args.label_smoothing,
                 "loss": {
                     "family_ce": 1.0,
                     "zh_smooth_l1": 0.5,
@@ -437,6 +498,7 @@ def main() -> int:
                 "optimizer": {
                     "family_lr": args.family_lr,
                     "zh_lr": args.zh_lr,
+                    "backbone_lr": args.backbone_lr if unfreeze_top > 0 else None,
                     "weight_decay": args.weight_decay,
                 },
                 "best_epoch": best_epoch,
@@ -457,7 +519,10 @@ def main() -> int:
                 "n_train": len(dataset["train_rows"]),
                 "n_test": len(dataset["test_rows"]),
                 "candidate_family_map": candidate_family_map,
-                "trainable_modules": ["decoder_family", "decoder_zh"],
+                "trainable_modules": trainable_module_names,
+                "unfreeze_top_layers": unfreeze_top,
+                "zh_softplus": args.zh_softplus,
+                "label_smoothing": args.label_smoothing,
                 "best_epoch": best_epoch,
                 "train_family_counts": _family_counts(dataset["train_rows"]),
                 "test_family_counts": _family_counts(dataset["test_rows"]),
