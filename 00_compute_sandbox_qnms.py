@@ -43,30 +43,120 @@ from scipy.optimize import fsolve
 # Geometría: |f'(z_h)| analítico por familia
 # ─────────────────────────────────────────────────────────────────────────────
 
-def fp_horizon_analytic(family: str, z_h: float, d: int,
-                        z_dyn: float, theta: float) -> float:
+def fp_horizon_analytic(
+    family: str,
+    z_h: float,
+    d: int,
+    z_dyn: float,
+    theta: float,
+    # Tier A extra params (keyword-only, con defaults para compatibilidad)
+    charge_Q: float = 0.0,
+    lambda_gb: float = 0.0,
+    m_g: float = 0.0,
+    mg_c1: float = 1.0,
+    alpha_axion: float = 0.0,
+) -> float:
     """
     |f'(z_h)| analítico para cada familia.
     Derivado directamente de la expresión de f(z) en 01_generate_sandbox_geometries.py.
+
+    Cada rama tiene su propia derivación desde f(z) analítico — no hay fallback
+    silencioso al else para familias reconocidas.
+
+    Tier Canonical:
+      ads:            f = 1 - (z/z_h)^d
+      lifshitz:       f = 1 - (z/z_h)^{d+z_dyn-1}
+      hyperscaling:   f = 1 - (z/z_h)^{max(1,d-theta)}
+      dpbrane:        f = 1 - (z/z_h)^{max(1,2*z_dyn)}
+      deformed/unknown: f = 1 - (z/z_h)^4 (toy)
+
+    Tier A:
+      rn_ads:         f = 1 - (1+q²)(z/z_h)^d + q²(z/z_h)^{2(d-1)}
+      gauss_bonnet:   f = 1 - (z/z_h)^{d+lambda_gb}
+      massive_gravity: f = 1 - (1-mg2·z_h²)(z/z_h)^d - mg2·z²  (mg2=m_g²·mg_c1)
+      linear_axion:   f = 1 - (1+a2·z_h²/d)(z/z_h)^d + a2·z²/d  (a2=alpha²)
+      charged_hvlif:  f = 1 - (1+q²)(z/z_h)^{eff_d} + q²(z/z_h)^{2(eff_d-1)}
     """
+    # ── Tier Canonical ────────────────────────────────────────────────────────
     if family == "ads":
         exponent = float(d)
+        return exponent / z_h
+
     elif family == "lifshitz":
         exponent = float(d) + z_dyn - 1.0
+        return exponent / z_h
+
     elif family == "hyperscaling":
         exponent = max(1.0, float(d) - theta)
+        return exponent / z_h
+
     elif family == "dpbrane":
         exponent = max(1.0, 2.0 * z_dyn)
+        return exponent / z_h
+
+    elif family in ("deformed", "unknown"):
+        # f = 1 - (z/z_h)^4  (toy para familias deformadas/desconocidas)
+        return 4.0 / z_h
+
+    # ── Tier A ────────────────────────────────────────────────────────────────
+
+    elif family == "rn_ads":
+        # f(z) = 1 - (1+q²)(z/z_h)^d + q²(z/z_h)^{2(d-1)}
+        # f'(z_h) = [-(1+q²)·d + q²·2(d-1)] / z_h = (-d + q²(d-2)) / z_h
+        q = charge_Q
+        df = -float(d) + q * q * (float(d) - 2.0)
+        return abs(df) / z_h
+
+    elif family == "gauss_bonnet":
+        # f(z) = 1 - (z/z_h)^{eff_exp},  eff_exp = max(1, d + lambda_gb)
+        # f'(z_h) = -eff_exp/z_h
+        eff_exp = max(1.0, float(d) + lambda_gb)
+        return eff_exp / z_h
+
+    elif family == "massive_gravity":
+        # f(z) = 1 - (1-mg2·z_h²)(z/z_h)^d - mg2·z²,  mg2 = m_g²·mg_c1
+        # f'(z) = -d(1-mg2·z_h²)·z^{d-1}/z_h^d - 2·mg2·z
+        # f'(z_h) = [-d(1-mg2·z_h²) - 2·mg2·z_h²] / z_h
+        #          = [-d + mg2·z_h²(d-2)] / z_h
+        mg2 = m_g * m_g * mg_c1
+        df = (-float(d) + mg2 * z_h * z_h * (float(d) - 2.0)) / z_h
+        return abs(df)
+
+    elif family == "linear_axion":
+        # f(z) = 1 - (1+a2·z_h²/d)(z/z_h)^d + a2·z²/d,  a2 = alpha_axion²
+        # f'(z_h) = [-d - a2·z_h² + 2·a2·z_h²/d] / z_h
+        #          = [-d + a2·z_h²(2/d - 1)] / z_h
+        #          = [-d - a2·z_h²(d-2)/d] / z_h
+        a2 = alpha_axion * alpha_axion
+        df = (-float(d) - a2 * z_h * z_h * (float(d) - 2.0) / float(d)) / z_h
+        return abs(df)
+
+    elif family == "charged_hvlif":
+        # Como rn_ads pero con eff_d = max(1, d-theta)
+        eff_d = max(1.0, float(d) - theta)
+        q = charge_Q
+        df = -eff_d + q * q * (eff_d - 2.0)
+        return abs(df) / z_h
+
     else:
-        exponent = 4.0  # deformed / unknown: f = 1-(z/z_h)^4
-
-    # f(z) = 1 - (z/z_h)^exponent → f'(z_h) = -exponent/z_h
-    return exponent / z_h
+        # Fallback genérico solo para familias no registradas (e.g. test nuevas)
+        return 4.0 / z_h
 
 
-def fp_horizon_effective(family: str, z_h: float, d: int,
-                         z_dyn: float, theta: float,
-                         A_spline: CubicSpline) -> float:
+def fp_horizon_effective(
+    family: str,
+    z_h: float,
+    d: int,
+    z_dyn: float,
+    theta: float,
+    A_spline: CubicSpline,
+    # Tier A extra params (keyword-only)
+    charge_Q: float = 0.0,
+    lambda_gb: float = 0.0,
+    m_g: float = 0.0,
+    mg_c1: float = 1.0,
+    alpha_axion: float = 0.0,
+) -> float:
     """
     Denominador correcto para el exponente α = -iω / fp_eff en la BC entrante.
 
@@ -79,7 +169,11 @@ def fp_horizon_effective(family: str, z_h: float, d: int,
 
     Retorna e^{A(z_h)} × |f'(z_h)|.
     """
-    fp_raw = fp_horizon_analytic(family, z_h, d, z_dyn, theta)
+    fp_raw = fp_horizon_analytic(
+        family, z_h, d, z_dyn, theta,
+        charge_Q=charge_Q, lambda_gb=lambda_gb,
+        m_g=m_g, mg_c1=mg_c1, alpha_axion=alpha_axion,
+    )
     # Evalúa A ligeramente antes del horizonte para evitar f=0
     A_h = float(A_spline(z_h * (1.0 - 1e-5)))
     return float(np.exp(A_h)) * fp_raw
@@ -275,6 +369,12 @@ def process_geometry(h5path: Path, n_modes: int,
         family = str(h.attrs.get("family", "unknown"))
         name   = str(h.attrs.get("name", h5path.stem))
         T      = float(h["boundary/temperature"][0])
+        # Tier A: leer attrs canónicos extra (con defaults para H5 legacy)
+        charge_Q    = float(h.attrs.get("charge_Q", 0.0))
+        lambda_gb   = float(h.attrs.get("lambda_gb", 0.0))
+        m_g         = float(h.attrs.get("m_g", 0.0))
+        mg_c1       = float(h.attrs.get("mg_c1", 1.0))
+        alpha_axion = float(h.attrs.get("alpha_axion", 0.0))
 
     if z_h <= 0:
         print(f"  [SKIP] {name}: z_h={z_h} (sin horizonte)")
@@ -301,7 +401,11 @@ def process_geometry(h5path: Path, n_modes: int,
 
     # ── Denominador correcto para α = -iω/fp_h ───────────────────────────
     # fp_h = e^{A(z_h)} × |f'(z_h)|  (ver fp_horizon_effective)
-    fp_h = fp_horizon_effective(family, z_h, d, z_dyn, theta, A_sp)
+    fp_h = fp_horizon_effective(
+        family, z_h, d, z_dyn, theta, A_sp,
+        charge_Q=charge_Q, lambda_gb=lambda_gb,
+        m_g=m_g, mg_c1=mg_c1, alpha_axion=alpha_axion,
+    )
 
     z_min   = float(z_phys[0])          # boundary (z ~ 0.01)
     z_start = z_h - eps_horizon * z_h   # cerca del horizonte

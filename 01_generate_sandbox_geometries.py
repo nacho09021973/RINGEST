@@ -58,6 +58,15 @@ from typing import Any, List, Dict, Tuple, Optional
 
 import numpy as np  # type: ignore
 import h5py  # type: ignore
+
+# Registro canónico de familias (contract-first)
+try:
+    from family_registry import extra_attrs_for, FAMILY_MAP  # noqa: F401
+    HAS_FAMILY_REGISTRY = True
+except ImportError:
+    HAS_FAMILY_REGISTRY = False
+    FAMILY_MAP = {}  # type: ignore
+
 # V3 INFRASTRUCTURE - PATCH
 HAS_STAGE_UTILS = False
 EXIT_OK = 0
@@ -101,12 +110,21 @@ except ImportError:
 # ============================================================
 #
 # familyS IMPLEMENTADAS:
-#   - ads: AdS puro, conforme a AGMOO Sec. 2
-#   - lifshitz: Extensión con exponente dinámico z (Kachru et al. 2008)
-#   - hyperscaling: Violación de hyperscaling θ (Huijse et al. 2011)
-#   - dpbrane: Métricas near-horizon de Dp-branas (AGMOO Sec. 6.1.3)
-#   - deformed: AdS con deformación suave fenomenológica
-#   - unknown: family de test sin garantía holográfica
+#
+#   TIER CANONICAL (soporte original):
+#   - ads:            AdS puro, conforme a AGMOO Sec. 2
+#   - lifshitz:       Extensión con exponente dinámico z (Kachru et al. 2008)
+#   - hyperscaling:   Violación de hyperscaling θ (Huijse et al. 2011)
+#   - dpbrane:        Métricas near-horizon de Dp-branas (AGMOO Sec. 6.1.3)
+#   - deformed:       AdS con deformación suave fenomenológica
+#   - unknown:        family de test sin garantía holográfica
+#
+#   TIER A (cohorte de expansión — encajan en gauge actual):
+#   - rn_ads:         Reissner-Nordström AdS (BH cargado)
+#   - gauss_bonnet:   Gauss-Bonnet AdS (corrección cuadrática en curvatura)
+#   - massive_gravity: Massive gravity AdS tipo Vegh (disipación de momento)
+#   - linear_axion:   Axiones lineales (disipación de momento, metal incoherente)
+#   - charged_hvlif:  Hyperscaling-Violation Lifshitz cargado (EMD toy)
 #
 # NOTA HISTÓRICA:
 #   Las familys Lifshitz y Hyperscaling son extensiones post-1999 del
@@ -147,7 +165,7 @@ class HiddenGeometry:
     NO se expone al learner (solo a bulk_truth para validacion).
     """
     name: str
-    family: str           # "ads", "lifshitz", "hyperscaling", "deformed", "unknown"
+    family: str           # ver family_registry.ALL_FAMILIES para valores válidos
     category: str         # "known", "test", "unknown"
     d: int                # dimension del boundary (CFT_d)
     z_h: Optional[float] = None  # posicion del horizonte (si hay BH)
@@ -155,6 +173,13 @@ class HiddenGeometry:
     z_dyn: float = 1.0           # exponente dinamico de Lifshitz
     deformation: float = 0.0     # deformacion generica de A(z)
     L: float = 1.0               # escala AdS
+    # ── Tier A: campos de metadata canónica extra ──────────────────────────
+    charge_Q: float = 0.0        # carga eléctrica adimensional (rn_ads, charged_hvlif)
+    lambda_gb: float = 0.0       # acoplamiento Gauss-Bonnet (gauss_bonnet)
+    m_g: float = 0.0             # masa del gravitón (massive_gravity)
+    mg_c1: float = 1.0           # coeficiente c1 del potencial de masa (massive_gravity)
+    mg_c2: float = 0.0           # coeficiente c2 del potencial de masa (massive_gravity)
+    alpha_axion: float = 0.0     # pendiente del axión lineal (linear_axion)
     metadata: Dict = field(default_factory=dict)
 
     # ---------- Warp factor y blackening (toy) ----------
@@ -198,6 +223,30 @@ class HiddenGeometry:
             effective_exp = self.z_dyn  # z_dyn codifica (7-p)/2
             return -effective_exp * np.log(z / self.L)
 
+        # ── Tier A ────────────────────────────────────────────────────────────
+
+        elif self.family == "rn_ads":
+            # RN-AdS: misma A(z) que AdS puro; la carga solo entra en f(z).
+            return -np.log(z / self.L)
+
+        elif self.family == "gauss_bonnet":
+            # GB: corrección perturbativa al warp factor.
+            # Leading-order: A(z) = -(1 - lambda_gb/2)*log(z/L)
+            correction = 1.0 - 0.5 * self.lambda_gb
+            return -correction * np.log(z / self.L)
+
+        elif self.family == "massive_gravity":
+            # Massive gravity: A(z) = -log(z/L) como AdS (la masa entra en f).
+            return -np.log(z / self.L)
+
+        elif self.family == "linear_axion":
+            # Linear axion: misma A(z) que AdS; el axión solo afecta f(z).
+            return -np.log(z / self.L)
+
+        elif self.family == "charged_hvlif":
+            # Charged HV-Lifshitz: misma A(z) que hyperscaling.
+            return -(1.0 - self.theta / self.d) * np.log(z / self.L)
+
         else:  # "unknown"
             base = -np.log(z / self.L)
             deform = self.deformation * np.sin(z / (self.L + 1e-3))
@@ -224,6 +273,54 @@ class HiddenGeometry:
             # Usamos z_dyn como proxy para (7-p)/2
             eff_exp = max(1.0, 2 * self.z_dyn)
             return np.clip(1.0 - ratio ** eff_exp, 0.0, 1.0)
+
+        # ── Tier A ────────────────────────────────────────────────────────────
+
+        elif self.family == "rn_ads":
+            # RN-AdS: f(z) = 1 - (1+q²)(z/z_h)^d + q²(z/z_h)^{2(d-1)}
+            # Satisface f(0)=1, f(z_h)=0 exactamente.
+            q = self.charge_Q
+            term1 = (1.0 + q * q) * ratio ** self.d
+            term2 = q * q * ratio ** (2 * (self.d - 1))
+            return np.clip(1.0 - term1 + term2, 0.0, 1.0)
+
+        elif self.family == "gauss_bonnet":
+            # GB toy: exponent efectivo d + lambda_gb.
+            # Satisface f(0)=1, f(z_h)=0.
+            eff_exp = max(1.0, float(self.d) + self.lambda_gb)
+            return np.clip(1.0 - ratio ** eff_exp, 0.0, 1.0)
+
+        elif self.family == "massive_gravity":
+            # Massive gravity (Vegh-type) toy:
+            # f(z) = 1 - (1 - m_g²*z_h²)(z/z_h)^d - m_g²*z²
+            # Satisface f(0)=1, f(z_h)=0.
+            mg2 = self.m_g * self.m_g * self.mg_c1
+            coeff = 1.0 - mg2 * self.z_h * self.z_h
+            term1 = coeff * ratio ** self.d
+            term2 = mg2 * (z / self.z_h) ** 2 * self.z_h ** 2 * ratio ** 0  # m_g²·z²
+            # rewrite: term2 = mg2 * z² → using z = ratio*z_h
+            term2 = mg2 * (ratio * self.z_h) ** 2
+            return np.clip(1.0 - term1 - term2, 0.0, 1.0)
+
+        elif self.family == "linear_axion":
+            # Linear axion toy:
+            # f(z) = 1 - (1 + alpha²*z_h²/d)(z/z_h)^d + alpha²*z²/d
+            # Satisface f(0)=1, f(z_h)=0.
+            a2 = self.alpha_axion * self.alpha_axion
+            coeff = 1.0 + a2 * self.z_h * self.z_h / float(self.d)
+            term1 = coeff * ratio ** self.d
+            term2 = a2 * (ratio * self.z_h) ** 2 / float(self.d)
+            return np.clip(1.0 - term1 + term2, 0.0, 1.0)
+
+        elif self.family == "charged_hvlif":
+            # Charged HV-Lifshitz: como hyperscaling pero con carga.
+            # f(z) = 1 - (1+q²)(z/z_h)^{eff_d} + q²(z/z_h)^{2(eff_d-1)}
+            eff_d = max(1.0, float(self.d) - self.theta)
+            q = self.charge_Q
+            term1 = (1.0 + q * q) * ratio ** eff_d
+            term2 = q * q * ratio ** (2.0 * (eff_d - 1.0))
+            return np.clip(1.0 - term1 + term2, 0.0, 1.0)
+
         else:
             return np.clip(1.0 - ratio ** 4, 0.0, 1.0)
 
@@ -511,6 +608,208 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
                 "description": "D4-brane near-horizon (no conformal)",
                 "p": 4,
                 "theory_ref": "AGMOO Sec. 6.1.3"
+            }
+        ),
+        "test",
+    ))
+
+    # ── TIER A: RN-AdS ────────────────────────────────────────────────────────
+    # Reissner-Nordström AdS_4 (d=3, carga moderada)
+    geos.append((
+        HiddenGeometry(
+            name="rn_ads_d3_q05",
+            family="rn_ads",
+            category="known",
+            d=3,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=1.0,
+            deformation=0.0,
+            L=1.0,
+            charge_Q=0.5,
+            metadata={
+                "description": "RN-AdS_4 con carga Q=0.5 (BH no extremal)",
+                "theory_ref": "Hartnoll et al., Science of Black Holes (2016)",
+            }
+        ),
+        "known",
+    ))
+    # RN-AdS_5 (d=4) — carga baja para control
+    geos.append((
+        HiddenGeometry(
+            name="rn_ads_d4_q02",
+            family="rn_ads",
+            category="test",
+            d=4,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=1.0,
+            deformation=0.0,
+            L=1.0,
+            charge_Q=0.2,
+            metadata={
+                "description": "RN-AdS_5 con carga Q=0.2 (carga baja, test)",
+            }
+        ),
+        "test",
+    ))
+
+    # ── TIER A: Gauss-Bonnet AdS ──────────────────────────────────────────────
+    geos.append((
+        HiddenGeometry(
+            name="gauss_bonnet_d4_lp2",
+            family="gauss_bonnet",
+            category="known",
+            d=4,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=1.0,
+            deformation=0.0,
+            L=1.0,
+            lambda_gb=0.2,
+            metadata={
+                "description": "GB-AdS_5 con lambda_GB=0.2 (d>=4 requerido)",
+                "theory_ref": "Brigante et al., PRL 100 (2008)",
+                "guardrail": "d>=4, lambda_gb < 0.25",
+            }
+        ),
+        "known",
+    ))
+    geos.append((
+        HiddenGeometry(
+            name="gauss_bonnet_d4_lm1",
+            family="gauss_bonnet",
+            category="test",
+            d=4,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=1.0,
+            deformation=0.0,
+            L=1.0,
+            lambda_gb=-0.1,
+            metadata={
+                "description": "GB-AdS_5 con lambda_GB=-0.1 (acoplamiento negativo, test)",
+            }
+        ),
+        "test",
+    ))
+
+    # ── TIER A: Massive gravity AdS ───────────────────────────────────────────
+    geos.append((
+        HiddenGeometry(
+            name="massive_gravity_d3_mg03",
+            family="massive_gravity",
+            category="known",
+            d=3,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=1.0,
+            deformation=0.0,
+            L=1.0,
+            m_g=0.3,
+            mg_c1=1.0,
+            mg_c2=0.0,
+            metadata={
+                "description": "Massive gravity AdS_4, m_g=0.3 (disipación de momento)",
+                "theory_ref": "Vegh, arXiv:1301.0537; Blake & Tong, PRD 88 (2013)",
+            }
+        ),
+        "known",
+    ))
+    geos.append((
+        HiddenGeometry(
+            name="massive_gravity_d4_mg05",
+            family="massive_gravity",
+            category="test",
+            d=4,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=1.0,
+            deformation=0.0,
+            L=1.0,
+            m_g=0.5,
+            mg_c1=1.0,
+            mg_c2=0.0,
+            metadata={
+                "description": "Massive gravity AdS_5, m_g=0.5 (test d=4)",
+            }
+        ),
+        "test",
+    ))
+
+    # ── TIER A: Linear axion ──────────────────────────────────────────────────
+    geos.append((
+        HiddenGeometry(
+            name="linear_axion_d3_a05",
+            family="linear_axion",
+            category="known",
+            d=3,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=1.0,
+            deformation=0.0,
+            L=1.0,
+            alpha_axion=0.5,
+            metadata={
+                "description": "Linear axion AdS_4, alpha=0.5 (metal incoherente leve)",
+                "theory_ref": "Andrade & Withers, JHEP 2014",
+            }
+        ),
+        "known",
+    ))
+    geos.append((
+        HiddenGeometry(
+            name="linear_axion_d3_a10",
+            family="linear_axion",
+            category="test",
+            d=3,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=1.0,
+            deformation=0.0,
+            L=1.0,
+            alpha_axion=1.0,
+            metadata={
+                "description": "Linear axion AdS_4, alpha=1.0 (metal incoherente fuerte, test)",
+            }
+        ),
+        "test",
+    ))
+
+    # ── TIER A: Charged hvLif ─────────────────────────────────────────────────
+    geos.append((
+        HiddenGeometry(
+            name="charged_hvlif_d3_theta1_q04",
+            family="charged_hvlif",
+            category="known",
+            d=3,
+            z_h=1.2,
+            theta=1.0,
+            z_dyn=1.5,
+            deformation=0.0,
+            L=1.0,
+            charge_Q=0.4,
+            metadata={
+                "description": "Charged HV-Lifshitz, theta=1, z_dyn=1.5, Q=0.4",
+                "theory_ref": "Charmousis et al., JHEP 2010 (EMD)",
+            }
+        ),
+        "known",
+    ))
+    geos.append((
+        HiddenGeometry(
+            name="charged_hvlif_d4_theta05_q03",
+            family="charged_hvlif",
+            category="test",
+            d=4,
+            z_h=1.0,
+            theta=0.5,
+            z_dyn=2.0,
+            deformation=0.0,
+            L=1.0,
+            charge_Q=0.3,
+            metadata={
+                "description": "Charged HV-Lifshitz, d=4, theta=0.5, z_dyn=2, Q=0.3 (test)",
             }
         ),
         "test",
@@ -1007,6 +1306,26 @@ def make_geometry_instance(
     elif family == "ads":
         # Nada especial extra, ads ya se controla con d y z_h
         pass
+    # ── Tier A jitters ────────────────────────────────────────────────────────
+    elif family == "rn_ads":
+        # Carga adimensional: 0 ≤ Q < Q_extremal ≈ sqrt(d/(d-2)).
+        # Conservamos rango seguro [0.0, 0.8] para d=3.
+        params["charge_Q"] = float(rng.uniform(0.0, 0.8))
+    elif family == "gauss_bonnet":
+        # λ ∈ [-0.2, 0.23]: límite superior < 1/4 (Causal constraint para d=4).
+        params["lambda_gb"] = float(rng.uniform(-0.2, 0.23))
+    elif family == "massive_gravity":
+        params["m_g"] = float(rng.uniform(0.05, 0.5))
+        params["mg_c1"] = float(rng.uniform(0.5, 2.0))
+        params["mg_c2"] = float(rng.uniform(0.0, 0.5))
+    elif family == "linear_axion":
+        params["alpha_axion"] = float(rng.uniform(0.1, 1.5))
+    elif family == "charged_hvlif":
+        d_eff = params["d"]
+        max_theta = max(0.5, min(d_eff - 0.5, 2.0))
+        params["theta"] = float(rng.uniform(0.3, max_theta))
+        params["z_dyn"] = float(rng.uniform(1.2, 2.5))
+        params["charge_Q"] = float(rng.uniform(0.0, 0.6))
     else:
         # unknown: solo tocamos z_h y d (ya hechos arriba)
         pass
@@ -1398,6 +1717,13 @@ def main():
                 f.attrs["theta"] = geo.theta
                 f.attrs["z_dyn"] = geo.z_dyn
                 f.attrs["deformation"] = geo.deformation
+                # ── Tier A: attrs canónicos extra ─────────────────────────────
+                f.attrs["charge_Q"] = geo.charge_Q
+                f.attrs["lambda_gb"] = geo.lambda_gb
+                f.attrs["m_g"] = geo.m_g
+                f.attrs["mg_c1"] = geo.mg_c1
+                f.attrs["mg_c2"] = geo.mg_c2
+                f.attrs["alpha_axion"] = geo.alpha_axion
                 f.attrs["operators"] = json.dumps(operators)
                 f.attrs["sampling_regime"] = (
                     "focused_real_regime" if focused_config.enabled else "default"
