@@ -19,6 +19,7 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+ringest.egg-info/
 
 # ── Jupyter ────────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
@@ -41,3 +42,14 @@ hall_of_fame_*.pkl
 
 # Local frozen external repositories
 repo/
+
+# Secrets / providers
+*google*
+*gemini*
+.env
+.env.*
+*.key
+*.pem
+*.json
+credentials*
+service-account*
