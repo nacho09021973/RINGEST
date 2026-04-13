@@ -6,8 +6,11 @@ Build the eigenmode dataset for stage 07.  Two modes:
 
 HOLOGRAPHIC (sandbox)
 ---------------------
-For each holographic geometry (ads, lifshitz, hyperscaling, deformed, dpbrane,
-unknown) with a bulk_truth group and a Delta_mass_dict in boundary attrs:
+For each holographic geometry with a bulk_truth group and a Delta_mass_dict
+in boundary attrs:
+
+  Tier Canonical: ads, lifshitz, hyperscaling, deformed, dpbrane, unknown
+  Tier A:         rn_ads, gauss_bonnet, massive_gravity, linear_axion, charged_hvlif
 
   - lambda_sl  = m²L²   (bulk scalar mass squared, can be negative/tachyonic)
   - Delta_UV   = Δ       (operator dimension)
@@ -44,7 +47,21 @@ from typing import Any, Dict, List, Optional
 import h5py
 import numpy as np
 
-SCRIPT_VERSION = "06_holographic_eigenmode_dataset.py v1.0 (2026-04-08)"
+SCRIPT_VERSION = "06_holographic_eigenmode_dataset.py v1.1 (2026-04-13)"
+
+# ── Registro canónico de familias ──────────────────────────────────────────
+try:
+    from family_registry import HOLOGRAPHIC_FAMILIES as _HOLO_FAMS, read_extra_attrs_from_h5
+    _HAS_FAMILY_REGISTRY = True
+except ImportError:
+    _HOLO_FAMS = frozenset({
+        "ads", "lifshitz", "hyperscaling", "deformed", "dpbrane", "unknown",
+        "rn_ads", "gauss_bonnet", "massive_gravity", "linear_axion", "charged_hvlif",
+    })
+    _HAS_FAMILY_REGISTRY = False
+
+    def read_extra_attrs_from_h5(h5_attrs, family):  # type: ignore
+        return {}
 
 # ── Try to import bulk solver ──────────────────────────────────────────────
 try:
@@ -77,6 +94,8 @@ HOLO_FIELDS = [
     "lambda_sl_freq",                     # ω² from SL frequency solver (cross-check)
     "z_dyn", "theta", "quality_flag",
     "is_ground_state", "delta_source",
+    # Tier A extra attrs (NaN/empty for Tier Canonical geometries)
+    "charge_Q", "lambda_gb", "m_g", "alpha_axion",
 ]
 
 KERR_FIELDS = [
@@ -103,6 +122,12 @@ def process_holographic(
         system_name = _str(f.attrs.get("system_name", f.attrs.get("name", h5_path.stem)))
         z_dyn  = float(f.attrs.get("z_dyn", float("nan")))
         theta  = float(f.attrs.get("theta", float("nan")))
+        # Tier A: leer attrs canónicos extra (NaN para H5 legacy que no los tienen)
+        extra = read_extra_attrs_from_h5(f.attrs, family)
+        charge_Q    = extra.get("charge_Q",    float("nan"))
+        lambda_gb   = extra.get("lambda_gb",   float("nan"))
+        m_g         = extra.get("m_g",         float("nan"))
+        alpha_axion = extra.get("alpha_axion", float("nan"))
 
         # Delta_mass_dict from boundary attrs
         bd_attrs = dict(f["boundary"].attrs) if "boundary" in f else {}
@@ -171,6 +196,11 @@ def process_holographic(
             "quality_flag":   quality,
             "is_ground_state": 1 if op_idx == 0 else 0,
             "delta_source":   "boundary_delta_mass_dict",
+            # Tier A extra attrs (empty string for Tier Canonical H5)
+            "charge_Q":    round(charge_Q, 6) if np.isfinite(charge_Q) else "",
+            "lambda_gb":   round(lambda_gb, 6) if np.isfinite(lambda_gb) else "",
+            "m_g":         round(m_g, 6) if np.isfinite(m_g) else "",
+            "alpha_axion": round(alpha_axion, 6) if np.isfinite(alpha_axion) else "",
         })
 
     return rows
