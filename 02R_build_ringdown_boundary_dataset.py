@@ -420,6 +420,21 @@ def make_sandbox_compatible_gr(gr_column: np.ndarray, n_k: int = SANDBOX_N_K) ->
     return np.repeat(gr_line[np.newaxis, :], int(n_k), axis=0)
 
 
+def make_sandbox_compatible_gr(gr_column: np.ndarray, n_k: int = SANDBOX_N_K) -> np.ndarray:
+    """
+    Broadcast a single-k response onto the sandbox k-grid expected by Stage 02.
+    This is a contract-compatibility view, not a new physical inference.
+    """
+    gr_column = np.asarray(gr_column, dtype=np.float64)
+    if gr_column.ndim == 2 and gr_column.shape[1] == 1:
+        gr_line = gr_column[:, 0]
+    elif gr_column.ndim == 1:
+        gr_line = gr_column
+    else:
+        gr_line = gr_column.reshape(-1)
+    return np.repeat(gr_line[np.newaxis, :], int(n_k), axis=0)
+
+
 # ----------------------------
 # Main
 # ----------------------------
