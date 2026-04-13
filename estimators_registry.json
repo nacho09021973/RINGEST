@@ -193,6 +193,20 @@
         "clear_improvement_over_E20",
         "controlled_nonsemantic_sensitivity"
       ],
+      "frozen_status": {
+        "backend_name": "local_g2_summary_v2",
+        "backend_enabled": true,
+        "is_placeholder": false,
+        "existence_audit_verdict": "SURVIVES",
+        "fullcohort_comparison_verdict": "LIMITED_ADVANTAGE",
+        "no_advantage_count": 0,
+        "limited_advantage_count": 25,
+        "clear_advantage_count": 8,
+        "source_artifacts": {
+          "existence_audit_report": "runs/estimator_existence_audit_sensitivity_iter1_20260413/experiment/estimator_existence_audit/outputs/existence_audit_report.json",
+          "fullcohort_aggregate_comparison": "runs/reopen_v1_33event_baseline_vs_premium_final_iter1_20260413/experiment/baseline_vs_premium_multievent/outputs/aggregate_comparison.json"
+        }
+      },
       "artifacts": [
         "runs/<run_id>/experiment/estimators_v1/premium_posterior/manifest.json",
         "runs/<run_id>/experiment/estimators_v1/premium_posterior/stage_summary.json",
