@@ -290,7 +290,7 @@ class HiddenGeometry:
         A = self.warp_factor(z)
 
         integrand = np.exp((self.d - 1) * A)
-        c_eff = float(np.trapz(integrand, z))
+        c_eff = float(np.trapezoid(integrand, z))
         return c_eff
 
 # ============================================================

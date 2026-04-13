@@ -18,6 +18,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from contracts.common_models import (
+    StageRuntimeManifestModel,
+    StageSummaryModel,
+    write_stage_runtime_manifest,
+    write_stage_summary,
+)
+
 # ---------------------------------------------------------------------------
 # Constantes globales
 # ---------------------------------------------------------------------------
@@ -227,7 +234,10 @@ class StageContext:
         if self._artifacts:
             payload["artifacts"] = self._artifacts
 
-        _atomic_write_json(self.stage_dir / "manifest.json", payload)
+        write_stage_runtime_manifest(
+            StageRuntimeManifestModel.model_validate(payload),
+            self.stage_dir / "manifest.json",
+        )
 
     def write_summary(
         self,
@@ -257,7 +267,10 @@ class StageContext:
         if counts:
             payload["counts"] = counts
 
-        _atomic_write_json(self.stage_dir / "stage_summary.json", payload)
+        write_stage_summary(
+            StageSummaryModel.model_validate(payload),
+            self.stage_dir / "stage_summary.json",
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -219,6 +219,10 @@ def main() -> int:
         if not HAS_PYSR:
             print("\n[WARN] PySR not installed. Skipping symbolic regression.")
             print("       Install: pip install pysr  (requires Julia)")
+            results["pysr"] = {
+                "status": "skipped",
+                "reason": "pysr_not_installed",
+            }
         else:
             print(f"\n>> PySR symbolic regression ({args.pysr_iters} iterations)...")
             sr_model = PySRRegressor(
@@ -240,12 +244,17 @@ def main() -> int:
                 y_sr = sr_model.predict(X)
                 m_sr = compute_metrics(y, y_sr)
                 results["pysr"] = {
+                    "status": "ok",
                     "best_equation": best_eq, **m_sr,
                     "n_iterations": args.pysr_iters,
                 }
                 print(f"   R²={m_sr['r2']:.6f}  MAE={m_sr['mae']:.4f}")
             except Exception as e:
-                print(f"   [ERROR] PySR failed: {e}")
+                print(f"   [WARN] PySR/Julia failed. Skipping symbolic regression: {e}")
+                results["pysr"] = {
+                    "status": "skipped",
+                    "reason": f"{type(e).__name__}: {e}",
+                }
 
     # ── Summary ────────────────────────────────────────────────────────────
     results["summary"] = {

@@ -27,3 +27,41 @@ Estado analítico actual:
 ## Regla operativa
 
 Nada derivado debe escribirse dentro de `data/raw/`.
+
+## Instalación
+
+Base:
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -e . --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+```
+
+GPU / NVIDIA:
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -e ".[gpu]" --index-url https://download.pytorch.org/whl/cu121 --extra-index-url https://pypi.org/simple
+```
+
+PySR opcional:
+```bash
+. .venv/bin/activate
+pip install -e ".[pysr]" --extra-index-url https://pypi.org/simple
+```
+
+Verificación CUDA:
+```bash
+python - <<'PY'
+import torch
+print("torch_version=", torch.__version__)
+print("cuda_available=", torch.cuda.is_available())
+print("cuda_device_count=", torch.cuda.device_count())
+PY
+```
+
+Nota:
+- `PySR` es opcional y no bloquea el carril base.
+- `PySR` necesita Julia disponible en el primer import/uso efectivo.

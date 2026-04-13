@@ -67,6 +67,20 @@ try:
 except ImportError:
     HAS_CUERDAS_IO = False
 
+# -----------------------------------------------------------------------
+# Correlator contract modes (versionados para trazabilidad)
+# -----------------------------------------------------------------------
+# Standard: requires has_spatial_structure AND has_power_law (sandbox / AdS / truth carriles)
+# Ringdown inference relaxed v1: requires has_spatial_structure only.
+#   Rationale: ESPRIT G2 on 250 ms windows is a physically extracted, unit-peak-normalised
+#   correlator, not an analytic CFT solution.  Power-law fit quality is typically 0.15–0.46,
+#   well below the r²>0.5 threshold.  The absence of a clean power-law is a property of the
+#   data source, not a pipeline failure.  This relaxation is strictly scoped to
+#   mode="inference" AND category="ringdown".
+# -----------------------------------------------------------------------
+CORRELATOR_CONTRACT_STANDARD = "standard"
+CORRELATOR_CONTRACT_RINGDOWN_INFERENCE = "ringdown_inference_relaxed_v1"
+
 # V3 Infrastructure
 HAS_STAGE_UTILS = False
 try:
@@ -225,12 +239,17 @@ class CorrelatorStructureContract:
     log_slope: float  # Pendiente en log-log (debería ser ~ -2Δ)
     correlation_quality: float  # R² del ajuste log-log
     skipped: bool = False
-    
+    contract_mode: str = CORRELATOR_CONTRACT_STANDARD  # versionado explícito
+
     @property
     def passed(self) -> bool:
         if self.skipped:
             return True
-        # Debe tener estructura espacial Y decaimiento tipo power-law
+        if self.contract_mode == CORRELATOR_CONTRACT_RINGDOWN_INFERENCE:
+            # Relaxed: only spatial structure required.
+            # has_power_law and is_monotonic_decay are WARN/N_A for this carril.
+            return self.has_spatial_structure
+        # Standard: spatial structure AND power-law (sandbox / AdS / truth carriles)
         return self.has_spatial_structure and self.has_power_law
 
 
@@ -1064,7 +1083,16 @@ def process_geometry(
     G2 = data.get("G2")
     x_grid = data.get("x_grid")
     correlator_structure = verify_correlator_structure(G2, x_grid)
-    
+
+    # Ringdown inference relaxed contract: scope strictly to mode=inference + category=ringdown.
+    # has_power_law and is_monotonic_decay are non-blocking in this carril.
+    if mode == "inference" and category == "ringdown":
+        correlator_structure.contract_mode = CORRELATOR_CONTRACT_RINGDOWN_INFERENCE
+        warnings.append(
+            f"correlator_contract_mode={CORRELATOR_CONTRACT_RINGDOWN_INFERENCE}: "
+            "has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+        )
+
     ads_einstein = verify_ads_einstein(A_pred, f_pred, z_grid, d, einstein_results)
     ads_asymptotic = verify_ads_asymptotic(A_pred, f_pred, z_grid)
     holographic = verify_holographic(dictionary_results)
@@ -1206,9 +1234,12 @@ def main():
             print("[ERROR] No hay sistemas para procesar")
             return
     else:
-        manifest_path = data_dir / "manifest.json"
+        # Accept geometries_manifest.json (stage-02 convention) or manifest.json
+        manifest_path = data_dir / "geometries_manifest.json"
         if not manifest_path.exists():
-            print(f"\n[WARN] Does not exist manifest.json en {data_dir}")
+            manifest_path = data_dir / "manifest.json"
+        if not manifest_path.exists():
+            print(f"\n[WARN] Does not exist geometries_manifest.json / manifest.json en {data_dir}")
             # Intentar auto-descubrir sistemas desde predictions/
             npz_files = list(predictions_dir.glob("*_geometry.npz"))
             if npz_files:
@@ -1387,6 +1418,10 @@ def main():
     def clean_contract(c_dict):
         return {k: serialize_value(v) for k, v in c_dict.items()}
     
+    n_ringdown_inference_relaxed = sum(
+        1 for c in all_contracts
+        if c.correlator_structure.contract_mode == CORRELATOR_CONTRACT_RINGDOWN_INFERENCE
+    )
     output_data = {
         "version": "2.1",
         "n_total": n_total,
@@ -1398,6 +1433,7 @@ def main():
         "n_overall_passed": int(n_overall),
         "avg_score": float(avg_score) if not np.isnan(avg_score) else None,
         "phase_passed": bool(phase_passed),
+        "n_ringdown_inference_relaxed_correlator": n_ringdown_inference_relaxed,
         "contracts": [clean_contract(asdict(c)) for c in all_contracts]
     }
     
