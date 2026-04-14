@@ -53,3 +53,5 @@ repo/
 *.json
 credentials*
 service-account*
+
+.claude/
