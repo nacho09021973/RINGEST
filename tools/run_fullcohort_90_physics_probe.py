@@ -150,6 +150,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--run-id", required=True, help="Run identifier under runs/<run_id>/experiment/fullcohort_90_physics_probe/")
     ap.add_argument("--runs-root", type=Path, default=RUNS_ROOT_DEFAULT)
     ap.add_argument("--input-dir", type=Path, default=INPUT_DIR_DEFAULT)
+    ap.add_argument("--premium33-per-event", type=Path, default=PREMIUM33_PER_EVENT)
+    ap.add_argument("--premium33-aggregate", type=Path, default=PREMIUM33_AGGREGATE)
     ap.add_argument("--x-min", type=float, default=4.0, help="Tail window minimum x. Default aligns with tail_strict freeze.")
     ap.add_argument("--g2-min", type=float, default=1e-6)
     return ap
@@ -159,6 +161,8 @@ def main() -> int:
     args = build_parser().parse_args()
     runs_root = Path(args.runs_root).resolve(strict=False)
     input_dir = Path(args.input_dir).resolve(strict=False)
+    premium33_per_event = Path(args.premium33_per_event).resolve(strict=False)
+    premium33_aggregate = Path(args.premium33_aggregate).resolve(strict=False)
     stage_dir = runs_root / args.run_id / "experiment" / "fullcohort_90_physics_probe"
     outputs_dir = stage_dir / "outputs"
     manifest_path = stage_dir / "manifest.json"
@@ -198,8 +202,6 @@ def main() -> int:
         GEOMETRY33_SUMMARY,
         GEOMETRY55_SUMMARY,
         GATE90_SUMMARY,
-        PREMIUM33_PER_EVENT,
-        PREMIUM33_AGGREGATE,
     ]
     missing = [str(p) for p in required_paths if not p.exists()]
     if missing:
@@ -222,8 +224,12 @@ def main() -> int:
     }
     stage04_map = _stage04_contract_map(GEOMETRY33_SUMMARY)
     stage04_map.update(_stage04_contract_map(GEOMETRY55_SUMMARY))
-    premium_map = _premium_map(PREMIUM33_PER_EVENT)
-    premium_aggregate = _load_json(PREMIUM33_AGGREGATE)
+    premium_available = premium33_per_event.exists() and premium33_aggregate.exists()
+    premium_map: dict[str, dict[str, Any]] = {}
+    premium_aggregate: dict[str, Any] | None = None
+    if premium_available:
+        premium_map = _premium_map(premium33_per_event)
+        premium_aggregate = _load_json(premium33_aggregate)
 
     per_event_status: dict[str, dict[str, Any]] = {}
     per_event_probe: dict[str, dict[str, Any]] = {}
@@ -329,10 +335,18 @@ def main() -> int:
             "n_ambiguous": _count_classification(per_event_probe, "AMBIGUOUS"),
             "n_neither_good": _count_classification(per_event_probe, "NEITHER_GOOD"),
         },
-        "premium_advantage_count": premium_aggregate["aggregate_metrics"]["verdict_counts"]["LIMITED_ADVANTAGE"]
-        + premium_aggregate["aggregate_metrics"]["verdict_counts"]["CLEAR_ADVANTAGE"],
-        "premium_no_advantage_count": premium_aggregate["aggregate_metrics"]["verdict_counts"]["NO_ADVANTAGE"],
-        "premium_advantage_scope": "canonical_33_only",
+        "premium_metrics_available": premium_available,
+        "premium_advantage_count": (
+            premium_aggregate.get("aggregate_metrics", {}).get("premium_control_separation_count")
+            if premium_available and premium_aggregate is not None
+            else None
+        ),
+        "premium_no_advantage_count": (
+            premium_aggregate.get("aggregate_metrics", {}).get("verdict_counts", {}).get("NO_ADVANTAGE")
+            if premium_available and premium_aggregate is not None
+            else None
+        ),
+        "premium_advantage_scope": ("canonical_33_only" if premium_available else "unavailable_on_this_host"),
         "source_artifacts": {
             "input_dir": str(input_dir),
             "canonical_33_input_dir": str(CANONICAL33_INPUT_DIR),
@@ -341,8 +355,8 @@ def main() -> int:
             "geometry_33_summary": str(GEOMETRY33_SUMMARY),
             "geometry_55_summary": str(GEOMETRY55_SUMMARY),
             "gate_90_summary": str(GATE90_SUMMARY),
-            "premium_per_event": str(PREMIUM33_PER_EVENT),
-            "premium_aggregate": str(PREMIUM33_AGGREGATE),
+            "premium_per_event": str(premium33_per_event),
+            "premium_aggregate": str(premium33_aggregate),
         },
     }
 
@@ -365,7 +379,11 @@ def main() -> int:
         "warnings": [
             "Non-canonical physics probe only; no automatic cohort promotion",
             "Stage 04 relaxed correlator semantics remain non-physical by default",
-            "Premium advantage counts are reused from canonical_33 only",
+            (
+                "Premium advantage counts are reused from canonical_33 only"
+                if premium_available
+                else "Premium metrics unavailable on this host; premium-derived counts omitted"
+            ),
         ],
     }
 
@@ -382,6 +400,10 @@ def main() -> int:
             str(runs_root),
             "--input-dir",
             str(input_dir),
+            "--premium33-per-event",
+            str(premium33_per_event),
+            "--premium33-aggregate",
+            str(premium33_aggregate),
             "--x-min",
             str(args.x_min),
             "--g2-min",
@@ -391,6 +413,8 @@ def main() -> int:
             "run_id": args.run_id,
             "x_min": args.x_min,
             "g2_min": args.g2_min,
+            "premium33_per_event": str(premium33_per_event),
+            "premium33_aggregate": str(premium33_aggregate),
             "purpose": "physics_probe",
             "non_canonical": True,
             "automatic_downstream_promotion": False,
@@ -401,8 +425,16 @@ def main() -> int:
             "geometry_33_summary": {"path": str(GEOMETRY33_SUMMARY), "sha256": _sha256_file(GEOMETRY33_SUMMARY)},
             "geometry_55_summary": {"path": str(GEOMETRY55_SUMMARY), "sha256": _sha256_file(GEOMETRY55_SUMMARY)},
             "gate_90_summary": {"path": str(GATE90_SUMMARY), "sha256": _sha256_file(GATE90_SUMMARY)},
-            "premium_per_event": {"path": str(PREMIUM33_PER_EVENT), "sha256": _sha256_file(PREMIUM33_PER_EVENT)},
-            "premium_aggregate": {"path": str(PREMIUM33_AGGREGATE), "sha256": _sha256_file(PREMIUM33_AGGREGATE)},
+            "premium33_per_event": {
+                "path": str(premium33_per_event),
+                "exists": premium33_per_event.exists(),
+                **({"sha256": _sha256_file(premium33_per_event)} if premium33_per_event.exists() else {}),
+            },
+            "premium33_aggregate": {
+                "path": str(premium33_aggregate),
+                "exists": premium33_aggregate.exists(),
+                **({"sha256": _sha256_file(premium33_aggregate)} if premium33_aggregate.exists() else {}),
+            },
         },
         "outputs": {
             "manifest_json": str(manifest_path),
