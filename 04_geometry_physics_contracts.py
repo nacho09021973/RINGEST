@@ -45,6 +45,7 @@
 
 import argparse
 import json
+import sys
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
@@ -160,6 +161,38 @@ def resolve_bulk_equations_dir(einstein_dir: Path) -> Path:
         return einstein_dir
     
     return bulk_eq_subdir
+
+
+def resolve_output_file(args, ctx, run_dir: Optional[Path]) -> Path:
+    if args.output_file:
+        return Path(args.output_file)
+    if ctx is not None:
+        return ctx.stage_dir / "outputs" / "geometry_contracts_summary.json"
+    if run_dir:
+        output_dir = run_dir / "04_geometry_physics_contracts"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        return output_dir / "geometry_contracts_summary.json"
+    return Path("contracts_04.json")
+
+
+def load_geometries_from_data_dir(data_dir: Optional[Path]) -> List[Dict[str, Any]]:
+    if data_dir is None:
+        raise FileNotFoundError(
+            "Missing canonical data_dir: stage 04 requires --data-dir or a contractual run "
+            "resolution that points to boundary artifacts."
+        )
+
+    manifest_path = data_dir / "geometries_manifest.json"
+    if not manifest_path.exists():
+        manifest_path = data_dir / "manifest.json"
+    if not manifest_path.exists():
+        raise FileNotFoundError(
+            f"Missing canonical manifest in data_dir: expected "
+            f"{data_dir / 'geometries_manifest.json'} or {data_dir / 'manifest.json'}."
+        )
+
+    manifest = json.loads(manifest_path.read_text())
+    return manifest.get("geometries", [])
 
 
 # ============================================================
@@ -1222,119 +1255,90 @@ def main():
             run_dir = Path(args.run_dir)
         else:
             run_dir = None
+
+    status = STATUS_OK
+    exit_code = EXIT_OK
+    error_message = None
+    summary_counts: Dict[str, Any] = {}
+    output_file: Optional[Path] = None
     
-    # === RESOLVER RUTAS (IO v2 con fallback legacy) ===
-    predictions_dir = None
-    emergent_h5_dir = None
-    einstein_dir = None
-    data_dir = None
-    dictionary_path = None
-    
-    # Prioridad 1: run_dir (desde --experiment o --run-dir) con cuerdas_io
-    if run_dir and HAS_CUERDAS_IO:
-        predictions_dir = cuerdas_resolve_predictions(run_dir=run_dir)
-        emergent_h5_dir = cuerdas_resolve_geometry_emergent(run_dir=run_dir)
-        einstein_dir = cuerdas_resolve_bulk_equations(run_dir=run_dir)
-        data_dir = cuerdas_resolve_data(run_dir=run_dir, data_dir=args.data_dir)
-        dictionary_path = cuerdas_resolve_dictionary(run_dir=run_dir, dictionary_file=args.dictionary_file)
-    
-    # Prioridad 2: argumentos explicitos (legacy)
-    if predictions_dir is None and args.geometry_dir:
-        geometry_dir = Path(args.geometry_dir)
-        predictions_dir = resolve_predictions_dir(geometry_dir)
-        emergent_h5_dir = resolve_emergent_h5_dir(geometry_dir)
-    
-    if einstein_dir is None and args.einstein_dir:
-        einstein_dir = resolve_bulk_equations_dir(Path(args.einstein_dir))
-    
-    if data_dir is None and args.data_dir:
-        data_dir = Path(args.data_dir)
-    
-    if dictionary_path is None and args.dictionary_file:
-        dictionary_path = Path(args.dictionary_file)
-    
-    # Validar que tenemos las rutas minimas necesarias
-    if predictions_dir is None:
-        parser.error("Must provide --experiment o --geometry-dir")
-    
-    # Resolver output_file
-    if args.output_file:
-        output_file = Path(args.output_file)
-    elif run_dir:
-        output_dir = run_dir / "04_geometry_physics_contracts"
-        output_dir.mkdir(parents=True, exist_ok=True)
-        output_file = output_dir / "geometry_contracts_summary.json"
-    else:
-        output_file = Path("contracts_04.json")
-    
-    print("=" * 90)
-    print("PHYSICS CONTRACTS VALIDATOR")
-    print("=" * 90)
-    print(f"\n  experiment:     {getattr(args, 'experiment', None) or '(no especificado)'}")
-    print(f"  run_dir:        {run_dir or '(no especificado)'}")
-    print(f"  data-dir:       {data_dir or '(no especificado)'}")
-    print(f"  predictions:    {predictions_dir}")
-    print(f"  emergent_h5:    {emergent_h5_dir}")
-    print(f"  einstein-dir:   {einstein_dir}")
-    print(f"  dictionary:     {dictionary_path}")
-    print(f"  output:         {output_file}")
-    print("\nPHILOSOPHY:")
-    print("   generic contracts: All geometries must pass")
-    print("   AdS-specific contracts: Only relevant for family='ads'")
-    print("   inference mode: without truth, R2=null, generic contracts evaluados")
-    print("=" * 90)
-    
-    # === CARGAR MANIFEST ===
-    if data_dir is None:
-        # Sin data_dir, auto-descubrir desde predictions
-        print(f"\n[INFO] No data-dir, Auto-discovering sistemas desde predictions/")
-        npz_files = list(predictions_dir.glob("*_geometry.npz"))
-        if npz_files:
-            print(f"[INFO] Encontrados {len(npz_files)} sistemas")
-            geometries = [{"name": f.stem.replace("_geometry", "")} for f in npz_files]
-        else:
-            print("[ERROR] No hay sistemas para procesar")
-            return
-    else:
-        # Accept geometries_manifest.json (stage-02 convention) or manifest.json
-        manifest_path = data_dir / "geometries_manifest.json"
-        if not manifest_path.exists():
-            manifest_path = data_dir / "manifest.json"
-        if not manifest_path.exists():
-            print(f"\n[WARN] Does not exist geometries_manifest.json / manifest.json en {data_dir}")
-            # Intentar auto-descubrir sistemas desde predictions/
-            npz_files = list(predictions_dir.glob("*_geometry.npz"))
-            if npz_files:
-                print(f"[INFO] Auto-discovering {len(npz_files)} sistemas desde predictions/")
-                geometries = [{"name": f.stem.replace("_geometry", "")} for f in npz_files]
-            else:
-                print("[ERROR] No hay sistemas para procesar")
-                return
-        else:
-            manifest = json.loads(manifest_path.read_text())
-            geometries = manifest.get("geometries", [])
-    
-    # Cargar diccionario
-    if dictionary_path and dictionary_path.exists():
-        dictionary_results = json.loads(dictionary_path.read_text())
-    else:
-        dictionary_results = {}
-        if dictionary_path:
-            print(f"[WARN] Does not exist diccionario: {dictionary_path}")
-        else:
-            print("[WARN] No se especifico file de diccionario")
-    
-    all_contracts = []
-    
-    for geo_info in geometries:
-        name = geo_info["name"] if isinstance(geo_info, dict) else geo_info
-        print(f"\n>> {name}")
+    try:
+        # === RESOLVER RUTAS (IO v2 con fallback legacy) ===
+        predictions_dir = None
+        emergent_h5_dir = None
+        einstein_dir = None
+        data_dir = None
+        dictionary_path = None
         
-        contract = process_geometry(
-            name, data_dir, predictions_dir, emergent_h5_dir,
-            einstein_dir, dictionary_results, args.d
-        )
-        all_contracts.append(contract)
+        # Prioridad 1: run_dir (desde --experiment o --run-dir) con cuerdas_io
+        if run_dir and HAS_CUERDAS_IO:
+            predictions_dir = cuerdas_resolve_predictions(run_dir=run_dir)
+            emergent_h5_dir = cuerdas_resolve_geometry_emergent(run_dir=run_dir)
+            einstein_dir = cuerdas_resolve_bulk_equations(run_dir=run_dir)
+            data_dir = cuerdas_resolve_data(run_dir=run_dir, data_dir=args.data_dir)
+            dictionary_path = cuerdas_resolve_dictionary(run_dir=run_dir, dictionary_file=args.dictionary_file)
+        
+        # Prioridad 2: argumentos explicitos (legacy)
+        if predictions_dir is None and args.geometry_dir:
+            geometry_dir = Path(args.geometry_dir)
+            predictions_dir = resolve_predictions_dir(geometry_dir)
+            emergent_h5_dir = resolve_emergent_h5_dir(geometry_dir)
+        
+        if einstein_dir is None and args.einstein_dir:
+            einstein_dir = resolve_bulk_equations_dir(Path(args.einstein_dir))
+        
+        if data_dir is None and args.data_dir:
+            data_dir = Path(args.data_dir)
+        
+        if dictionary_path is None and args.dictionary_file:
+            dictionary_path = Path(args.dictionary_file)
+        
+        # Validar que tenemos las rutas minimas necesarias
+        if predictions_dir is None:
+            raise ValueError("Missing predictions directory: provide --geometry-dir or a contractual run resolution.")
+
+        output_file = resolve_output_file(args, ctx, run_dir)
+        
+        print("=" * 90)
+        print("PHYSICS CONTRACTS VALIDATOR")
+        print("=" * 90)
+        print(f"\n  experiment:     {getattr(args, 'experiment', None) or '(no especificado)'}")
+        print(f"  run_dir:        {run_dir or '(no especificado)'}")
+        print(f"  data-dir:       {data_dir or '(no especificado)'}")
+        print(f"  predictions:    {predictions_dir}")
+        print(f"  emergent_h5:    {emergent_h5_dir}")
+        print(f"  einstein-dir:   {einstein_dir}")
+        print(f"  dictionary:     {dictionary_path}")
+        print(f"  output:         {output_file}")
+        print("\nPHILOSOPHY:")
+        print("   generic contracts: All geometries must pass")
+        print("   AdS-specific contracts: Only relevant for family='ads'")
+        print("   inference mode: without truth, R2=null, generic contracts evaluados")
+        print("=" * 90)
+        
+        geometries = load_geometries_from_data_dir(data_dir)
+        
+        # Cargar diccionario
+        if dictionary_path and dictionary_path.exists():
+            dictionary_results = json.loads(dictionary_path.read_text())
+        else:
+            dictionary_results = {}
+            if dictionary_path:
+                print(f"[WARN] Does not exist diccionario: {dictionary_path}")
+            else:
+                print("[WARN] No se especifico file de diccionario")
+        
+        all_contracts = []
+        
+        for geo_info in geometries:
+            name = geo_info["name"] if isinstance(geo_info, dict) else geo_info
+            print(f"\n>> {name}")
+            
+            contract = process_geometry(
+                name, data_dir, predictions_dir, emergent_h5_dir,
+                einstein_dir, dictionary_results, args.d
+            )
+            all_contracts.append(contract)
         
         # Mostrar resultado (V2.3)
         if contract.errors:
@@ -1385,182 +1389,222 @@ def main():
             for w in contract.warnings:
                 print(f"   [WARN] {w}")
     
-    # ============================================================
-    # RESUMEN
-    # ============================================================
-    
-    print("\n" + "=" * 100)
-    print("CONTRACTS SUMMARY FASE XI v2.1")
-    print("=" * 100)
-    
-    # Tabla
-    print(f"\n{'Name':<25} {'Family':<12} {'Mode':<10} {'Generic':^8} {'AdS':^8} {'Score':^8} {'Pass':^6}")
-    print("-" * 100)
-    
-    for c in all_contracts:
-        ads_col = 'OK' if c.ads_specific_passed else ('FAIL' if c.is_ads_family else '-')
-        mode_short = "sandbox" if c.mode == "sandbox" else "infer"
-        gen_status = 'OK' if c.generic_passed_strict else ('RELAX' if c.generic_passed_relaxed else 'FAIL')
-        pass_status = 'OK' if c.overall_passed_strict else ('RELAX' if c.overall_passed_relaxed else 'FAIL')
-        print(f"{c.name:<25} {c.family:<12} {mode_short:<10} "
-              f"{gen_status:^8} "
-              f"{ads_col:^8} "
-              f"{c.contract_score:.2f} "
-              f"{pass_status:^6}")
-    
-    print("-" * 100)
-    
-    # Estadisticas
-    n_total = len(all_contracts)
-    n_with_errors = sum(1 for c in all_contracts if c.errors)
-    n_inference = sum(1 for c in all_contracts if c.mode == "inference")
-    n_generic_strict = sum(c.generic_passed_strict for c in all_contracts)
-    n_generic_relaxed = sum(c.generic_passed_relaxed for c in all_contracts)
-    n_ads_family = sum(c.is_ads_family for c in all_contracts)
-    n_ads_passed = sum(c.ads_specific_passed for c in all_contracts if c.is_ads_family)
-    n_overall_strict = sum(c.overall_passed_strict for c in all_contracts)
-    n_overall_relaxed = sum(c.overall_passed_relaxed for c in all_contracts)
-    n_relaxed_correlator = sum(c.pass_mode == "relaxed_correlator" for c in all_contracts)
-    n_real_fail = sum((not c.errors) and (not c.overall_passed_relaxed) for c in all_contracts)
-    
-    contracts_with_score = [c for c in all_contracts if not c.errors]
-    avg_score = np.mean([c.contract_score for c in contracts_with_score]) if contracts_with_score else 0.0
-    
-    print(f"\nSTATISTICS:")
-    print(f"  Total geometrias:      {n_total}")
-    print(f"  Con errores:           {n_with_errors}")
-    print(f"  inference mode:        {n_inference}")
-    print(f"  Genericos strict OK:   {n_generic_strict}/{n_total}")
-    print(f"  Genericos relaxed OK:  {n_generic_relaxed}/{n_total}")
-    print(f"  AdS families:          {n_ads_family}/{n_total}")
-    print(f"  AdS-specific OK:       {n_ads_passed}/{n_ads_family} (de las que son AdS)")
-    print(f"  Overall strict:        {n_overall_strict}/{n_total}")
-    print(f"  Overall relaxed:       {n_overall_relaxed}/{n_total}")
-    print(f"  Relaxed correlator:    {n_relaxed_correlator}/{n_total}")
-    print(f"  Real fails:            {n_real_fail}/{n_total}")
-    print(f"  average score:        {avg_score:.3f}")
-    
-    # Por modo
-    print("\nBY MODE:")
-    for mode_name in ["sandbox", "inference"]:
-        mode_contracts = [c for c in all_contracts if c.mode == mode_name]
-        if mode_contracts:
-            n_m = len(mode_contracts)
-            n_passed = sum(c.overall_passed_relaxed for c in mode_contracts)
-            avg_m = np.mean([c.contract_score for c in mode_contracts])
-            print(f"  {mode_name:12}: {n_passed}/{n_m} passed, score={avg_m:.2f}")
-    
-    # Veredicto final
-    print("\n" + "=" * 90)
-    
-    phase_passed_strict = (n_with_errors == 0) and (n_generic_strict == n_total) and (avg_score > 0.5 or n_total == 0)
-    phase_passed_relaxed = (n_with_errors == 0) and (n_generic_relaxed == n_total) and (avg_score > 0.5 or n_total == 0)
-    phase_passed = phase_passed_relaxed
-    
-    if n_total == 0:
-        print("⚠ NO HAY GEOMETRÍAS PARA EVALUAR")
-    elif phase_passed:
-        print("✓ VALIDATION COMPLETED SUCCESSFULLY")
-        print("=" * 90)
-        print(f"\n  El sistema CUERDAS ha logrado:")
-        print(f"     All geometries pass generic contracts under relaxed inference semantics")
-        if n_relaxed_correlator > 0:
-            print(f"     {n_relaxed_correlator} geometries pass via relaxed_correlator")
-        if n_inference > 0:
-            print(f"     {n_inference} geometries processed en inference mode")
-    else:
-        print("✗ VALIDATION REQUIRES REFINEMENT")
-        print("=" * 90)
-        if n_with_errors > 0:
-            print(f"\n  {n_with_errors} geometries with errors")
-        if n_generic_relaxed < n_total:
-            print(f"\n  {n_total - n_generic_relaxed} geometries do not pass generic contracts")
-        if avg_score <= 0.5:
-            print(f"\n  average score ({avg_score:.2f}) demasiado bajo")
-    
-    # === GUARDAR ===
-    def serialize_value(v):
-        if isinstance(v, (np.bool_, bool)):
-            return bool(v)
-        if isinstance(v, (np.integer,)):
-            return int(v)
-        if isinstance(v, (np.floating, float)):
+        # ============================================================
+        # RESUMEN
+        # ============================================================
+        
+        print("\n" + "=" * 100)
+        print("CONTRACTS SUMMARY FASE XI v2.1")
+        print("=" * 100)
+        
+        # Tabla
+        print(f"\n{'Name':<25} {'Family':<12} {'Mode':<10} {'Generic':^8} {'AdS':^8} {'Score':^8} {'Pass':^6}")
+        print("-" * 100)
+        
+        for c in all_contracts:
+            ads_col = 'OK' if c.ads_specific_passed else ('FAIL' if c.is_ads_family else '-')
+            mode_short = "sandbox" if c.mode == "sandbox" else "infer"
+            gen_status = 'OK' if c.generic_passed_strict else ('RELAX' if c.generic_passed_relaxed else 'FAIL')
+            pass_status = 'OK' if c.overall_passed_strict else ('RELAX' if c.overall_passed_relaxed else 'FAIL')
+            print(f"{c.name:<25} {c.family:<12} {mode_short:<10} "
+                  f"{gen_status:^8} "
+                  f"{ads_col:^8} "
+                  f"{c.contract_score:.2f} "
+                  f"{pass_status:^6}")
+        
+        print("-" * 100)
+        
+        # Estadisticas
+        n_total = len(all_contracts)
+        n_with_errors = sum(1 for c in all_contracts if c.errors)
+        n_inference = sum(1 for c in all_contracts if c.mode == "inference")
+        n_generic_strict = sum(c.generic_passed_strict for c in all_contracts)
+        n_generic_relaxed = sum(c.generic_passed_relaxed for c in all_contracts)
+        n_ads_family = sum(c.is_ads_family for c in all_contracts)
+        n_ads_passed = sum(c.ads_specific_passed for c in all_contracts if c.is_ads_family)
+        n_overall_strict = sum(c.overall_passed_strict for c in all_contracts)
+        n_overall_relaxed = sum(c.overall_passed_relaxed for c in all_contracts)
+        n_relaxed_correlator = sum(c.pass_mode == "relaxed_correlator" for c in all_contracts)
+        n_real_fail = sum((not c.errors) and (not c.overall_passed_relaxed) for c in all_contracts)
+        
+        contracts_with_score = [c for c in all_contracts if not c.errors]
+        avg_score = np.mean([c.contract_score for c in contracts_with_score]) if contracts_with_score else 0.0
+        
+        print(f"\nSTATISTICS:")
+        print(f"  Total geometrias:      {n_total}")
+        print(f"  Con errores:           {n_with_errors}")
+        print(f"  inference mode:        {n_inference}")
+        print(f"  Genericos strict OK:   {n_generic_strict}/{n_total}")
+        print(f"  Genericos relaxed OK:  {n_generic_relaxed}/{n_total}")
+        print(f"  AdS families:          {n_ads_family}/{n_total}")
+        print(f"  AdS-specific OK:       {n_ads_passed}/{n_ads_family} (de las que son AdS)")
+        print(f"  Overall strict:        {n_overall_strict}/{n_total}")
+        print(f"  Overall relaxed:       {n_overall_relaxed}/{n_total}")
+        print(f"  Relaxed correlator:    {n_relaxed_correlator}/{n_total}")
+        print(f"  Real fails:            {n_real_fail}/{n_total}")
+        print(f"  average score:        {avg_score:.3f}")
+        
+        # Por modo
+        print("\nBY MODE:")
+        for mode_name in ["sandbox", "inference"]:
+            mode_contracts = [c for c in all_contracts if c.mode == mode_name]
+            if mode_contracts:
+                n_m = len(mode_contracts)
+                n_passed = sum(c.overall_passed_relaxed for c in mode_contracts)
+                avg_m = np.mean([c.contract_score for c in mode_contracts])
+                print(f"  {mode_name:12}: {n_passed}/{n_m} passed, score={avg_m:.2f}")
+        
+        # Veredicto final
+        print("\n" + "=" * 90)
+        
+        phase_passed_strict = (n_with_errors == 0) and (n_generic_strict == n_total) and (avg_score > 0.5 or n_total == 0)
+        phase_passed_relaxed = (n_with_errors == 0) and (n_generic_relaxed == n_total) and (avg_score > 0.5 or n_total == 0)
+        phase_passed = phase_passed_relaxed
+        
+        if n_total == 0:
+            print("⚠ NO HAY GEOMETRÍAS PARA EVALUAR")
+        elif phase_passed:
+            print("✓ VALIDATION COMPLETED SUCCESSFULLY")
+            print("=" * 90)
+            print(f"\n  El sistema CUERDAS ha logrado:")
+            print(f"     All geometries pass generic contracts under relaxed inference semantics")
+            if n_relaxed_correlator > 0:
+                print(f"     {n_relaxed_correlator} geometries pass via relaxed_correlator")
+            if n_inference > 0:
+                print(f"     {n_inference} geometries processed en inference mode")
+        else:
+            print("✗ VALIDATION REQUIRES REFINEMENT")
+            print("=" * 90)
+            if n_with_errors > 0:
+                print(f"\n  {n_with_errors} geometries with errors")
+            if n_generic_relaxed < n_total:
+                print(f"\n  {n_total - n_generic_relaxed} geometries do not pass generic contracts")
+            if avg_score <= 0.5:
+                print(f"\n  average score ({avg_score:.2f}) demasiado bajo")
+        
+        # === GUARDAR ===
+        def serialize_value(v):
+            if isinstance(v, (np.bool_, bool)):
+                return bool(v)
+            if isinstance(v, (np.integer,)):
+                return int(v)
+            if isinstance(v, (np.floating, float)):
+                if v is None:
+                    return None
+                if np.isnan(v) or np.isinf(v):
+                    return None
+                return float(v)
+            if isinstance(v, dict):
+                return {k: serialize_value(val) for k, val in v.items()}
+            if isinstance(v, list):
+                return [serialize_value(item) for item in v]
             if v is None:
                 return None
-            if np.isnan(v) or np.isinf(v):
-                return None
-            return float(v)
-        if isinstance(v, dict):
-            return {k: serialize_value(val) for k, val in v.items()}
-        if isinstance(v, list):
-            return [serialize_value(item) for item in v]
-        if v is None:
-            return None
-        return v
-    
-    def serialize_contract(contract: PhaseXIContractV2) -> Dict[str, Any]:
-        c_dict = {k: serialize_value(v) for k, v in asdict(contract).items()}
-        c_dict.update(
-            {
-                "generic_passed_strict": bool(contract.generic_passed_strict),
-                "generic_passed_relaxed": bool(contract.generic_passed_relaxed),
-                "overall_passed_strict": bool(contract.overall_passed_strict),
-                "overall_passed_relaxed": bool(contract.overall_passed_relaxed),
-                "generic_contract_status": contract.generic_contract_status,
-                "correlator_contract_status": contract.correlator_contract_status,
-                "pass_mode": contract.pass_mode,
-            }
-        )
-        return c_dict
-
-    output_data = {
-        "version": "2.2",
-        "n_total": n_total,
-        "n_with_errors": n_with_errors,
-        "n_inference_mode": n_inference,
-        "n_generic_passed": int(n_generic_relaxed),
-        "n_generic_passed_strict": int(n_generic_strict),
-        "n_generic_passed_relaxed": int(n_generic_relaxed),
-        "n_ads_family": int(n_ads_family),
-        "n_ads_specific_passed": int(n_ads_passed),
-        "n_overall_passed": int(n_overall_relaxed),
-        "n_overall_passed_strict": int(n_overall_strict),
-        "n_overall_passed_relaxed": int(n_overall_relaxed),
-        "n_real_failures": int(n_real_fail),
-        "avg_score": float(avg_score) if not np.isnan(avg_score) else None,
-        "phase_passed": bool(phase_passed),
-        "phase_passed_strict": bool(phase_passed_strict),
-        "phase_passed_relaxed": bool(phase_passed_relaxed),
-        "n_ringdown_inference_relaxed_correlator": int(n_relaxed_correlator),
-        "contracts": [serialize_contract(c) for c in all_contracts]
-    }
-    
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    output_file.write_text(json.dumps(output_data, indent=2))
-    
-    print(f"\n  Results: {output_file}")
-    
-    # === ACTUALIZAR RUN_MANIFEST (IO v2) ===
-    if args.run_dir and HAS_CUERDAS_IO:
-        try:
-            run_dir = Path(args.run_dir)
-            update_run_manifest(
-                run_dir,
+            return v
+        
+        def serialize_contract(contract: PhaseXIContractV2) -> Dict[str, Any]:
+            c_dict = {k: serialize_value(v) for k, v in asdict(contract).items()}
+            c_dict.update(
                 {
-                    "geometry_contracts_dir": str(output_file.parent.relative_to(run_dir)
-                                                  if output_file.parent.is_relative_to(run_dir)
-                                                  else output_file.parent),
-                    "geometry_contracts_summary": str(output_file.relative_to(run_dir)
-                                                      if output_file.is_relative_to(run_dir)
-                                                      else output_file),
+                    "generic_passed_strict": bool(contract.generic_passed_strict),
+                    "generic_passed_relaxed": bool(contract.generic_passed_relaxed),
+                    "overall_passed_strict": bool(contract.overall_passed_strict),
+                    "overall_passed_relaxed": bool(contract.overall_passed_relaxed),
+                    "generic_contract_status": contract.generic_contract_status,
+                    "correlator_contract_status": contract.correlator_contract_status,
+                    "pass_mode": contract.pass_mode,
                 }
             )
-            print(f"  Manifest actualizado: {run_dir / 'run_manifest.json'}")
-        except Exception as e:
-            print(f"  [WARN] No se pudo actualizar run_manifest.json: {e}")
-    
-    print("=" * 90)
+            return c_dict
+
+        output_data = {
+            "version": "2.2",
+            "n_total": n_total,
+            "n_with_errors": n_with_errors,
+            "n_inference_mode": n_inference,
+            "n_generic_passed": int(n_generic_relaxed),
+            "n_generic_passed_strict": int(n_generic_strict),
+            "n_generic_passed_relaxed": int(n_generic_relaxed),
+            "n_ads_family": int(n_ads_family),
+            "n_ads_specific_passed": int(n_ads_passed),
+            "n_overall_passed": int(n_overall_relaxed),
+            "n_overall_passed_strict": int(n_overall_strict),
+            "n_overall_passed_relaxed": int(n_overall_relaxed),
+            "n_real_failures": int(n_real_fail),
+            "avg_score": float(avg_score) if not np.isnan(avg_score) else None,
+            "phase_passed": bool(phase_passed),
+            "phase_passed_strict": bool(phase_passed_strict),
+            "phase_passed_relaxed": bool(phase_passed_relaxed),
+            "n_ringdown_inference_relaxed_correlator": int(n_relaxed_correlator),
+            "contracts": [serialize_contract(c) for c in all_contracts]
+        }
+        
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_file.write_text(json.dumps(output_data, indent=2))
+        
+        summary_counts = {
+            "n_total": int(n_total),
+            "n_with_errors": int(n_with_errors),
+            "n_generic_passed_strict": int(n_generic_strict),
+            "n_generic_passed_relaxed": int(n_generic_relaxed),
+            "n_overall_passed_strict": int(n_overall_strict),
+            "n_overall_passed_relaxed": int(n_overall_relaxed),
+            "n_real_failures": int(n_real_fail),
+            "n_ringdown_inference_relaxed_correlator": int(n_relaxed_correlator),
+        }
+
+        if ctx is not None:
+            ctx.record_artifact("geometry_contracts_summary", output_file)
+            output_ref = (
+                str(output_file.relative_to(ctx.run_root))
+                if output_file.is_relative_to(ctx.run_root)
+                else str(output_file)
+            )
+            ctx.write_manifest(
+                outputs={"geometry_contracts_summary": output_ref},
+                metadata={
+                    "command": " ".join(sys.argv),
+                    "experiment": ctx.experiment,
+                },
+            )
+        
+        print(f"\n  Results: {output_file}")
+        
+        # === ACTUALIZAR RUN_MANIFEST (IO v2) ===
+        if args.run_dir and HAS_CUERDAS_IO:
+            try:
+                run_dir = Path(args.run_dir)
+                update_run_manifest(
+                    run_dir,
+                    {
+                        "geometry_contracts_dir": str(output_file.parent.relative_to(run_dir)
+                                                      if output_file.parent.is_relative_to(run_dir)
+                                                      else output_file.parent),
+                        "geometry_contracts_summary": str(output_file.relative_to(run_dir)
+                                                          if output_file.is_relative_to(run_dir)
+                                                          else output_file),
+                    }
+                )
+                print(f"  Manifest actualizado: {run_dir / 'run_manifest.json'}")
+            except Exception as e:
+                print(f"  [WARN] No se pudo actualizar run_manifest.json: {e}")
+        
+        print("=" * 90)
+    except Exception as exc:
+        status = STATUS_ERROR
+        exit_code = EXIT_ERROR
+        error_message = str(exc)
+    finally:
+        if ctx is not None:
+            ctx.write_summary(
+                status=status,
+                exit_code=exit_code,
+                error_message=error_message,
+                counts=summary_counts or None,
+            )
+
+    return exit_code
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
