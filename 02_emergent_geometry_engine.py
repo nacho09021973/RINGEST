@@ -162,6 +162,12 @@ GRAD_CLIP_NORM = 1.0
 # Frecuencia de evaluaciAfAE'A+aEUR(TM)AfaEURsA,A3n en test (cada N epochs)
 EVAL_FREQUENCY = 50
 
+# Semántica operativa de family en inference sobre cohortes OOD/unificadas:
+# publicar compatibilidad y abstenerse salvo soporte suficiente.
+FAMILY_OUTPUT_SEMANTICS = "compatibility_with_abstention"
+FAMILY_CONFIDENCE_TOP1_THRESHOLD = 0.60
+FAMILY_CONFIDENCE_MARGIN_THRESHOLD = 0.20
+
 
 # ============================================================
 # UTILIDADES VARIAS
@@ -255,6 +261,59 @@ def safe_relative_path(path: Path, *base_paths: Optional[Path]) -> str:
         except ValueError:
             continue
     return str(resolved_path)
+
+
+def build_family_inference_report(
+    family_prob_row: np.ndarray,
+    family_map_inv: Dict[int, str],
+) -> Dict[str, Any]:
+    """Convierte logits/probabilidades de family en compatibilidad + abstención explícita."""
+    family_prob_row = np.asarray(family_prob_row, dtype=np.float64)
+    family_order = np.argsort(family_prob_row)[::-1]
+    top1_idx = int(family_order[0])
+    top2_idx = int(family_order[1]) if len(family_order) > 1 else top1_idx
+    family_raw_name = family_map_inv.get(top1_idx, "unknown")
+    family_top2_name = family_map_inv.get(top2_idx, "unknown")
+    family_top1_score = float(family_prob_row[top1_idx])
+    family_top2_score = float(family_prob_row[top2_idx]) if len(family_order) > 1 else 0.0
+    family_margin = family_top1_score - family_top2_score
+    family_entropy = float(-np.sum(family_prob_row * np.log(np.clip(family_prob_row, 1e-12, 1.0))))
+    family_pred_confident = bool(
+        family_top1_score >= FAMILY_CONFIDENCE_TOP1_THRESHOLD
+        and family_margin >= FAMILY_CONFIDENCE_MARGIN_THRESHOLD
+    )
+    family_pred_was_abstained = not family_pred_confident
+    abstention_reasons: List[str] = []
+    if family_top1_score < FAMILY_CONFIDENCE_TOP1_THRESHOLD:
+        abstention_reasons.append("top1_below_threshold")
+    if family_margin < FAMILY_CONFIDENCE_MARGIN_THRESHOLD:
+        abstention_reasons.append("margin_below_threshold")
+    family_abstention_reason = "none" if not abstention_reasons else "+".join(abstention_reasons)
+    family_name = family_raw_name if family_pred_confident else "unknown"
+    family_scores = {
+        family_map_inv.get(int(idx), f"family_{int(idx)}"): float(family_prob_row[int(idx)])
+        for idx in family_order
+    }
+    return {
+        "family_pred": top1_idx,
+        "family_raw_name": family_raw_name,
+        "family_name": family_name,
+        "family_top2_name": family_top2_name,
+        "family_scores": family_scores,
+        "family_top1_score": family_top1_score,
+        "family_top2_score": family_top2_score,
+        "family_margin": family_margin,
+        "family_entropy": family_entropy,
+        "family_pred_confident": family_pred_confident,
+        "family_pred_was_abstained": family_pred_was_abstained,
+        "family_abstention_reason": family_abstention_reason,
+        "family_classification_mode": "confident" if family_pred_confident else "abstained",
+        "family_output_semantics": FAMILY_OUTPUT_SEMANTICS,
+        "family_confidence_thresholds": {
+            "top1_min": FAMILY_CONFIDENCE_TOP1_THRESHOLD,
+            "margin_min": FAMILY_CONFIDENCE_MARGIN_THRESHOLD,
+        },
+    }
 
 
 # ============================================================
@@ -1450,15 +1509,9 @@ def run_inference_single(
     f_pred = np.clip(f_pred, 0.0, 1.0)
     R_pred = normalizer.denormalize_R(R_pred_norm)
     
-    family_id = int(np.argmax(family_logits, axis=1)[0])
-    family_name = family_map_inv.get(family_id, "unknown")
     family_prob_row = family_probs[0]
-    family_order = np.argsort(family_prob_row)[::-1]
-    family_top1_score = float(family_prob_row[family_order[0]])
-    family_top2_score = float(family_prob_row[family_order[1]]) if len(family_order) > 1 else 0.0
-    family_margin = family_top1_score - family_top2_score
-    family_entropy = float(-np.sum(family_prob_row * np.log(np.clip(family_prob_row, 1e-12, 1.0))))
-    
+    family_report = build_family_inference_report(family_prob_row, family_map_inv)
+
     return {
         "A_pred": A_pred[0],  # Quitar dimensiAfAE'A+aEUR(TM)AfaEURsA,A3n de batch
         "f_pred": f_pred[0],
@@ -1466,12 +1519,7 @@ def run_inference_single(
         "zh_pred_raw": float(zh_pred_raw[0]),
         "zh_pred": float(zh_pred[0]),
         "zh_pred_was_clipped": bool(zh_pred_raw[0] < 0.0),
-        "family_pred": family_id,
-        "family_name": family_name,
-        "family_top1_score": family_top1_score,
-        "family_top2_score": family_top2_score,
-        "family_margin": family_margin,
-        "family_entropy": family_entropy,
+        **family_report,
     }
 
 
@@ -1675,6 +1723,14 @@ def run_inference_mode(args):
             # CanAfAE'A+aEUR(TM)AfaEURsA,A3nico: 'family' debe existir (family_pred es opcional)
             f_out.attrs["family"] = family_pred
             f_out.attrs["family_pred"] = family_pred
+            f_out.attrs["family_raw_pred"] = preds["family_raw_name"]
+            f_out.attrs["family_best_compatibility_label"] = preds["family_raw_name"]
+            f_out.attrs["family_output_semantics"] = preds["family_output_semantics"]
+            f_out.attrs["family_classification_mode"] = preds["family_classification_mode"]
+            f_out.attrs["family_pred_confident"] = preds["family_pred_confident"]
+            f_out.attrs["family_pred_was_abstained"] = preds["family_pred_was_abstained"]
+            f_out.attrs["family_abstention_reason"] = preds["family_abstention_reason"]
+            f_out.attrs["family_scores_json"] = json.dumps(preds["family_scores"], sort_keys=True)
             f_out.attrs["d"] = int(d_boundary)
             f_out.attrs["d_pred"] = int(d_boundary)
             # CanAfAE'A+aEUR(TM)AfaEURsA,A3nico: provenance AfAE'A,AcAfaEUR1Aca,!A AfaEUR1Aca,!A  {"train","inference"}
@@ -1729,6 +1785,14 @@ def run_inference_mode(args):
                 f_of_z=np.asarray(f_arr, dtype=np.float32),
                 R_of_z=np.asarray(R_arr, dtype=np.float32),
                 family_pred=np.array(str(preds.get('family_name','unknown')), dtype=object),
+                family_raw_pred=np.array(str(preds.get('family_raw_name','unknown')), dtype=object),
+                family_best_compatibility_label=np.array(str(preds.get('family_raw_name','unknown')), dtype=object),
+                family_output_semantics=np.array(str(preds.get('family_output_semantics', FAMILY_OUTPUT_SEMANTICS)), dtype=object),
+                family_classification_mode=np.array(str(preds.get('family_classification_mode', 'abstained')), dtype=object),
+                family_pred_confident=np.array(bool(preds.get('family_pred_confident', False)), dtype=np.bool_),
+                family_pred_was_abstained=np.array(bool(preds.get('family_pred_was_abstained', True)), dtype=np.bool_),
+                family_abstention_reason=np.array(str(preds.get('family_abstention_reason', 'unknown')), dtype=object),
+                family_scores_json=np.array(json.dumps(preds.get('family_scores', {}), sort_keys=True), dtype=object),
                 family_top1_score=np.array(float(preds.get('family_top1_score', float('nan'))), dtype=np.float32),
                 family_top2_score=np.array(float(preds.get('family_top2_score', float('nan'))), dtype=np.float32),
                 family_margin=np.array(float(preds.get('family_margin', float('nan'))), dtype=np.float32),
@@ -1744,6 +1808,14 @@ def run_inference_mode(args):
             "h5_input": str(h5_path),
             "h5_output": str(out_h5_path),
             "family_pred": preds["family_name"],
+            "family_raw_pred": preds["family_raw_name"],
+            "family_best_compatibility_label": preds["family_raw_name"],
+            "family_output_semantics": preds["family_output_semantics"],
+            "family_classification_mode": preds["family_classification_mode"],
+            "family_pred_confident": preds["family_pred_confident"],
+            "family_pred_was_abstained": preds["family_pred_was_abstained"],
+            "family_abstention_reason": preds["family_abstention_reason"],
+            "family_scores": preds["family_scores"],
             "family_top1_score": preds["family_top1_score"],
             "family_top2_score": preds["family_top2_score"],
             "family_margin": preds["family_margin"],
@@ -1757,7 +1829,12 @@ def run_inference_mode(args):
             "family": preds["family_name"],
         })
         
-        print(f"      -> family_pred={preds['family_name']}, zh_pred={preds['zh_pred']:.3f}")
+        print(
+            "      -> "
+            f"family_pred={preds['family_name']} "
+            f"(raw={preds['family_raw_name']}, mode={preds['family_classification_mode']}), "
+            f"zh_pred={preds['zh_pred']:.3f}"
+        )
 
     # === GATE FAIL CHECK ===
     # Write summary before raising so the caller can inspect it (test contract)
