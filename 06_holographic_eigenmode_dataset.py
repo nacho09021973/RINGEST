@@ -11,6 +11,7 @@ in boundary attrs:
 
   Tier Canonical: ads, lifshitz, hyperscaling, deformed, dpbrane, unknown
   Tier A:         rn_ads, gauss_bonnet, massive_gravity, linear_axion, charged_hvlif
+  Tier A ext:     gubser_rocha, soft_wall
 
   - lambda_sl  = m²L²   (bulk scalar mass squared, can be negative/tachyonic)
   - Delta_UV   = Δ       (operator dimension)
@@ -57,6 +58,7 @@ except ImportError:
     _HOLO_FAMS = frozenset({
         "ads", "lifshitz", "hyperscaling", "deformed", "dpbrane", "unknown",
         "rn_ads", "gauss_bonnet", "massive_gravity", "linear_axion", "charged_hvlif",
+        "gubser_rocha", "soft_wall",
     })
     _HAS_FAMILY_REGISTRY = False
 

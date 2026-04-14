@@ -55,6 +55,9 @@ def fp_horizon_analytic(
     m_g: float = 0.0,
     mg_c1: float = 1.0,
     alpha_axion: float = 0.0,
+    # Tier A ext (2026-04)
+    mu_GR: float = 0.0,
+    kappa_sw: float = 0.0,
 ) -> float:
     """
     |f'(z_h)| analítico para cada familia.
@@ -76,6 +79,10 @@ def fp_horizon_analytic(
       massive_gravity: f = 1 - (1-mg2·z_h²)(z/z_h)^d - mg2·z²  (mg2=m_g²·mg_c1)
       linear_axion:   f = 1 - (1+a2·z_h²/d)(z/z_h)^d + a2·z²/d  (a2=alpha²)
       charged_hvlif:  f = 1 - (1+q²)(z/z_h)^{eff_d} + q²(z/z_h)^{2(eff_d-1)}
+
+    Tier A ext (2026-04):
+      gubser_rocha:   f = [1 - (z/z_h)^d] / (1 + mu_GR · z/z_h)
+      soft_wall:      f = 1 - (z/z_h)^d   (toda la firma física en A(z))
     """
     # ── Tier Canonical ────────────────────────────────────────────────────────
     if family == "ads":
@@ -138,6 +145,20 @@ def fp_horizon_analytic(
         df = -eff_d + q * q * (eff_d - 2.0)
         return abs(df) / z_h
 
+    # ── Tier A ext (2026-04) ──────────────────────────────────────────────────
+
+    elif family == "gubser_rocha":
+        # f(z) = [1 - u^d] / (1 + mu_GR · u),  u = z/z_h
+        # f'(z_h) = -d / (z_h · (1 + mu_GR))
+        denom = 1.0 + mu_GR
+        if denom <= 1e-6:
+            denom = 1e-6
+        return float(d) / (z_h * denom)
+
+    elif family == "soft_wall":
+        # f(z) = 1 - (z/z_h)^d idéntico a AdS en f; la firma vive en A(z).
+        return float(d) / z_h
+
     else:
         # Fallback genérico solo para familias no registradas (e.g. test nuevas)
         return 4.0 / z_h
@@ -156,6 +177,9 @@ def fp_horizon_effective(
     m_g: float = 0.0,
     mg_c1: float = 1.0,
     alpha_axion: float = 0.0,
+    # Tier A ext (2026-04)
+    mu_GR: float = 0.0,
+    kappa_sw: float = 0.0,
 ) -> float:
     """
     Denominador correcto para el exponente α = -iω / fp_eff en la BC entrante.
@@ -173,6 +197,7 @@ def fp_horizon_effective(
         family, z_h, d, z_dyn, theta,
         charge_Q=charge_Q, lambda_gb=lambda_gb,
         m_g=m_g, mg_c1=mg_c1, alpha_axion=alpha_axion,
+        mu_GR=mu_GR, kappa_sw=kappa_sw,
     )
     # Evalúa A ligeramente antes del horizonte para evitar f=0
     A_h = float(A_spline(z_h * (1.0 - 1e-5)))
@@ -375,6 +400,9 @@ def process_geometry(h5path: Path, n_modes: int,
         m_g         = float(h.attrs.get("m_g", 0.0))
         mg_c1       = float(h.attrs.get("mg_c1", 1.0))
         alpha_axion = float(h.attrs.get("alpha_axion", 0.0))
+        # Tier A ext (2026-04)
+        mu_GR       = float(h.attrs.get("mu_GR", 0.0))
+        kappa_sw    = float(h.attrs.get("kappa_sw", 0.0))
 
     if z_h <= 0:
         print(f"  [SKIP] {name}: z_h={z_h} (sin horizonte)")
@@ -405,6 +433,7 @@ def process_geometry(h5path: Path, n_modes: int,
         family, z_h, d, z_dyn, theta, A_sp,
         charge_Q=charge_Q, lambda_gb=lambda_gb,
         m_g=m_g, mg_c1=mg_c1, alpha_axion=alpha_axion,
+        mu_GR=mu_GR, kappa_sw=kappa_sw,
     )
 
     z_min   = float(z_phys[0])          # boundary (z ~ 0.01)
