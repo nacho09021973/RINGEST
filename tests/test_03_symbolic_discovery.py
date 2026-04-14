@@ -289,6 +289,117 @@ class TestNoEquationsDiscoveredContract(unittest.TestCase):
         self.assertEqual(exit_code, self.s03.EXIT_ERROR)
 
 
+class TestStage03ContractRuntime(unittest.TestCase):
+    def setUp(self):
+        self.s03 = _load_stage03()
+
+    def test_missing_canonical_input_aborts_without_legacy_fallback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_root = Path(tmp) / "runs" / "exp1"
+            legacy_dir = run_root / "predictions"
+            legacy_dir.mkdir(parents=True, exist_ok=True)
+            _write_synthetic_geometry(legacy_dir, name="legacy_only")
+
+            args = mock.Mock()
+            args.geometry_dir = None
+
+            with self.assertRaisesRegex(FileNotFoundError, "Missing canonical geometry input"):
+                self.s03.resolve_geometries_dir(args, run_root)
+
+    def test_ctx_default_output_goes_to_stage_outputs_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_root = Path(tmp) / "runs" / "exp1"
+            stage_dir = run_root / "03_discover_bulk_equations"
+            ctx = mock.Mock()
+            ctx.stage_dir = stage_dir
+
+            args = mock.Mock()
+            args.output_dir = None
+
+            output_dir = self.s03.resolve_output_dir(args, ctx, run_root)
+
+            self.assertEqual(output_dir, stage_dir / "outputs")
+
+    def test_main_with_ctx_writes_manifest_and_stage_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_root = Path(tmp) / "runs" / "exp1"
+            geometries_dir = run_root / "02_emergent_geometry_engine" / "geometry_emergent"
+            geometries_dir.mkdir(parents=True, exist_ok=True)
+            _write_synthetic_geometry(geometries_dir, name="ads5")
+            stage_dir = run_root / "03_discover_bulk_equations"
+            stage_dir.mkdir(parents=True, exist_ok=True)
+
+            summary_stub = {
+                "R_statistics": {
+                    "mean": -12.0,
+                    "std": 0.5,
+                    "min": -12.5,
+                    "max": -11.5,
+                    "coefficient_of_variation": 0.04,
+                },
+                "pysr_available": True,
+                "R_equation": {
+                    "equation": "x0 + x1",
+                    "complexity": 2,
+                    "loss": 0.001,
+                    "r2": 0.99,
+                    "feature_names": ["A", "f", "dA", "d2A", "df", "d2f"],
+                },
+            }
+            validation_stub = {
+                "R_constant": True,
+                "R_negative": True,
+                "R_significant": True,
+                "einstein_vacuum_compatible": True,
+                "A_is_logarithmic": False,
+                "einstein_score": 0.8,
+                "verdict": "LIKELY_EINSTEIN_VACUUM",
+            }
+
+            argv = ["prog", "--run-dir", str(run_root), "--niterations", "1"]
+            fake_ctx = mock.Mock()
+            fake_ctx.run_root = run_root
+            fake_ctx.stage_dir = stage_dir
+            fake_ctx.experiment = "exp1"
+            fake_ctx.record_artifact = mock.Mock()
+            fake_ctx.write_manifest = mock.Mock()
+            fake_ctx.write_summary = mock.Mock()
+            fake_stage_context = type(
+                "FakeStageContext",
+                (),
+                {"from_args": staticmethod(lambda *args, **kwargs: fake_ctx)},
+            )
+
+            with mock.patch.object(self.s03, "HAS_PYSR", True), \
+                 mock.patch.object(self.s03, "HAS_STAGE_UTILS", True), \
+                 mock.patch.object(self.s03, "add_standard_arguments", side_effect=lambda parser: None), \
+                 mock.patch.object(self.s03, "parse_stage_args", side_effect=lambda parser: parser.parse_args()), \
+                 mock.patch.object(self.s03, "StageContext", fake_stage_context), \
+                 mock.patch.object(self.s03, "discover_geometric_relations", return_value=summary_stub), \
+                 mock.patch.object(self.s03, "validate_einstein_posterior", return_value=validation_stub), \
+                 mock.patch("sys.argv", argv):
+                exit_code = self.s03.main()
+
+            self.assertEqual(exit_code, self.s03.EXIT_OK)
+
+            output_summary = stage_dir / "outputs" / "einstein_discovery_summary.json"
+
+            self.assertTrue(output_summary.exists())
+            fake_ctx.write_manifest.assert_called_once()
+            fake_ctx.write_summary.assert_called_once()
+
+            manifest_kwargs = fake_ctx.write_manifest.call_args.kwargs
+            summary_kwargs = fake_ctx.write_summary.call_args.kwargs
+
+            self.assertEqual(
+                manifest_kwargs["outputs"]["einstein_discovery_summary"],
+                "03_discover_bulk_equations/outputs/einstein_discovery_summary.json",
+            )
+            self.assertEqual(manifest_kwargs["metadata"]["experiment"], "exp1")
+            self.assertEqual(summary_kwargs["status"], self.s03.STATUS_OK)
+            self.assertEqual(summary_kwargs["counts"]["n_with_equations"], 1)
+
+
 # ---------------------------------------------------------------------------
 # 3. Non-empty payload (integration, requires PySR)
 # ---------------------------------------------------------------------------

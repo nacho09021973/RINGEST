@@ -27,7 +27,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
@@ -445,51 +445,57 @@ def validate_einstein_posterior(results: Dict[str, Any], d: int) -> Dict[str, An
 
 def resolve_geometries_dir(args, run_dir: Optional[Path] = None) -> Path:
     """
-    Resuelve el directory de geometrías usando el contrato IO.
-    Fallback a lógica legacy si el contrato no está disponible.
+    Resuelve el directorio de geometrías usando solo rutas contractuales.
     """
-    # Prioridad 1: --geometry-dir explícito
     if args.geometry_dir:
-        geo_dir = Path(args.geometry_dir)
+        geo_dir = Path(args.geometry_dir).resolve()
         if geo_dir.exists():
             h5_files = list(geo_dir.glob("*.h5"))
             npz_files = list(geo_dir.glob("*.npz"))
             if h5_files or npz_files:
                 return geo_dir
         raise FileNotFoundError(f"No geometries found en {geo_dir}")
-    
-    # Prioridad 2: Usar contrato IO
-    if HAS_CONTRACT_RESOLVER and run_dir:
-        try:
-            return resolve_input("03", "geometries", run_dir)
-        except IOContractError as e:
-            print(f"[WARN] Contract resolver: {e}")
-            # Continuar con fallback
-    
-    # Prioridad 3: Fallback legacy
-    if run_dir:
-        # Intentar rutas conocidas en orden
-        candidates = [
-            run_dir / "02_emergent_geometry_engine" / "geometry_emergent",
-            run_dir / "01_generate_sandbox_geometries",
-            run_dir / "geometry_emergent",
-            run_dir / "predictions",
-        ]
-        
-        for candidate in candidates:
-            if candidate.exists():
-                h5_files = list(candidate.glob("*.h5"))
-                npz_files = list(candidate.glob("*.npz"))
-                if h5_files or npz_files:
-                    print(f"[LEGACY] Geometries desde: {candidate}")
-                    return candidate
-    
+
+    if not run_dir:
+        raise FileNotFoundError(
+            "Missing canonical geometry input. Provide --geometry-dir explicitly "
+            "or provide contractual run identity so stage 03 can read "
+            "<run_dir>/02_emergent_geometry_engine/geometry_emergent."
+        )
+
+    canonical_dir = run_dir.resolve() / "02_emergent_geometry_engine" / "geometry_emergent"
+    h5_files = list(canonical_dir.glob("*.h5"))
+    npz_files = list(canonical_dir.glob("*.npz"))
+    if h5_files or npz_files:
+        return canonical_dir
+
     raise FileNotFoundError(
-        f"No geometries found.\n"
-        f"Usa --geometry-dir o asegúrate de que existen en:\n"
-        f"  - <run_dir>/02_emergent_geometry_engine/geometry_emergent/\n"
-        f"  - <run_dir>/01_generate_sandbox_geometries/"
+        "Missing canonical geometry input for stage 03. Expected geometry files in "
+        f"{canonical_dir}. Legacy autodiscovery is disabled; pass --geometry-dir "
+        "explicitly if you need a non-default source."
     )
+
+
+def resolve_output_dir(args, ctx: Optional[Any], run_dir: Optional[Path]) -> Path:
+    if args.output_dir:
+        return Path(args.output_dir).resolve()
+    if ctx is not None:
+        return (ctx.stage_dir / "outputs").resolve()
+    if run_dir is not None:
+        return run_dir.resolve() / "03_discover_bulk_equations"
+    raise ValueError(
+        "Missing output destination. Provide --output-dir explicitly or provide "
+        "contractual run context so stage 03 can write outputs safely."
+    )
+
+
+def _manifest_ref(path: Path, run_root: Optional[Path]) -> str:
+    resolved = path.resolve()
+    if run_root is not None:
+        run_root = run_root.resolve()
+        if resolved.is_relative_to(run_root):
+            return str(resolved.relative_to(run_root))
+    return str(resolved)
 
 
 # ============================================================
@@ -522,24 +528,33 @@ def main() -> int:
         parser.add_argument("--experiment", type=str, default=None)
     
     args = parse_stage_args(parser) if HAS_STAGE_UTILS else parser.parse_args()
-    
-    # V3: Usar StageContext si está disponible
+
     ctx = None
-    if args.run_dir:
-        run_dir = Path(args.run_dir)
-    elif HAS_STAGE_UTILS and StageContext is not None:
-        ctx = StageContext.from_args(args, stage_number="03", stage_slug="discover_bulk_equations")
-        run_dir = ctx.run_root
-    elif hasattr(args, 'experiment') and args.experiment:
-        run_dir = Path("runs") / args.experiment
-    else:
-        run_dir = None
-    
+    run_dir: Optional[Path] = None
     status = STATUS_OK
     exit_code = EXIT_OK
     error_message: Optional[str] = None
+    summary_counts: Optional[Dict[str, Any]] = None
 
     try:
+        if HAS_STAGE_UTILS and StageContext is not None:
+            has_contractual_identity = bool(
+                getattr(args, "run_dir", None)
+                or (
+                    getattr(args, "experiment", None)
+                    and getattr(args, "runs_dir", None)
+                )
+            )
+            if has_contractual_identity:
+                ctx = StageContext.from_args(
+                    args,
+                    stage_number="03",
+                    stage_slug="discover_bulk_equations",
+                )
+                run_dir = ctx.run_root
+        elif args.run_dir:
+            run_dir = Path(args.run_dir).resolve()
+
         # CONTRACT: PySR must be installed — fail fast before touching the FS.
         if not HAS_PYSR:
             raise RuntimeError(
@@ -551,13 +566,7 @@ def main() -> int:
         geometries_dir = resolve_geometries_dir(args, run_dir)
         
         # === RESOLVER OUTPUT ===
-        if args.output_dir:
-            output_dir = Path(args.output_dir)
-        elif run_dir:
-            output_dir = run_dir / "03_discover_bulk_equations"
-        else:
-            output_dir = Path("bulk_equations")
-        
+        output_dir = resolve_output_dir(args, ctx, run_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         print("=" * 70)
@@ -572,6 +581,7 @@ def main() -> int:
         print("=" * 70)
         
         all_results = {"geometries": []}
+        discovery_json_paths: List[Path] = []
         
         # Buscar files de geometría
         geometry_files = sorted(geometries_dir.glob("*.h5"))
@@ -634,6 +644,7 @@ def main() -> int:
             json_path = geo_output / "einstein_discovery.json"
             json_path.parent.mkdir(exist_ok=True)
             json_path.write_text(json.dumps(geo_results, indent=2, default=str))
+            discovery_json_paths.append(json_path.resolve())
     
         # CONTRACT: at least one geometry must have produced a symbolic equation.
         n_with_equations = sum(
@@ -677,9 +688,11 @@ def main() -> int:
             "average_einstein_score": float(avg_score),
             "pysr_available": True,
         }
+        summary_counts = dict(all_results["summary"])
         
         summary_path = output_dir / "einstein_discovery_summary.json"
         summary_path.write_text(json.dumps(all_results, indent=2, default=str))
+        summary_path = summary_path.resolve()
         
         print(f"\n  Results: {summary_path}")
         print("=" * 70)
@@ -693,12 +706,41 @@ def main() -> int:
         
         print("Next step: 04_geometry_physics_contracts.py")
 
+        if ctx is not None:
+            ctx.record_artifact("geometry_input_dir", geometries_dir.resolve())
+            ctx.record_artifact("bulk_equations_output_dir", output_dir.resolve())
+            ctx.record_artifact("einstein_discovery_summary", summary_path)
+            for index, discovery_path in enumerate(discovery_json_paths, start=1):
+                ctx.record_artifact(f"einstein_discovery_{index}", discovery_path)
+            ctx.write_manifest(
+                outputs={
+                    "bulk_equations_output_dir": _manifest_ref(output_dir, ctx.run_root),
+                    "einstein_discovery_summary": _manifest_ref(summary_path, ctx.run_root),
+                    "einstein_discovery_files": [
+                        _manifest_ref(path, ctx.run_root)
+                        for path in discovery_json_paths
+                    ],
+                },
+                metadata={
+                    "command": " ".join(sys.argv),
+                    "experiment": ctx.experiment,
+                },
+            )
+
     except Exception as exc:
         status = STATUS_ERROR
         exit_code = EXIT_ERROR
         error_message = str(exc)
         import traceback
         traceback.print_exc()
+    finally:
+        if ctx is not None:
+            ctx.write_summary(
+                status=status,
+                exit_code=exit_code,
+                error_message=error_message,
+                counts=summary_counts,
+            )
 
     return exit_code
 

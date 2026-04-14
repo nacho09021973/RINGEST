@@ -3,9 +3,9 @@
 Proporciona:
 - Constantes de estado y exit codes estándar.
 - REPO_ROOT: ruta absoluta a la raíz del repositorio.
-- add_standard_arguments: añade --experiment y --runs-dir al parser.
+- add_standard_arguments: añade --run-dir/--experiment/--runs-dir al parser.
 - parse_stage_args: wrapper sobre parser.parse_args().
-- infer_experiment: infiere el nombre de experimento desde args o entorno.
+- infer_experiment: devuelve solo el experimento explícitamente proporcionado.
 - StageContext: contexto de ejecución de un stage (directorios, artefactos, manifiestos).
 """
 from __future__ import annotations
@@ -46,35 +46,49 @@ def add_standard_arguments(parser: argparse.ArgumentParser) -> None:
     """Añade los argumentos estándar de contexto de ejecución al parser.
 
     Argumentos añadidos:
-      --experiment  Nombre del experimento/run. Por defecto: valor de la
-                    variable de entorno CUERDAS_EXPERIMENT o "default".
-      --runs-dir    Directorio raíz donde se almacenan los runs. Por defecto
-                    "runs" relativo al CWD (o al valor de BASURIN_RUNS_ROOT).
+      --run-dir     Raíz contractual del run. Tiene prioridad absoluta.
+      --experiment  Nombre del experimento/run. Solo válido junto con
+                    --runs-dir explícito cuando no se pasa --run-dir.
+      --runs-dir    Directorio raíz explícito donde se almacenan los runs.
     """
-    default_experiment = os.environ.get("CUERDAS_EXPERIMENT", "default")
-    default_runs_dir = os.environ.get("BASURIN_RUNS_ROOT", "runs")
+    option_strings = {
+        option
+        for action in getattr(parser, "_actions", [])
+        for option in getattr(action, "option_strings", [])
+    }
 
-    parser.add_argument(
-        "--experiment",
-        type=str,
-        default=default_experiment,
-        help=(
-            "Nombre del experimento (subdirectorio dentro de --runs-dir). "
-            f"Por defecto: '{default_experiment}' "
-            "(env CUERDAS_EXPERIMENT o 'default')."
-        ),
-    )
-    parser.add_argument(
-        "--runs-dir",
-        dest="runs_dir",
-        type=str,
-        default=default_runs_dir,
-        help=(
-            "Directorio raíz para los runs. "
-            f"Por defecto: '{default_runs_dir}' "
-            "(env BASURIN_RUNS_ROOT o 'runs')."
-        ),
-    )
+    if "--run-dir" not in option_strings:
+        parser.add_argument(
+            "--run-dir",
+            type=str,
+            default=None,
+            help=(
+                "Directorio raíz contractual del run. "
+                "Tiene prioridad absoluta sobre --experiment."
+            ),
+        )
+
+    if "--experiment" not in option_strings:
+        parser.add_argument(
+            "--experiment",
+            type=str,
+            default=None,
+            help=(
+                "Nombre del experimento (subdirectorio dentro de --runs-dir). "
+                "Solo se usa si no se pasa --run-dir y --runs-dir es explícito."
+            ),
+        )
+    if "--runs-dir" not in option_strings:
+        parser.add_argument(
+            "--runs-dir",
+            dest="runs_dir",
+            type=str,
+            default=None,
+            help=(
+                "Directorio raíz explícito para resolver runs/<experiment> "
+                "cuando no se pasa --run-dir."
+            ),
+        )
 
 
 def parse_stage_args(parser: argparse.ArgumentParser) -> argparse.Namespace:
@@ -87,29 +101,10 @@ def parse_stage_args(parser: argparse.ArgumentParser) -> argparse.Namespace:
 
 
 def infer_experiment(args: argparse.Namespace) -> str | None:
-    """Intenta inferir el nombre del experimento.
-
-    Orden de prioridad:
-    1. args.experiment (si ya está definido y no vacío).
-    2. Variable de entorno CUERDAS_EXPERIMENT.
-    3. Nombre del directorio de trabajo actual.
-    4. None si no se puede determinar ninguno.
-    """
-    # 1. Ya está en args
+    """Devuelve el nombre del experimento solo si fue proporcionado explícitamente."""
     experiment = getattr(args, "experiment", None)
     if experiment:
         return experiment
-
-    # 2. Variable de entorno
-    env = os.environ.get("CUERDAS_EXPERIMENT")
-    if env:
-        return env
-
-    # 3. Nombre del CWD como fallback razonable
-    cwd_name = Path.cwd().name
-    if cwd_name:
-        return cwd_name
-
     return None
 
 
@@ -160,14 +155,43 @@ class StageContext:
         """Crea un StageContext a partir del Namespace parseado.
 
         Espera que args tenga los atributos añadidos por add_standard_arguments:
+          - args.run_dir
           - args.experiment
           - args.runs_dir
         """
-        experiment: str = getattr(args, "experiment", None) or "default"
-        runs_dir_raw: str = getattr(args, "runs_dir", None) or "runs"
+        run_dir_raw: str | None = getattr(args, "run_dir", None)
+        experiment: str | None = infer_experiment(args)
+        runs_dir_raw: str | None = getattr(args, "runs_dir", None)
 
-        runs_dir = Path(runs_dir_raw).resolve()
-        run_root = runs_dir / experiment
+        if run_dir_raw:
+            run_root = Path(run_dir_raw).resolve()
+            run_dir_name = run_root.name
+            if experiment is None:
+                experiment = run_dir_name
+            elif experiment != run_dir_name:
+                raise ValueError(
+                    "Conflicting run identity: --run-dir basename "
+                    f"'{run_dir_name}' does not match --experiment '{experiment}'."
+                )
+        elif experiment and runs_dir_raw:
+            runs_dir = Path(runs_dir_raw).resolve()
+            run_root = runs_dir / experiment
+        elif experiment and not runs_dir_raw:
+            raise ValueError(
+                "Ambiguous run resolution: --experiment requires explicit --runs-dir "
+                "when --run-dir is not provided."
+            )
+        else:
+            raise ValueError(
+                "Missing contractual run identity: provide --run-dir, or provide both "
+                "--runs-dir and --experiment."
+            )
+
+        if experiment is None:
+            raise ValueError(
+                "Could not determine experiment name from explicit inputs. "
+                "Provide --experiment or use a run_dir whose basename is the run id."
+            )
         stage_dir = run_root / f"{stage_number}_{stage_slug}"
 
         # Crear directorios necesarios
