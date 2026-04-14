@@ -80,6 +80,28 @@ def _family_counts(summary_payload: dict[str, Any]) -> dict[str, int]:
     return dict(sorted(counter.items()))
 
 
+def _family_mode_counts(summary_payload: dict[str, Any]) -> dict[str, int]:
+    counter = Counter()
+    for item in summary_payload.get("systems", []):
+        counter[str(item.get("family_classification_mode", "unknown"))] += 1
+    return dict(sorted(counter.items()))
+
+
+def _family_abstention_stats(summary_payload: dict[str, Any]) -> dict[str, Any]:
+    systems = summary_payload.get("systems", [])
+    n_total = len(systems)
+    n_abstained = sum(1 for item in systems if bool(item.get("family_pred_was_abstained", False)))
+    n_confident = sum(1 for item in systems if bool(item.get("family_pred_confident", False)))
+    return {
+        "family_output_semantics": str(summary_payload.get("systems", [{}])[0].get("family_output_semantics", "unknown")) if systems else "unknown",
+        "family_classification_mode_counts": _family_mode_counts(summary_payload),
+        "n_abstained": n_abstained,
+        "n_confident": n_confident,
+        "abstained_fraction": (n_abstained / n_total) if n_total else None,
+        "confident_fraction": (n_confident / n_total) if n_total else None,
+    }
+
+
 def _zh_stats(summary_payload: dict[str, Any]) -> dict[str, float | None]:
     values = [float(item["zh_pred"]) for item in summary_payload.get("systems", []) if item.get("zh_pred") is not None]
     if not values:
@@ -206,6 +228,7 @@ def main() -> int:
             "n_emergent_h5": emergent_h5_count,
             "n_prediction_npz": prediction_count,
             "family_pred_counts": _family_counts(emergent_summary),
+            **_family_abstention_stats(emergent_summary),
             "zh_pred_stats": _zh_stats(emergent_summary),
             "control33_comparison": {
                 "control_n_systems": control33.get("n_systems"),
@@ -225,11 +248,13 @@ def main() -> int:
             "n_systems_inferred": emergent_summary.get("n_systems"),
             "n_emergent_h5": emergent_h5_count,
             "n_prediction_npz": prediction_count,
+            **_family_abstention_stats(emergent_summary),
             "checkpoint": str(checkpoint),
             "comparison_control33_available": True,
             "warnings": [
                 "Inference-only run using the frozen sandbox checkpoint",
                 "Permissive OOD support mode is used to keep the unified82 cohort operational",
+                "Family output is exposed as compatibility_with_abstention; strong family labels are emitted only when confidence thresholds are met",
             ],
         }
 

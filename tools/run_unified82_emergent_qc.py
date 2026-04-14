@@ -75,6 +75,17 @@ def _family_counts(summary_payload: dict[str, Any]) -> dict[str, int]:
     return dict(sorted(counter.items()))
 
 
+def _family_mode_counts(summary_payload: dict[str, Any]) -> dict[str, int]:
+    counter = Counter()
+    for item in summary_payload.get("systems", []):
+        counter[str(item.get("family_classification_mode", "unknown"))] += 1
+    return dict(sorted(counter.items()))
+
+
+def _count_bool(summary_payload: dict[str, Any], key: str) -> int:
+    return sum(1 for item in summary_payload.get("systems", []) if bool(item.get(key, False)))
+
+
 def _zh_values(summary_payload: dict[str, Any]) -> list[float]:
     values: list[float] = []
     for item in summary_payload.get("systems", []):
@@ -162,6 +173,12 @@ def main() -> int:
         family_top2_scores = _confidence_values(emergent_summary, "family_top2_score")
         family_margins = _confidence_values(emergent_summary, "family_margin")
         family_entropies = _confidence_values(emergent_summary, "family_entropy")
+        family_output_semantics = str(
+            emergent_summary.get("systems", [{}])[0].get("family_output_semantics", "legacy_strong_classification")
+        ) if emergent_summary.get("systems") else "unknown"
+        family_classification_mode_counts = _family_mode_counts(emergent_summary)
+        n_confident = _count_bool(emergent_summary, "family_pred_confident")
+        n_abstained = _count_bool(emergent_summary, "family_pred_was_abstained")
         dominant_family, dominant_count = max(family_counts.items(), key=lambda kv: kv[1])
         dominant_fraction = dominant_count / n_total if n_total else 0.0
         family_collapse = len(family_counts) == 1 or dominant_fraction >= 0.95
@@ -180,11 +197,13 @@ def main() -> int:
         elif n_total and (n_negative / n_total) >= 0.05:
             verdict = "NEEDS_REVIEW"
             verdict_reason = f"{n_negative}/{n_total} zh_pred values are negative"
-        elif family_collapse or n_negative > 0 or n_zero > 0:
+        elif family_collapse_true_confident or n_negative > 0 or n_zero > 0 or n_abstained > 0:
             verdict = "USABLE_WITH_WARNINGS"
             issues = []
-            if family_collapse:
+            if family_collapse_true_confident:
                 issues.append(f"family collapse to {dominant_family} ({dominant_count}/{n_total})")
+            if n_abstained > 0:
+                issues.append(f"{n_abstained}/{n_total} family outputs abstained")
             if n_negative > 0:
                 issues.append(f"{n_negative} negative zh_pred values")
             if n_zero > 0:
@@ -199,10 +218,14 @@ def main() -> int:
             "created_at": _utc_now_iso(),
             "n_systems": n_total,
             "family_pred_counts": family_counts,
+            "family_classification_mode_counts": family_classification_mode_counts,
+            "family_output_semantics": family_output_semantics,
             "dominant_family": dominant_family,
             "dominant_family_fraction": dominant_fraction,
             "family_collapse": family_collapse,
             "family_confidence_available": confidence_available,
+            "n_confident": n_confident,
+            "n_abstained": n_abstained,
             "family_top1_score_stats": _simple_stats(family_top1_scores),
             "family_top2_score_stats": _simple_stats(family_top2_scores),
             "family_margin_stats": _simple_stats(family_margins),
@@ -228,10 +251,14 @@ def main() -> int:
             "verdict": verdict,
             "verdict_reason": verdict_reason,
             "family_pred_counts": family_counts,
+            "family_classification_mode_counts": family_classification_mode_counts,
+            "family_output_semantics": family_output_semantics,
             "dominant_family": dominant_family,
             "dominant_family_fraction": dominant_fraction,
             "family_collapse": family_collapse,
             "family_confidence_available": confidence_available,
+            "n_confident": n_confident,
+            "n_abstained": n_abstained,
             "family_top1_score_stats": _simple_stats(family_top1_scores),
             "family_top2_score_stats": _simple_stats(family_top2_scores),
             "family_margin_stats": _simple_stats(family_margins),
@@ -258,9 +285,13 @@ def main() -> int:
             "verdict": verdict,
             "verdict_reason": verdict_reason,
             "family_collapse": family_collapse,
+            "family_output_semantics": family_output_semantics,
+            "family_classification_mode_counts": family_classification_mode_counts,
             "family_confidence_available": confidence_available,
             "family_collapse_true_confident": family_collapse_true_confident,
             "family_collapse_due_to_low_confidence": family_collapse_due_to_low_confidence,
+            "n_confident": n_confident,
+            "n_abstained": n_abstained,
             "n_negative_zh_pred": n_negative,
             "n_zero_zh_pred": n_zero,
             "n_nonfinite_zh_pred": n_nonfinite,
