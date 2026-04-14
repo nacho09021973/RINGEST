@@ -140,6 +140,30 @@ except ImportError:
     pass
 
 
+def _resolve_train_audit_critical_features(
+    feature_names,
+    X_std_raw,
+    critical_features,
+    tiny_std_threshold: float = 1e-6,
+):
+    """Contextualize critical train-audit features for cohorts with uniform horizons."""
+    critical_features_for_audit = list(critical_features)
+    names = list(feature_names)
+    sigma = np.asarray(X_std_raw, dtype=float).flatten()
+    info_message = None
+
+    if "has_horizon" in critical_features_for_audit and "has_horizon" in names:
+        idx_has_horizon = names.index("has_horizon")
+        if sigma[idx_has_horizon] < tiny_std_threshold:
+            critical_features_for_audit.remove("has_horizon")
+            info_message = (
+                "[INFO] TRAIN_FEATURE_SUPPORT_CONTEXT: has_horizon is constant in this "
+                "cohort; downgraded from critical to contextual warning"
+            )
+
+    return critical_features_for_audit, info_message
+
+
 # ============================================================
 # CONFIGURACIAfAE'A+aEUR(TM)AfAcAcaEURsA!A...aEURoeN DE PESOS DE LOSS (MODIFICAR AQUAfAE'A+aEUR(TM)AfaEURsA,A?)
 # ============================================================
@@ -1572,6 +1596,7 @@ def run_inference_mode(args):
         "kerr": 6,
         "charged_hvlif": 7, "gauss_bonnet": 8, "linear_axion": 9,
         "massive_gravity": 10, "rn_ads": 11,
+        "gubser_rocha": 12, "soft_wall": 13,
     }
     family_map = ckpt.get("family_map", _default_fm)
     family_map_inv = {v: k for k, v in family_map.items()}
@@ -1948,6 +1973,7 @@ def run_train_mode(args):
             "dpbrane": 4, "unknown": 5, "kerr": 6,
             "charged_hvlif": 7, "gauss_bonnet": 8, "linear_axion": 9,
             "massive_gravity": 10, "rn_ads": 11,
+            "gubser_rocha": 12, "soft_wall": 13,
         }
     family_map_inv = {v: k for k, v in family_map.items()}
     
@@ -2038,11 +2064,20 @@ def run_train_mode(args):
     # === FEATURE SUPPORT AUDIT (V3 train gate) ===
     if HAS_FEATURE_SUPPORT and audit_train_feature_support is not None:
         _X_std_raw = X_train.std(axis=0)
+        critical_features_for_audit, _train_audit_context_msg = (
+            _resolve_train_audit_critical_features(
+                feature_names=list(FEATURE_NAMES_V3),
+                X_std_raw=_X_std_raw,
+                critical_features=list(CRITICAL_FEATURES_V3),
+            )
+        )
+        if _train_audit_context_msg:
+            print(f"\n   {_train_audit_context_msg}")
         _train_audit = audit_train_feature_support(
             feature_names=list(FEATURE_NAMES_V3),
             X_mean=X_train.mean(axis=0),
             X_std=_X_std_raw,
-            critical_features=list(CRITICAL_FEATURES_V3),
+            critical_features=critical_features_for_audit,
         )
         print(f"\n   Train feature audit: verdict={_train_audit['verdict']}")
         if _train_audit["verdict_reason"]:
@@ -2187,8 +2222,11 @@ def run_train_mode(args):
     
     # === EVALUACIAfAE'A+aEUR(TM)AfAcAcaEURsA!A...aEURoeN FINAL EN TEST ===
     
+    geom_dir = output_dir / "geometry_emergent"
+    geom_dir.mkdir(parents=True, exist_ok=True)
     preds_dir = output_dir / "predictions"
     preds_dir.mkdir(parents=True, exist_ok=True)
+    systems_summary = []
     
     if has_test:
         print("\n>> EvaluaciAfAE'A+aEUR(TM)AfaEURsA,A3n final en TEST...")
@@ -2224,26 +2262,96 @@ def run_train_mode(args):
                 print(f"     {fam_name} (n={fam_metrics['count']}): "
                       f"A_r2={fam_metrics['A_r2']:.3f}, f_r2={fam_metrics['f_r2']:.3f}")
         
-        # Guardar predicciones individuales
-        for i, name in enumerate(test_data["names"]):
-            np.savez(
-                preds_dir / f"{name}_geometry.npz",
-                z=z_grid,
-                A_pred=A_pred[i],
-                f_pred=f_pred[i],
-                R_pred=R_pred[i],
-                A_truth=Y_A_test[i],
-                f_truth=Y_f_test[i],
-                R_truth=Y_R_test[i],
-                zh_pred=zh_pred[i],
-                zh_truth=Y_zh_test[i],
-                family_pred=family_pred[i],
-                family_truth=Y_family_test[i],
-                category=test_data["categories"][i]
-            )
     else:
         test_metrics_final = {}
         metrics_by_family = {}
+
+    # === INFERENCIA FINAL SOBRE LA COHORTE COMPLETA (train + test) ===
+    # Stage 02 debe materializar geometry_emergent y predictions para TODA la cohorte
+    # declarada en el manifest (N = n_train + n_test), no sólo para la subcohorte de test.
+    # El split se mantiene intacto para las métricas de entrenamiento/validación.
+    all_names = list(train_data["names"]) + list(test_data["names"])
+    all_X_list = list(train_data["X"]) + list(test_data["X"])
+    all_Y_A = np.stack(list(train_data["Y_A"]) + list(test_data["Y_A"]))
+    all_Y_f = np.stack(list(train_data["Y_f"]) + list(test_data["Y_f"]))
+    all_Y_R = np.stack(list(train_data["Y_R"]) + list(test_data["Y_R"]))
+    all_Y_zh = np.array(list(train_data["Y_zh"]) + list(test_data["Y_zh"]))
+    all_Y_family = np.array(list(train_data["Y_family"]) + list(test_data["Y_family"]))
+    all_categories = (["known"] * len(train_data["names"])) + list(test_data["categories"])
+
+    all_X = np.stack(all_X_list)
+    all_X_norm = (all_X - X_mean) / X_std
+    all_X_t = torch.from_numpy(all_X_norm.astype(np.float32)).to(device)
+
+    (
+        _,
+        A_pred_all,
+        f_pred_all,
+        R_pred_all,
+        zh_pred_all,
+        family_pred_all,
+    ) = evaluate_on_test(
+        model, all_X_t, all_Y_A, all_Y_f, all_Y_R, all_Y_zh, all_Y_family,
+        normalizer, device, z_grid=z_t
+    )
+
+    print(f"\n>> Materializando cohorte completa: {len(all_names)} geometrías")
+
+    for i, name in enumerate(all_names):
+        family_pred_idx = int(family_pred_all[i])
+        family_pred_name = family_map_inv.get(family_pred_idx, f"family_{family_pred_idx}")
+        family_truth_idx = int(all_Y_family[i])
+        family_truth_name = family_map_inv.get(family_truth_idx, f"family_{family_truth_idx}")
+        cat_i = all_categories[i]
+
+        out_h5_path = geom_dir / f"{name}_emergent.h5"
+        with h5py.File(out_h5_path, "w") as f_out:
+            f_out.attrs["system_name"] = name
+            f_out.attrs["family"] = family_pred_name
+            f_out.attrs["family_pred"] = family_pred_name
+            f_out.attrs["family_truth"] = family_truth_name
+            f_out.attrs["family_pred_id"] = family_pred_idx
+            f_out.attrs["family_truth_id"] = family_truth_idx
+            f_out.attrs["category"] = cat_i
+            f_out.attrs["d"] = int(d_value)
+            f_out.attrs["d_pred"] = int(d_value)
+            f_out.attrs["provenance"] = "train"
+            f_out.attrs["provenance_detail"] = "train_mode_full_cohort_inference"
+            f_out.attrs["zh_pred"] = float(zh_pred_all[i])
+            f_out.attrs["zh_truth"] = float(all_Y_zh[i])
+            f_out.create_dataset("z_grid", data=z_grid)
+            f_out.create_dataset("A_of_z", data=A_pred_all[i])
+            f_out.create_dataset("f_of_z", data=f_pred_all[i])
+            f_out.create_dataset("R_of_z", data=R_pred_all[i])
+
+        np.savez(
+            preds_dir / f"{name}_geometry.npz",
+            z=z_grid,
+            A_pred=A_pred_all[i],
+            f_pred=f_pred_all[i],
+            R_pred=R_pred_all[i],
+            A_truth=all_Y_A[i],
+            f_truth=all_Y_f[i],
+            R_truth=all_Y_R[i],
+            zh_pred=zh_pred_all[i],
+            zh_truth=all_Y_zh[i],
+            family_pred=family_pred_all[i],
+            family_truth=all_Y_family[i],
+            category=cat_i,
+        )
+        systems_summary.append({
+            "system_name": name,
+            "name": name,
+            "category": cat_i,
+            "family_pred": family_pred_name,
+            "family_truth": family_truth_name,
+            "family_pred_id": family_pred_idx,
+            "family_truth_id": family_truth_idx,
+            "zh_pred": float(zh_pred_all[i]),
+            "zh_truth": float(all_Y_zh[i]),
+            "h5_output": str(out_h5_path),
+            "npz_output": str(preds_dir / f"{name}_geometry.npz"),
+        })
     
     # === GUARDAR MODELO ===
     
@@ -2315,6 +2423,7 @@ def run_train_mode(args):
         },
         "test_metrics": test_metrics_final,
         "metrics_by_family": metrics_by_family,
+        "systems": systems_summary,
         "normalizer_stats": {
             "A_mean": normalizer.A_mean,
             "A_std": normalizer.A_std,
@@ -2365,10 +2474,18 @@ def run_train_mode(args):
     print("\n" + "=" * 70)
     print("[OK] EMERGENT GEOMETRY ENGINE COMPLETED (TRAIN MODE)")
     print(f"  Model:       {model_path}")
+    print(f"  Geometry:    {geom_dir}")
     print(f"  Predictions: {preds_dir}")
     print(f"  Summary:      {summary_path}")
     print("=" * 70)
     print("Next step: 03_discover_bulk_equations.py")
+    return {
+        "model_path": model_path,
+        "preds_dir": preds_dir,
+        "summary_path": summary_path,
+        "output_dir": output_dir,
+        "geometry_dir": geom_dir,
+    }
 
 
 # ============================================================

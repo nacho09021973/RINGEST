@@ -125,6 +125,8 @@ except ImportError:
 #   - massive_gravity: Massive gravity AdS tipo Vegh (disipación de momento)
 #   - linear_axion:   Axiones lineales (disipación de momento, metal incoherente)
 #   - charged_hvlif:  Hyperscaling-Violation Lifshitz cargado (EMD toy)
+#   - gubser_rocha:   EMD Gubser-Rocha toy (dilatón corriendo, s(T=0)->0)
+#   - soft_wall:      Soft-wall backreacted (deformación cuadrática IR del warp)
 #
 # NOTA HISTÓRICA:
 #   Las familys Lifshitz y Hyperscaling son extensiones post-1999 del
@@ -180,6 +182,8 @@ class HiddenGeometry:
     mg_c1: float = 1.0           # coeficiente c1 del potencial de masa (massive_gravity)
     mg_c2: float = 0.0           # coeficiente c2 del potencial de masa (massive_gravity)
     alpha_axion: float = 0.0     # pendiente del axión lineal (linear_axion)
+    mu_GR: float = 0.0           # parámetro efectivo del toy Gubser-Rocha
+    kappa_sw: float = 0.0        # escala de confinamiento soft-wall (Batell-Gherghetta)
     metadata: Dict = field(default_factory=dict)
 
     # ---------- Warp factor y blackening (toy) ----------
@@ -246,6 +250,20 @@ class HiddenGeometry:
         elif self.family == "charged_hvlif":
             # Charged HV-Lifshitz: misma A(z) que hyperscaling.
             return -(1.0 - self.theta / self.d) * np.log(z / self.L)
+
+        elif self.family == "gubser_rocha":
+            # Gubser-Rocha toy: A(z) = -log(z/L) - (1/4)*log(1 + mu_GR * z/L)
+            # UV (z->0): AdS puro. IR: corrección log del dilatón corriendo.
+            # mu_GR = 0 reduce exactamente a AdS en A(z).
+            base = -np.log(z / self.L)
+            return base - 0.25 * np.log1p(self.mu_GR * z / self.L)
+
+        elif self.family == "soft_wall":
+            # Soft-wall backreacted (Batell-Gherghetta, Einstein frame):
+            # A(z) = -log(z/L) - (kappa_sw/2) * (z/L)^2
+            # UV: AdS puro. IR: deformación cuadrática -> Regge lineal.
+            base = -np.log(z / self.L)
+            return base - 0.5 * self.kappa_sw * (z / self.L) ** 2
 
         else:  # "unknown"
             base = -np.log(z / self.L)
@@ -320,6 +338,21 @@ class HiddenGeometry:
             term1 = (1.0 + q * q) * ratio ** eff_d
             term2 = q * q * ratio ** (2.0 * (eff_d - 1.0))
             return np.clip(1.0 - term1 + term2, 0.0, 1.0)
+
+        elif self.family == "gubser_rocha":
+            # GR toy: f(z) = [1 - (z/z_h)^d] / (1 + mu_GR * z/z_h)
+            # f(0)=1, f(z_h)=0. mu_GR=0 -> AdS-Schwarzschild.
+            # Pendiente en horizonte: |f'(z_h)| = d / (z_h * (1 + mu_GR)).
+            denom = 1.0 + self.mu_GR * ratio
+            # denom > 0 garantizado si mu_GR > -1 (guardrail)
+            denom = np.where(denom > 1e-6, denom, 1e-6)
+            num = 1.0 - ratio ** self.d
+            return np.clip(num / denom, 0.0, 1.0)
+
+        elif self.family == "soft_wall":
+            # Soft-wall: blackening puro tipo AdS-Schwarzschild.
+            # Toda la física distintiva entra por el warp factor.
+            return np.clip(1.0 - ratio ** self.d, 0.0, 1.0)
 
         else:
             return np.clip(1.0 - ratio ** 4, 0.0, 1.0)
@@ -810,6 +843,85 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
             charge_Q=0.3,
             metadata={
                 "description": "Charged HV-Lifshitz, d=4, theta=0.5, z_dyn=2, Q=0.3 (test)",
+            }
+        ),
+        "test",
+    ))
+
+    # ── TIER A ext (2026-04): Gubser-Rocha ────────────────────────────────────
+    geos.append((
+        HiddenGeometry(
+            name="gubser_rocha_d3_mu05",
+            family="gubser_rocha",
+            category="known",
+            d=3,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=1.0,
+            deformation=0.0,
+            L=1.0,
+            mu_GR=0.5,
+            metadata={
+                "description": "Gubser-Rocha toy (EMD), d=3, mu=0.5 (strange metal)",
+                "theory_ref": "Gubser-Rocha arXiv:0911.2898; Davison-Schalm-Zaanen arXiv:1311.2451",
+                "guardrail": "mu_GR > -1 (denom > 0)",
+            }
+        ),
+        "known",
+    ))
+    geos.append((
+        HiddenGeometry(
+            name="gubser_rocha_d4_mu08",
+            family="gubser_rocha",
+            category="test",
+            d=4,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=1.0,
+            deformation=0.0,
+            L=1.0,
+            mu_GR=0.8,
+            metadata={
+                "description": "Gubser-Rocha toy, d=4, mu=0.8 (test)",
+            }
+        ),
+        "test",
+    ))
+
+    # ── TIER A ext (2026-04): Soft-wall backreacted ───────────────────────────
+    geos.append((
+        HiddenGeometry(
+            name="soft_wall_d3_k10",
+            family="soft_wall",
+            category="known",
+            d=3,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=1.0,
+            deformation=0.0,
+            L=1.0,
+            kappa_sw=1.0,
+            metadata={
+                "description": "Soft-wall backreacted (Batell-Gherghetta), d=3, kappa=1.0",
+                "theory_ref": "Batell-Gherghetta arXiv:0801.4383; He-Huang-Yan arXiv:1104.0940",
+            }
+        ),
+        "known",
+    ))
+    geos.append((
+        HiddenGeometry(
+            name="soft_wall_d4_k05",
+            family="soft_wall",
+            category="test",
+            d=4,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=1.0,
+            deformation=0.0,
+            L=1.0,
+            kappa_sw=0.5,
+            metadata={
+                "description": "Soft-wall backreacted, d=4, kappa=0.5 (test)",
             }
         ),
         "test",
@@ -1326,6 +1438,13 @@ def make_geometry_instance(
         params["theta"] = float(rng.uniform(0.3, max_theta))
         params["z_dyn"] = float(rng.uniform(1.2, 2.5))
         params["charge_Q"] = float(rng.uniform(0.0, 0.6))
+    elif family == "gubser_rocha":
+        # mu_GR > -1 para mantener denominador positivo; rango físico positivo.
+        params["mu_GR"] = float(rng.uniform(0.1, 1.2))
+    elif family == "soft_wall":
+        # kappa_sw > 0 produce deformación IR; cota superior suave para evitar
+        # singularidades numéricas del warp factor cerca de z_h.
+        params["kappa_sw"] = float(rng.uniform(0.2, 1.5))
     else:
         # unknown: solo tocamos z_h y d (ya hechos arriba)
         pass
@@ -1724,6 +1843,9 @@ def main():
                 f.attrs["mg_c1"] = geo.mg_c1
                 f.attrs["mg_c2"] = geo.mg_c2
                 f.attrs["alpha_axion"] = geo.alpha_axion
+                # ── Tier A ext (2026-04) ──────────────────────────────────────
+                f.attrs["mu_GR"] = geo.mu_GR
+                f.attrs["kappa_sw"] = geo.kappa_sw
                 f.attrs["operators"] = json.dumps(operators)
                 f.attrs["sampling_regime"] = (
                     "focused_real_regime" if focused_config.enabled else "default"

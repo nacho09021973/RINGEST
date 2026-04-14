@@ -73,8 +73,10 @@ class ValidationReport:
 # Constantes del contrato
 # =============================================================================
 
-VALID_FAMILIES = {"ads", "lifshitz", "hvlf", "hyperscaling", "deformed", "unknown", 
-                  "ising3d", "real", "ising_3d", "dpbrane"}
+VALID_FAMILIES = {"ads", "lifshitz", "hvlf", "hyperscaling", "deformed", "unknown",
+                  "ising3d", "real", "ising_3d", "dpbrane",
+                  # Tier A ext (2026-04)
+                  "gubser_rocha", "soft_wall"}
 VALID_CATEGORIES = {"known", "test", "unknown"}
 VALID_PROVENANCES = {"train", "inference", "sandbox", "emergent"}
 

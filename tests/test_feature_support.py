@@ -562,6 +562,7 @@ class TestStageLevelHardFail(unittest.TestCase):
         import json
         import tempfile
         import types
+        import unittest.mock as mock
         import h5py
 
         engine = _load_engine()
@@ -754,6 +755,153 @@ class TestFeatureVectorV3ExcludesQNMBlock(unittest.TestCase):
             X_base, X_qnm,
             err_msg="V3 vector must not change when qnm_* attrs are present",
         )
+
+
+class TestStage02ContextualTrainAudit(unittest.TestCase):
+    def test_has_horizon_constant_is_downgraded_to_contextual_warning(self):
+        engine = _load_engine()
+        sigma = np.ones(N_V3, dtype=float)
+        sigma[_feature_idx_v3("has_horizon")] = 0.0
+
+        critical_features_for_audit, info_message = (
+            engine._resolve_train_audit_critical_features(
+                feature_names=list(FEATURE_NAMES_V3),
+                X_std_raw=sigma,
+                critical_features=list(CRITICAL_FEATURES_V3),
+            )
+        )
+        result = audit_train_feature_support(
+            feature_names=FEATURE_NAMES_V3,
+            X_mean=np.zeros(N_V3, dtype=float),
+            X_std=sigma,
+            critical_features=critical_features_for_audit,
+        )
+
+        self.assertNotIn("has_horizon", critical_features_for_audit)
+        self.assertIsNotNone(info_message)
+        self.assertNotEqual(result["verdict"], "FAIL")
+        self.assertIn("has_horizon", result["tiny_std_features"])
+
+    def test_g2_large_x_constant_still_blocks(self):
+        engine = _load_engine()
+        sigma = np.ones(N_V3, dtype=float)
+        sigma[_feature_idx_v3("G2_large_x")] = 0.0
+
+        critical_features_for_audit, info_message = (
+            engine._resolve_train_audit_critical_features(
+                feature_names=list(FEATURE_NAMES_V3),
+                X_std_raw=sigma,
+                critical_features=list(CRITICAL_FEATURES_V3),
+            )
+        )
+        result = audit_train_feature_support(
+            feature_names=FEATURE_NAMES_V3,
+            X_mean=np.zeros(N_V3, dtype=float),
+            X_std=sigma,
+            critical_features=critical_features_for_audit,
+        )
+
+        self.assertIn("G2_large_x", critical_features_for_audit)
+        self.assertIsNone(info_message)
+        self.assertEqual(result["verdict"], "FAIL")
+        self.assertIn("G2_large_x", result["critical_tiny_std_features"])
+
+
+class TestStage02TrainMaterializesGeometryEmergent(unittest.TestCase):
+    def test_train_mode_materializes_geometry_and_manifest_paths_exist(self):
+        import json
+        import tempfile
+        import types
+        import unittest.mock as mock
+        import h5py
+
+        engine = _load_engine()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            data_dir = tmp / "data"
+            data_dir.mkdir()
+            out_dir = tmp / "out"
+            out_dir.mkdir()
+
+            n_z = 20
+            z_grid = np.linspace(0.01, 1.0, n_z).astype(np.float32)
+
+            entries = [
+                {"name": "geo_known_0", "category": "known"},
+                {"name": "geo_known_1", "category": "known"},
+                {"name": "geo_test_0", "category": "test"},
+            ]
+            for idx, entry in enumerate(entries):
+                h5_path = data_dir / f"{entry['name']}.h5"
+                with h5py.File(h5_path, "w") as f:
+                    bg = f.create_group("boundary")
+                    x_grid_boundary = np.linspace(0.1, 10 + idx, 30)
+                    bg.create_dataset("x_grid", data=x_grid_boundary)
+                    bg.create_dataset("G2_scalar", data=np.exp(-(1.0 + 0.2 * idx) * x_grid_boundary))
+                    bg.attrs["temperature"] = 0.5
+                    f.attrs["operators"] = "[]"
+                    f.attrs["family"] = b"ads"
+                    f.attrs["d"] = 4
+
+                    bt = f.create_group("bulk_truth")
+                    bt.create_dataset("A_truth", data=np.ones(n_z, dtype=np.float32) * (1.0 + 0.1 * idx))
+                    bt.create_dataset("f_truth", data=np.ones(n_z, dtype=np.float32) * 0.8)
+                    bt.create_dataset("R_truth", data=np.ones(n_z, dtype=np.float32) * -12.0)
+                    bt.create_dataset("z_grid", data=z_grid)
+                    bt.attrs["z_h"] = 0.7
+                    bt.attrs["family"] = b"ads"
+                    bt.attrs["d"] = 4
+
+            (data_dir / "geometries_manifest.json").write_text(json.dumps({"geometries": entries}))
+
+            args = types.SimpleNamespace(
+                data_dir=str(data_dir),
+                output_dir=str(out_dir),
+                n_epochs=1,
+                device="cpu",
+                hidden_dim=32,
+                n_layers=1,
+                batch_size=2,
+                seed=0,
+                verbose=False,
+                lr=1e-3,
+                mode="train",
+            )
+
+            import h5py as _h5py
+            engine.h5py = _h5py
+            def _fake_write_run_manifest(output_dir, artifacts, metadata):
+                manifest_path = Path(output_dir) / "manifest.json"
+                manifest_path.write_text(json.dumps({
+                    "artifacts": artifacts,
+                    "metadata": metadata,
+                }))
+                return manifest_path
+
+            with mock.patch.object(engine, "HAS_CUERDAS_IO", True), \
+                 mock.patch.object(engine, "write_run_manifest", side_effect=_fake_write_run_manifest, create=True):
+                result = engine.run_train_mode(args)
+
+            geometry_dir = Path(result["geometry_dir"])
+            predictions_dir = Path(result["preds_dir"])
+            summary_path = Path(result["summary_path"])
+            manifest_path = out_dir / "manifest.json"
+
+            self.assertTrue(geometry_dir.is_dir())
+            self.assertTrue(predictions_dir.is_dir())
+            self.assertTrue(summary_path.exists())
+            self.assertTrue(manifest_path.exists())
+
+            h5_outputs = sorted(geometry_dir.glob("*_emergent.h5"))
+            npz_outputs = sorted(predictions_dir.glob("*_geometry.npz"))
+            self.assertEqual(len(h5_outputs), 1)
+            self.assertEqual(len(npz_outputs), 1)
+
+            manifest = json.loads(manifest_path.read_text())
+            system_entry = manifest["artifacts"]["systems"][0]
+            self.assertTrue((out_dir / system_entry["h5_output"]).exists())
+            self.assertTrue((out_dir / system_entry["npz_output"]).exists())
 
 
 class TestFeatureSupportV3CriticalSetUpdated(unittest.TestCase):

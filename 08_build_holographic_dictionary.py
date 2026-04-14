@@ -54,7 +54,7 @@ import sys
 import warnings
 from collections import defaultdict
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import h5py
 import numpy as np
@@ -72,10 +72,18 @@ HAS_STAGE_UTILS = False
 StageContext = None
 add_standard_arguments = None
 infer_experiment = None
+parse_stage_args = None
+EXIT_OK = 0
+EXIT_ERROR = 3
+STATUS_OK = "OK"
+STATUS_ERROR = "ERROR"
 
 # Intentar import desde raíz primero (nuevo estándar)
 try:
-    from stage_utils import StageContext, add_standard_arguments, infer_experiment
+    from stage_utils import (
+        EXIT_ERROR, EXIT_OK, STATUS_ERROR, STATUS_OK,
+        StageContext, add_standard_arguments, infer_experiment, parse_stage_args,
+    )
     HAS_STAGE_UTILS = True
 except ImportError:
     pass
@@ -83,7 +91,10 @@ except ImportError:
 # Fallback a tools/ (legacy)
 if not HAS_STAGE_UTILS:
     try:
-        from tools.stage_utils import StageContext, add_standard_arguments, infer_experiment
+        from tools.stage_utils import (
+            EXIT_ERROR, EXIT_OK, STATUS_ERROR, STATUS_OK,
+            StageContext, add_standard_arguments, infer_experiment, parse_stage_args,
+        )
         HAS_STAGE_UTILS = True
     except ImportError:
         pass
@@ -108,15 +119,16 @@ def validate_routing_args(args) -> Tuple[bool, str]:
     Valida que no haya conflictos entre --experiment y --output-summary/--data-dir.
     Según ROUTING_CONTRACT: --experiment es la fuente de verdad.
     """
+    has_run_dir = getattr(args, 'run_dir', None) is not None
     has_experiment = getattr(args, 'experiment', None) is not None
     has_output_summary = getattr(args, 'output_summary', None) is not None
     has_data_dir = getattr(args, 'data_dir', None) is not None
     
-    if has_experiment and (has_output_summary or has_data_dir):
+    if has_experiment and not has_run_dir and has_output_summary:
         return False, (
-            "CONFLICTO: --experiment y --output-summary/--data-dir son mutuamente excluyentes.\n"
+            "CONFLICTO: --experiment y --output-summary son mutuamente excluyentes.\n"
             "  --experiment es la fuente de verdad (ROUTING_CONTRACT).\n"
-            "  --output-summary y --data-dir están DEPRECATED.\n"
+            "  --output-summary está DEPRECATED.\n"
             "  Usa solo --experiment."
         )
     
@@ -127,91 +139,56 @@ def validate_routing_args(args) -> Tuple[bool, str]:
             stacklevel=2
         )
     
-    if has_data_dir:
-        warnings.warn(
-            "--data-dir está DEPRECATED. Usa --experiment en su lugar.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-    
     return True, ""
 
 
-def resolve_geometry_dir(args, ctx) -> Optional[Path]:
+def resolve_geometry_dir(args, ctx, run_dir: Optional[Path]) -> Path:
     """
-    Resuelve el directorio de geometrías según ROUTING_CONTRACT.
-    
-    Prioridad:
-    1. --data-dir explícito (DEPRECATED)
-    2. --experiment → buscar en stage 02
-    3. --run-dir legacy con cuerdas_io
+    Resuelve el directorio de geometrías usando solo rutas contractuales.
     """
-    # Prioridad 1: --data-dir explícito
     if args.data_dir:
         geometry_dir = Path(args.data_dir).resolve()
-        if geometry_dir.exists():
-            warnings.warn(
-                "--data-dir está DEPRECATED. Usa --experiment en su lugar.",
-                DeprecationWarning
-            )
+        if geometry_dir.exists() and geometry_dir.is_dir():
+            print("--data-dir explícito: usando input contractual externo al run actual")
             return geometry_dir
-        else:
-            print(f"[ERROR] Directorio especificado no existe: {geometry_dir}")
-            return None
-    
-    # Prioridad 2: V3 - buscar en stage 02
-    if ctx:
-        candidates = [
-            ctx.run_root / "02_emergent_geometry_engine" / "geometry_emergent",
-            ctx.run_root / "geometry_emergent",  # alias legacy
-            ctx.run_root / "01_generate_sandbox_geometries",  # IO CONTRACT fallback
-        ]
-        for candidate in candidates:
-            if candidate.exists() and candidate.is_dir():
-                print(f"[V3] Geometry dir desde stage 02: {candidate}")
-                return candidate
-        
-        # No encontrado - dar error claro
-        print(f"[ERROR] No se encontró geometry_emergent en:")
-        for c in candidates:
-            print(f"        - {c}")
-        print(f"\n        Ejecuta primero: python 02_emergent_geometry_engine.py --experiment {ctx.experiment}")
-        return None
-    
-    # Prioridad 3: --run-dir legacy con cuerdas_io
-    if args.run_dir and HAS_CUERDAS_IO:
-        run_dir = Path(args.run_dir).resolve()
-        try:
-            return resolve_geometry_emergent_dir(run_dir=run_dir)
-        except Exception as e:
-            print(f"[ERROR] No se pudo resolver geometry_dir: {e}")
-            return None
-    
-    return None
+        raise FileNotFoundError(f"Canonical input directory not found: {geometry_dir}")
+
+    if run_dir is None:
+        raise FileNotFoundError(
+            "Missing canonical geometry input. Provide --data-dir explicitly or "
+            "provide contractual run identity so stage 08 can read "
+            "<run_dir>/02_emergent_geometry_engine/outputs/geometry_emergent."
+        )
+
+    geometry_dir = run_dir.resolve() / "02_emergent_geometry_engine" / "outputs" / "geometry_emergent"
+    if geometry_dir.exists() and geometry_dir.is_dir():
+        return geometry_dir
+
+    raise FileNotFoundError(
+        "Missing canonical geometry input for stage 08. Expected geometry files in "
+        f"{geometry_dir}. Legacy aliases and autodiscovery are disabled."
+    )
 
 
-def resolve_output_file(args, ctx) -> Optional[Path]:
+def resolve_output_file(args, ctx, run_dir: Optional[Path]) -> Path:
     """
-    Resuelve el archivo de salida según ROUTING_CONTRACT.
-    
-    Prioridad:
-    1. --experiment → ctx.stage_dir (V3)
-    2. --output-summary explícito (DEPRECATED)
-    3. --run-dir / holographic_dictionary (legacy)
+    Resuelve el archivo de salida sin depender del host ni del cwd.
     """
     if ctx:
-        return ctx.stage_dir / "holographic_dictionary_v3_summary.json"
+        return ctx.stage_dir / "outputs" / "holographic_dictionary_v3_summary.json"
     
     if args.output_summary:
         return Path(args.output_summary).resolve()
     
-    if args.run_dir:
-        out_dir = Path(args.run_dir).resolve() / "holographic_dictionary"
+    if run_dir is not None:
+        out_dir = run_dir.resolve() / "08_build_holographic_dictionary"
         out_dir.mkdir(parents=True, exist_ok=True)
         return out_dir / "holographic_dictionary_v3_summary.json"
-    
-    # Fallback local
-    return Path("holographic_dictionary_v3_summary.json").resolve()
+
+    raise ValueError(
+        "Missing output destination. Provide --output-summary explicitly or "
+        "provide contractual run identity so stage 08 can write outputs safely."
+    )
 
 
 def safe_relpath(path: Path, base: Path) -> str:
@@ -220,6 +197,15 @@ def safe_relpath(path: Path, base: Path) -> str:
         return str(path.relative_to(base))
     except ValueError:
         return str(path)
+
+
+def _manifest_ref(path: Path, run_root: Optional[Path]) -> str:
+    resolved = path.resolve()
+    if run_root is not None:
+        run_root = run_root.resolve()
+        if resolved.is_relative_to(run_root):
+            return str(resolved.relative_to(run_root))
+    return str(resolved)
 
 
 # =============================================================================
@@ -450,330 +436,327 @@ def main() -> int:
     # ═══════════════════════════════════════════════════════════════════════
     # ROUTING CONTRACT: Validar conflictos
     # ═══════════════════════════════════════════════════════════════════════
-    is_valid, error_msg = validate_routing_args(args)
-    if not is_valid:
-        print(f"[ERROR] {error_msg}")
-        return 1
-    
-    # ═══════════════════════════════════════════════════════════════════════
-    # V3: Crear StageContext
-    # ═══════════════════════════════════════════════════════════════════════
     ctx = None
-    if HAS_STAGE_UTILS and StageContext:
-        if not getattr(args, 'experiment', None):
-            if infer_experiment:
+    run_dir: Optional[Path] = None
+    status = STATUS_OK
+    exit_code = EXIT_OK
+    error_message: Optional[str] = None
+    counts: Optional[Dict[str, Any]] = None
+
+    try:
+        is_valid, error_msg = validate_routing_args(args)
+        if not is_valid:
+            raise ValueError(error_msg)
+
+        if HAS_STAGE_UTILS and StageContext:
+            has_contractual_identity = bool(
+                getattr(args, "run_dir", None)
+                or (
+                    getattr(args, "experiment", None)
+                    and getattr(args, "runs_dir", None)
+                )
+            )
+            if not getattr(args, "experiment", None) and infer_experiment:
                 args.experiment = infer_experiment(args)
-        
-        if args.experiment:
-            ctx = StageContext.from_args(
-                args,
-                stage_number="08",
-                stage_slug="build_holographic_dictionary"
-            )
-            print(f"[V3] Experiment: {ctx.experiment}")
-            print(f"[V3] Stage dir: {ctx.stage_dir}")
-    
-    # ═══════════════════════════════════════════════════════════════════════
-    # RESOLVER INPUT (geometry_dir)
-    # ═══════════════════════════════════════════════════════════════════════
-    geometry_dir = resolve_geometry_dir(args, ctx)
-    
-    if geometry_dir is None:
-        print("[ERROR] Debe proporcionar --experiment, --run-dir o --data-dir")
-        if ctx:
-            ctx.write_summary(status="INCOMPLETE", counts={"error": "no_geometry_dir"})
-        return 2
-    
-    if not geometry_dir.exists() or not geometry_dir.is_dir():
-        print(f"[ERROR] geometry_dir no es un directorio válido: {geometry_dir}")
-        if ctx:
-            ctx.write_summary(status="INCOMPLETE", counts={"error": "geometry_dir_not_found"})
-        return 2
-    
-    # ═══════════════════════════════════════════════════════════════════════
-    # RESOLVER OUTPUT
-    # ═══════════════════════════════════════════════════════════════════════
-    output_file = resolve_output_file(args, ctx)
 
-    print("=" * 70)
-    print("FASE XI - DICCIONARIO HOLOGRÁFICO v3.1 (FIX EMERGENT)")
-    print("=" * 70)
-    print(f"Mass source: {args.mass_source.upper()}")
-    if args.mass_source == "hdf5":
-        print("   MODO CONTROL: Usando ground-truth de HDF5 (Delta_mass_dict)")
-        if args.compute_m2_from_delta:
-            print("   -> [CONTROL] Si falta m2L2, se calcula m²L² = Delta(Delta-d)")
-    else:
-        print("   MODO EMERGENTE: Extrayendo Delta de correladores")
-        print("   -> NO se calcula m²L² en esta fase (solo atlas de Δ)")
-    print("=" * 70)
-
-    data_by_family_d = defaultdict(
-        lambda: {
-            "family": None,
-            "d": None,
-            "Deltas": [],
-            "m2L2": [],
-            "geometries": [],
-            "operators": [],
-        }
-    )
-
-    geometry_results = []
-
-    # Recorremos todos los .h5 de la carpeta de geometría
-    h5_files = sorted(geometry_dir.glob("*.h5"))
-    if not h5_files:
-        print(f"[WARN] No se encontraron .h5 en {geometry_dir}")
-        if ctx:
-            ctx.write_summary(status="INCOMPLETE", counts={"error": "no_h5_files"})
-        return 2
-
-    for h5_path in h5_files:
-        name = h5_path.stem
-
-        with h5py.File(h5_path, "r") as f:
-            family = f.attrs.get("family", "unknown")
-            if isinstance(family, bytes):
-                family = family.decode("utf-8")
-            # NOTA: 'd' es la dimension del BOUNDARY CFT, no del bulk
-            # El bulk tiene dimension D = d + 1 (convencion AdS_{d+1}/CFT_d)
-            try:
-                d = int(f.attrs.get("d", 4))
-            except (TypeError, ValueError):
-                d = 4
-
-            key = f"{family}_d{d}"
-            data_by_family_d[key]["family"] = family
-            data_by_family_d[key]["d"] = d
-
-            geo_result = {
-                "name": name,
-                "family": family,
-                "d": d,
-                "operators_extracted": [],
-            }
-
-            # === MODO HDF5 (control) ===
-            if args.mass_source == "hdf5":
-                Delta_mass_dict = {}
-                if "boundary" in f and "Delta_mass_dict" in f["boundary"].attrs:
-                    try:
-                        raw = f["boundary"].attrs["Delta_mass_dict"]
-                        if isinstance(raw, bytes):
-                            raw = raw.decode("utf-8")
-                        Delta_mass_dict = json.loads(raw)
-                    except Exception as e:
-                        print(f"   {name}: error leyendo Delta_mass_dict: {e}")
-
-                for op_name, info in Delta_mass_dict.items():
-                    if isinstance(info, dict):
-                        Delta = info.get("Delta")
-                        m2L2 = info.get("m2L2")
-                    else:
-                        Delta = info
-                        m2L2 = None
-
-                    if Delta is None:
-                        continue
-
-                    # Si falta m2L2 y se pide calcular
-                    if m2L2 is None and args.compute_m2_from_delta:
-                        m2L2 = Delta * (Delta - d)
-                        m2L2_method = "computed_from_delta"
-                    elif m2L2 is not None:
-                        m2L2_method = "hdf5_ground_truth"
-                    else:
-                        m2L2_method = "not_available"
-
-                    print(
-                        f"   {name}/{op_name}: Δ={Delta:.3f}, m²L²={m2L2 if m2L2 else 'N/A'} "
-                        f"[{m2L2_method}]"
-                    )
-
-                    geo_result["operators_extracted"].append(
-                        {
-                            "name": op_name,
-                            "Delta": Delta,
-                            "m2L2": m2L2,
-                            "m2L2_method": m2L2_method,
-                        }
-                    )
-
-                    data_by_family_d[key]["Deltas"].append(Delta)
-                    if m2L2 is not None:
-                        data_by_family_d[key]["m2L2"].append(m2L2)
-                    data_by_family_d[key]["operators"].append(
-                        {
-                            "name": f"{name}_{op_name}",
-                            "Delta": Delta,
-                            "m2L2": m2L2,
-                            "source_geometry": name,
-                            "m2L2_method": m2L2_method,
-                        }
-                    )
-
-            # === MODO EMERGENT ===
-            else:
-                boundary = f.get("boundary", {})
-                x_grid = boundary.get("x_grid", None)
-                if x_grid is None:
-                    print(f"   {name}: sin x_grid, skip")
-                    continue
-                x_grid = x_grid[:]
-
-                operators_attr = boundary.attrs.get("operators", "[]")
-                if isinstance(operators_attr, bytes):
-                    operators_attr = operators_attr.decode("utf-8")
-                try:
-                    operators = json.loads(operators_attr)
-                except json.JSONDecodeError:
-                    operators = []
-
-                for op in operators:
-                    op_name = op.get("name")
-                    if op_name is None:
-                        continue
-
-                    G2_key = f"G2_{op_name}"
-                    if G2_key not in boundary:
-                        continue
-
-                    G2 = boundary[G2_key][:]
-                    result = extract_delta_from_correlator(x_grid, G2)
-                    if result["status"] != "ok":
-                        continue
-
-                    Delta = result["Delta"]
-
-                    print(
-                        f"   {name}/{op_name}: Delta={Delta:.3f} "
-                        f"[emergent, m²L² NO calculado en esta fase]"
-                    )
-
-                    geo_result["operators_extracted"].append(
-                        {
-                            "name": op_name,
-                            "Delta": Delta,
-                            "Delta_fit_r2": result.get("fit_r2"),
-                        }
-                    )
-
-                    data_by_family_d[key]["Deltas"].append(Delta)
-                    data_by_family_d[key]["operators"].append(
-                        {
-                            "name": f"{name}_{op_name}",
-                            "Delta": Delta,
-                            "source_geometry": name,
-                            "m2L2_method": "not_available",
-                        }
-                    )
-
-            data_by_family_d[key]["geometries"].append(name)
-            geometry_results.append(geo_result)
-
-    # Construir by_system solo cuando tenemos m2L2 disponible
-    by_system = {}
-    for key, fdata in sorted(data_by_family_d.items()):
-        n = min(len(fdata["Deltas"]), len(fdata["m2L2"]))
-        if n == 0:
-            print(f"   {key}: 0 puntos con m2L2 disponible [SKIP]")
-            continue
-
-        Deltas = fdata["Deltas"][:n]
-        m2L2_list = fdata["m2L2"][:n]
-
-        by_system[key] = {
-            "family": fdata["family"],
-            "d": fdata["d"],
-            "n_points": n,
-            "Delta": Deltas,
-            "m2L2_emergent": m2L2_list,
-            "geometries_included": fdata["geometries"],
-            "source": args.mass_source,
-        }
-        print(
-            f"   {key}: {n} puntos con m2L2, "
-            f"d={fdata['d']}, {len(fdata['geometries'])} geometrías"
-        )
-
-    # Descubrir relaciones masa-dimension donde sea posible
-    discovery_results = {}
-    for key, sdata in by_system.items():
-        if sdata["n_points"] < 3:
-            print(f"   {key}: datos insuficientes ({sdata['n_points']} < 3)")
-            discovery_results[key] = {"status": "insufficient_data"}
-            continue
-
-        print(f"\n>> Descubriendo para '{key}' (d={sdata['d']})...")
-        result = discover_mass_dimension_relation(
-            np.array(sdata["Delta"]),
-            np.array(sdata["m2L2_emergent"]),
-            sdata["d"],
-            seed=args.seed,
-        )
-        discovery_results[key] = result
-        if result["status"] == "ok":
-            print(f"   Mejor ecuación: {result['discovered_equation']}")
-            print(f"   R²(PySR): {result['r2']:.4f}")
-            if result.get("holographic_r2") is not None:
-                print(f"   R²(m²L²=Delta(Delta-d)): {result['holographic_r2']:.4f}")
-        else:
-            print(f"   Status: {result['status']}")
-
-    summary = {
-        "by_system": by_system,
-        "discoveries": discovery_results,
-        "geometry_results": geometry_results,
-        "mass_source": args.mass_source,
-        "compute_m2_from_delta": args.compute_m2_from_delta,
-        "version": "v3.1_routing_contract",
-        "notes": [
-            "v3.1: FIX MODO EMERGENT (no mezcla d ni masas entre geometrías)",
-            "rev.honestidad: en modo emergent no se calcula m²L² en este script; "
-            "las masas deben venir de datos externos (HDF5 u otros módulos).",
-        ],
-    }
-
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    output_file.write_text(json.dumps(summary, indent=2))
-    print(f"\nResumen guardado en: {output_file}")
-    
-    # ═══════════════════════════════════════════════════════════════════════
-    # V3: Registrar artefactos y escribir summary
-    # ═══════════════════════════════════════════════════════════════════════
-    if ctx:
-        ctx.record_artifact("holographic_dictionary_summary", output_file)
-        ctx.record_artifact("geometry_dir_input", geometry_dir)
-        
-        ctx.write_summary(
-            status="OK" if len(by_system) > 0 else "WARNING",
-            counts={
-                "h5_files_scanned": len(h5_files),
-                "systems_with_m2L2": len(by_system),
-                "geometries_processed": len(geometry_results),
-                "discoveries_made": len([d for d in discovery_results.values() if d.get("status") == "ok"]),
-            }
-        )
-        ctx.write_manifest()
-        print(f"[V3] stage_summary.json escrito")
-    
-    # Legacy: actualizar run_manifest
-    elif args.run_dir and HAS_CUERDAS_IO:
-        try:
+            if has_contractual_identity:
+                ctx = StageContext.from_args(
+                    args,
+                    stage_number="08",
+                    stage_slug="build_holographic_dictionary"
+                )
+                run_dir = ctx.run_root
+                print(f"[V3] Experiment: {ctx.experiment}")
+                print(f"[V3] Stage dir: {ctx.stage_dir}")
+        elif getattr(args, "run_dir", None):
             run_dir = Path(args.run_dir).resolve()
-            update_run_manifest(
-                run_dir,
-                {
-                    "holographic_dictionary_dir": safe_relpath(output_file.parent, run_dir),
-                    "holographic_dictionary_summary": safe_relpath(output_file, run_dir),
-                }
-            )
-            print(f"Manifest actualizado (legacy)")
-        except Exception as e:
-            print(f"[WARN] No se pudo actualizar manifest: {e}")
 
-    return 0
+        geometry_dir = resolve_geometry_dir(args, ctx, run_dir)
+        output_file = resolve_output_file(args, ctx, run_dir)
+
+        print("=" * 70)
+        print("FASE XI - DICCIONARIO HOLOGRÁFICO v3.1 (FIX EMERGENT)")
+        print("=" * 70)
+        print(f"Mass source: {args.mass_source.upper()}")
+        if args.mass_source == "hdf5":
+            print("   MODO CONTROL: Usando ground-truth de HDF5 (Delta_mass_dict)")
+            if args.compute_m2_from_delta:
+                print("   -> [CONTROL] Si falta m2L2, se calcula m²L² = Delta(Delta-d)")
+        else:
+            print("   MODO EMERGENTE: Extrayendo Delta de correladores")
+            print("   -> NO se calcula m²L² en esta fase (solo atlas de Δ)")
+        print("=" * 70)
+
+        data_by_family_d = defaultdict(
+            lambda: {
+                "family": None,
+                "d": None,
+                "Deltas": [],
+                "m2L2": [],
+                "geometries": [],
+                "operators": [],
+            }
+        )
+
+        geometry_results = []
+
+        h5_files = sorted(geometry_dir.glob("*.h5"))
+        if not h5_files:
+            raise FileNotFoundError(f"No canonical .h5 files found in {geometry_dir}")
+
+        for h5_path in h5_files:
+            name = h5_path.stem
+
+            with h5py.File(h5_path, "r") as f:
+                family = f.attrs.get("family", "unknown")
+                if isinstance(family, bytes):
+                    family = family.decode("utf-8")
+                try:
+                    d = int(f.attrs.get("d", 4))
+                except (TypeError, ValueError):
+                    d = 4
+
+                key = f"{family}_d{d}"
+                data_by_family_d[key]["family"] = family
+                data_by_family_d[key]["d"] = d
+
+                geo_result = {
+                    "name": name,
+                    "family": family,
+                    "d": d,
+                    "operators_extracted": [],
+                }
+
+                if args.mass_source == "hdf5":
+                    Delta_mass_dict = {}
+                    if "boundary" in f and "Delta_mass_dict" in f["boundary"].attrs:
+                        try:
+                            raw = f["boundary"].attrs["Delta_mass_dict"]
+                            if isinstance(raw, bytes):
+                                raw = raw.decode("utf-8")
+                            Delta_mass_dict = json.loads(raw)
+                        except Exception as e:
+                            print(f"   {name}: error leyendo Delta_mass_dict: {e}")
+
+                    for op_name, info in Delta_mass_dict.items():
+                        if isinstance(info, dict):
+                            Delta = info.get("Delta")
+                            m2L2 = info.get("m2L2")
+                        else:
+                            Delta = info
+                            m2L2 = None
+
+                        if Delta is None:
+                            continue
+
+                        if m2L2 is None and args.compute_m2_from_delta:
+                            m2L2 = Delta * (Delta - d)
+                            m2L2_method = "computed_from_delta"
+                        elif m2L2 is not None:
+                            m2L2_method = "hdf5_ground_truth"
+                        else:
+                            m2L2_method = "not_available"
+
+                        print(
+                            f"   {name}/{op_name}: Δ={Delta:.3f}, m²L²={m2L2 if m2L2 else 'N/A'} "
+                            f"[{m2L2_method}]"
+                        )
+
+                        geo_result["operators_extracted"].append(
+                            {
+                                "name": op_name,
+                                "Delta": Delta,
+                                "m2L2": m2L2,
+                                "m2L2_method": m2L2_method,
+                            }
+                        )
+
+                        data_by_family_d[key]["Deltas"].append(Delta)
+                        if m2L2 is not None:
+                            data_by_family_d[key]["m2L2"].append(m2L2)
+                        data_by_family_d[key]["operators"].append(
+                            {
+                                "name": f"{name}_{op_name}",
+                                "Delta": Delta,
+                                "m2L2": m2L2,
+                                "source_geometry": name,
+                                "m2L2_method": m2L2_method,
+                            }
+                        )
+                else:
+                    boundary = f.get("boundary", {})
+                    x_grid = boundary.get("x_grid", None)
+                    if x_grid is None:
+                        print(f"   {name}: sin x_grid, skip")
+                        continue
+                    x_grid = x_grid[:]
+
+                    operators_attr = boundary.attrs.get("operators", "[]")
+                    if isinstance(operators_attr, bytes):
+                        operators_attr = operators_attr.decode("utf-8")
+                    try:
+                        operators = json.loads(operators_attr)
+                    except json.JSONDecodeError:
+                        operators = []
+
+                    for op in operators:
+                        op_name = op.get("name")
+                        if op_name is None:
+                            continue
+
+                        G2_key = f"G2_{op_name}"
+                        if G2_key not in boundary:
+                            continue
+
+                        G2 = boundary[G2_key][:]
+                        result = extract_delta_from_correlator(x_grid, G2)
+                        if result["status"] != "ok":
+                            continue
+
+                        Delta = result["Delta"]
+
+                        print(
+                            f"   {name}/{op_name}: Delta={Delta:.3f} "
+                            f"[emergent, m²L² NO calculado en esta fase]"
+                        )
+
+                        geo_result["operators_extracted"].append(
+                            {
+                                "name": op_name,
+                                "Delta": Delta,
+                                "Delta_fit_r2": result.get("fit_r2"),
+                            }
+                        )
+
+                        data_by_family_d[key]["Deltas"].append(Delta)
+                        data_by_family_d[key]["operators"].append(
+                            {
+                                "name": f"{name}_{op_name}",
+                                "Delta": Delta,
+                                "source_geometry": name,
+                                "m2L2_method": "not_available",
+                            }
+                        )
+
+                data_by_family_d[key]["geometries"].append(name)
+                geometry_results.append(geo_result)
+
+        by_system = {}
+        for key, fdata in sorted(data_by_family_d.items()):
+            n = min(len(fdata["Deltas"]), len(fdata["m2L2"]))
+            if n == 0:
+                print(f"   {key}: 0 puntos con m2L2 disponible [SKIP]")
+                continue
+
+            Deltas = fdata["Deltas"][:n]
+            m2L2_list = fdata["m2L2"][:n]
+
+            by_system[key] = {
+                "family": fdata["family"],
+                "d": fdata["d"],
+                "n_points": n,
+                "Delta": Deltas,
+                "m2L2_emergent": m2L2_list,
+                "geometries_included": fdata["geometries"],
+                "source": args.mass_source,
+            }
+            print(
+                f"   {key}: {n} puntos con m2L2, "
+                f"d={fdata['d']}, {len(fdata['geometries'])} geometrías"
+            )
+
+        discovery_results = {}
+        for key, sdata in by_system.items():
+            if sdata["n_points"] < 3:
+                print(f"   {key}: datos insuficientes ({sdata['n_points']} < 3)")
+                discovery_results[key] = {"status": "insufficient_data"}
+                continue
+
+            print(f"\n>> Descubriendo para '{key}' (d={sdata['d']})...")
+            result = discover_mass_dimension_relation(
+                np.array(sdata["Delta"]),
+                np.array(sdata["m2L2_emergent"]),
+                sdata["d"],
+                seed=args.seed,
+            )
+            discovery_results[key] = result
+            if result["status"] == "ok":
+                print(f"   Mejor ecuación: {result['discovered_equation']}")
+                print(f"   R²(PySR): {result['r2']:.4f}")
+                if result.get("holographic_r2") is not None:
+                    print(f"   R²(m²L²=Delta(Delta-d)): {result['holographic_r2']:.4f}")
+            else:
+                print(f"   Status: {result['status']}")
+
+        summary = {
+            "by_system": by_system,
+            "discoveries": discovery_results,
+            "geometry_results": geometry_results,
+            "mass_source": args.mass_source,
+            "compute_m2_from_delta": args.compute_m2_from_delta,
+            "version": "v3.1_routing_contract",
+            "notes": [
+                "v3.1: FIX MODO EMERGENT (no mezcla d ni masas entre geometrías)",
+                "rev.honestidad: en modo emergent no se calcula m²L² en este script; "
+                "las masas deben venir de datos externos (HDF5 u otros módulos).",
+            ],
+        }
+
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_file.write_text(json.dumps(summary, indent=2))
+        print(f"\nResumen guardado en: {output_file}")
+
+        counts = {
+            "h5_files_scanned": len(h5_files),
+            "systems_with_m2L2": len(by_system),
+            "geometries_processed": len(geometry_results),
+            "discoveries_made": len([d for d in discovery_results.values() if d.get("status") == "ok"]),
+        }
+
+        if ctx:
+            ctx.record_artifact("holographic_dictionary_summary", output_file.resolve())
+            ctx.record_artifact("geometry_dir_input", geometry_dir.resolve())
+            ctx.write_manifest(
+                outputs={
+                    "holographic_dictionary_summary": _manifest_ref(output_file, ctx.run_root),
+                    "holographic_dictionary_output_dir": _manifest_ref(output_file.parent, ctx.run_root),
+                },
+                metadata={
+                    "command": " ".join(sys.argv),
+                    "experiment": ctx.experiment,
+                },
+            )
+
+        elif args.run_dir and HAS_CUERDAS_IO:
+            try:
+                legacy_run_dir = Path(args.run_dir).resolve()
+                update_run_manifest(
+                    legacy_run_dir,
+                    {
+                        "holographic_dictionary_dir": safe_relpath(output_file.parent, legacy_run_dir),
+                        "holographic_dictionary_summary": safe_relpath(output_file, legacy_run_dir),
+                    }
+                )
+                print(f"Manifest actualizado (legacy)")
+            except Exception as e:
+                print(f"[WARN] No se pudo actualizar manifest: {e}")
+
+    except Exception as exc:
+        status = STATUS_ERROR
+        exit_code = EXIT_ERROR
+        error_message = str(exc)
+        import traceback
+        traceback.print_exc()
+    finally:
+        if ctx:
+            ctx.write_summary(
+                status=status,
+                exit_code=exit_code,
+                error_message=error_message,
+                counts=counts,
+            )
+
+    return exit_code
 
 
 if __name__ == "__main__":

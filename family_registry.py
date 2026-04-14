@@ -70,6 +70,8 @@ TIER_A: FrozenSet[str] = frozenset({
     "massive_gravity", # Massive gravity AdS (Vegh-type)
     "linear_axion",    # Linear axion / momentum dissipation
     "charged_hvlif",   # Charged hyperscaling-violation Lifshitz
+    "gubser_rocha",    # Gubser-Rocha EMD (strange metal, s(T=0)=0)
+    "soft_wall",       # Soft-wall backreacted (IR confinement via warp factor)
 })
 
 #: Carriles no holográficos (sin bulk_truth holográfico).
@@ -103,12 +105,15 @@ FAMILY_MAP: Dict[str, int] = {
     "unknown":        5,
     # TIER_SPECIAL (índice 6)
     "kerr":           6,
-    # TIER_A (índices 7-11, orden alfabético)
+    # TIER_A (índices 7-11, orden alfabético original; extensión 12-13 estable)
     "charged_hvlif":  7,
     "gauss_bonnet":   8,
     "linear_axion":   9,
     "massive_gravity":10,
     "rn_ads":         11,
+    # Extensión Tier A (2026-04) — índices nuevos, no colisionan con checkpoints previos
+    "gubser_rocha":   12,
+    "soft_wall":      13,
 }
 
 #: Mapa inverso entero → nombre de familia.
@@ -200,6 +205,30 @@ FAMILY_EXTRA_ATTRS: Dict[str, List[FamilyMetaSpec]] = {
             dtype=float,
             default=0.0,
             description="Carga eléctrica adimensional Q para hvLif cargado.",
+        ),
+    ],
+    "gubser_rocha": [
+        FamilyMetaSpec(
+            h5_attr="mu_GR",
+            dtype=float,
+            default=0.0,
+            description=(
+                "Parámetro efectivo mu del toy Gubser-Rocha (dilatón corriendo). "
+                "mu=0 reduce a AdS-Schwarzschild; mu>0 activa correcciones IR "
+                "tipo EMD con s(T=0)->0 (opuesto a RN-AdS)."
+            ),
+        ),
+    ],
+    "soft_wall": [
+        FamilyMetaSpec(
+            h5_attr="kappa_sw",
+            dtype=float,
+            default=0.0,
+            description=(
+                "Escala de confinamiento soft-wall κ (Batell-Gherghetta). "
+                "A(z) = -log(z/L) - (κ/2)(z/L)^2. κ=0 reduce a AdS; κ>0 "
+                "produce deformación cuadrática IR (Regge lineal)."
+            ),
         ),
     ],
 }
