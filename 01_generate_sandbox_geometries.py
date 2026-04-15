@@ -486,6 +486,7 @@ class HiddenGeometry:
 def get_ads_metadata_for_geometry(
     geo: HiddenGeometry,
     ads_boundary_mode: str = "toy",
+    lifshitz_boundary_mode: str = "toy",
     gkpw_meta: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
@@ -516,6 +517,9 @@ def get_ads_metadata_for_geometry(
     if geo.family == "ads":
         result["ads_boundary_mode"] = ads_boundary_mode
         result["ads_pipeline_tier"] = "canonical" if ads_boundary_mode == "gkpw" else "experimental"
+    if geo.family == "lifshitz":
+        result["lifshitz_boundary_mode"] = lifshitz_boundary_mode
+        result["lifshitz_pipeline_tier"] = "experimental"
     if gkpw_meta:
         result.update(gkpw_meta)
     return result
@@ -1425,6 +1429,7 @@ def generate_boundary_data(
     n_samples: int,
     rng: np.random.Generator,
     ads_boundary_mode: str = "toy",
+    lifshitz_boundary_mode: str = "toy",
     z_grid: Optional[np.ndarray] = None,
 ) -> Tuple[Dict[str, np.ndarray], Dict[str, Any]]:
     """
@@ -1440,6 +1445,12 @@ def generate_boundary_data(
         if z_grid is None:
             raise RuntimeError("ads_boundary_mode=gkpw requiere z_grid")
         return generate_ads_gkpw_boundary_data(geo, operators, n_samples, z_grid)
+
+    if geo.family == "lifshitz" and lifshitz_boundary_mode != "toy":
+        raise RuntimeError(
+            "lifshitz_boundary_mode=strong aún no implementado; "
+            "no existe carril fuerte de frontera para lifshitz en este commit"
+        )
 
     d = geo.d
 
@@ -1490,7 +1501,11 @@ def generate_boundary_data(
     data["G_R_real"] = np.real(G_R).astype(np.float32)
     data["G_R_imag"] = np.imag(G_R).astype(np.float32)
 
-    meta = get_ads_metadata_for_geometry(geo, ads_boundary_mode="toy")
+    meta = get_ads_metadata_for_geometry(
+        geo,
+        ads_boundary_mode="toy",
+        lifshitz_boundary_mode=lifshitz_boundary_mode if geo.family == "lifshitz" else "toy",
+    )
     if geo.family == "ads":
         first_op = operators[0] if operators else {"name": "O_unknown", "m2L2": np.nan, "Delta": np.nan}
         meta.update(
@@ -1886,6 +1901,16 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--lifshitz-boundary-mode",
+        choices=("toy", "strong"),
+        default="toy",
+        help=(
+            "Modo de boundary para family='lifshitz'. Default: toy. "
+            "'strong' queda reservado y debe fallar explícitamente hasta que "
+            "exista implementación fuerte real."
+        ),
+    )
+    parser.add_argument(
         "--quick-test",
         action="store_true",
         help="Modo rapido: reduce n-known=2, n-test=1, n-unknown=1 para smoke tests",
@@ -2092,6 +2117,7 @@ def main():
                 "seed": args.seed,
                 "use_emd_lifshitz": args.use_emd_lifshitz,
                 "ads_boundary_mode": args.ads_boundary_mode,
+                "lifshitz_boundary_mode": args.lifshitz_boundary_mode,
                 "focused_real_regime": focused_config.enabled,
                 "focused_sampling": asdict(focused_config),
             },
@@ -2130,6 +2156,7 @@ def main():
                 args.n_samples,
                 rng,
                 ads_boundary_mode=args.ads_boundary_mode,
+                lifshitz_boundary_mode=args.lifshitz_boundary_mode,
                 z_grid=z_grid,
             )
 
@@ -2163,6 +2190,7 @@ def main():
                 agmoo_meta = get_ads_metadata_for_geometry(
                     geo,
                     ads_boundary_mode=args.ads_boundary_mode if geo.family == "ads" else "toy",
+                    lifshitz_boundary_mode=args.lifshitz_boundary_mode if geo.family == "lifshitz" else "toy",
                     gkpw_meta=boundary_meta if geo.family == "ads" else None,
                 )
                 for key, value in agmoo_meta.items():
@@ -2216,6 +2244,7 @@ def main():
             agmoo_manifest_meta = get_ads_metadata_for_geometry(
                 geo,
                 ads_boundary_mode=args.ads_boundary_mode if geo.family == "ads" else "toy",
+                lifshitz_boundary_mode=args.lifshitz_boundary_mode if geo.family == "lifshitz" else "toy",
                 gkpw_meta=boundary_meta if geo.family == "ads" else None,
             )
             manifest_entry: Dict = {
@@ -2235,6 +2264,9 @@ def main():
                 manifest_entry["ads_classification"] = agmoo_manifest_meta["ads_classification"]
                 manifest_entry["ads_boundary_mode"] = agmoo_manifest_meta.get("ads_boundary_mode")
                 manifest_entry["ads_pipeline_tier"] = agmoo_manifest_meta.get("ads_pipeline_tier")
+            if geo.family == "lifshitz":
+                manifest_entry["lifshitz_boundary_mode"] = agmoo_manifest_meta.get("lifshitz_boundary_mode")
+                manifest_entry["lifshitz_pipeline_tier"] = agmoo_manifest_meta.get("lifshitz_pipeline_tier")
                 for key in (
                     "bulk_field_name",
                     "operator_name",
