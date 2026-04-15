@@ -6,13 +6,13 @@ Tests de contrato AGMOO para familia ``ads``.
 Cobertura mínima obligatoria (ver docs/checklist_agmoo_ads.md):
 
   1. ads sin metadata del Gate 6 (T=0, no deformación) → ADS_TEMPLATE_ONLY
-  2. ads térmico + correlador no-Witten + sin Gate 6 → ADS_THERMAL_TOY_ONLY
+  2. ads térmico + correlador no-Witten + sin Gate 6 → ADS_TEMPLATE_ONLY
   3. Violación explícita de cota BF → ADS_CONTRACT_FAIL
   4. Familia no-ads → NOT_ADS (validador no rompe nada)
   5. correlator_type se escribe correctamente en metadata generada por Stage 01
 
 Tests adicionales:
-  6. ads_thermal con correlador GEODESIC_APPROXIMATION (repo actual) → ADS_THERMAL_TOY_ONLY
+  6. ads_thermal con correlador GEODESIC_APPROXIMATION (repo actual) → ADS_EXPERIMENTAL_TOY_ONLY si Gate 6 está presente
   7. ads_deformed sin Gate 6 → ADS_TEMPLATE_ONLY
   8. Todos los gates completos → ADS_HOLOGRAPHIC_STRONG_PASS
   9. classify_ads_geometry retorna los valores correctos
@@ -207,8 +207,8 @@ class TestAdsThermalToyOnly:
     def test_thermal_geodesic_with_gate6_gives_thermal_toy_only(self):
         """
         ads_thermal + GEODESIC_APPROXIMATION + Gate 6 PRESENTE
-        → ADS_THERMAL_TOY_ONLY.
-        Este es el único camino hacia ADS_THERMAL_TOY_ONLY.
+        → ADS_EXPERIMENTAL_TOY_ONLY.
+        En ausencia de ads_pipeline_tier, los H5 legacy se tratan como experimental.
         """
         meta = {
             "family": "ads",
@@ -226,13 +226,13 @@ class TestAdsThermalToyOnly:
             "ir_bc_declared": True,
         }
         result = validate_ads_geometry(meta)
-        assert result["overall_verdict"] == "ADS_THERMAL_TOY_ONLY", (
-            f"Gate 6 presente + thermal + GEODESIC → ADS_THERMAL_TOY_ONLY, "
+        assert result["overall_verdict"] == "ADS_EXPERIMENTAL_TOY_ONLY", (
+            f"Gate 6 presente + thermal + GEODESIC → ADS_EXPERIMENTAL_TOY_ONLY, "
             f"got {result['overall_verdict']}"
         )
 
     def test_thermal_toy_with_gate6_gives_thermal_toy_only(self):
-        """TOY_PHENOMENOLOGICAL + thermal + Gate 6 presente → ADS_THERMAL_TOY_ONLY."""
+        """TOY_PHENOMENOLOGICAL + thermal + Gate 6 presente → ADS_EXPERIMENTAL_TOY_ONLY."""
         meta = {
             "family": "ads",
             "d": 3,
@@ -248,7 +248,7 @@ class TestAdsThermalToyOnly:
             "ir_bc_declared": True,
         }
         result = validate_ads_geometry(meta)
-        assert result["overall_verdict"] == "ADS_THERMAL_TOY_ONLY"
+        assert result["overall_verdict"] == "ADS_EXPERIMENTAL_TOY_ONLY"
 
     def test_repo_current_case_ads_d3_tfinite(self):
         """
@@ -432,7 +432,7 @@ class TestCorrelatorTypeInStage01Metadata:
         Verificado con búsqueda de texto para no requerir ejecución completa.
         """
         source = (_REPO_ROOT / "01_generate_sandbox_geometries.py").read_text()
-        assert 'f.attrs["correlator_type"]' in source, (
+        assert '"correlator_type"' in source and "f.attrs[key] = value" in source, (
             "Stage 01 no escribe correlator_type en attrs HDF5"
         )
 
@@ -442,7 +442,7 @@ class TestCorrelatorTypeInStage01Metadata:
         para geometrías ads.
         """
         source = (_REPO_ROOT / "01_generate_sandbox_geometries.py").read_text()
-        assert 'f.attrs["ads_classification"]' in source, (
+        assert '"ads_classification"' in source and "f.attrs[key] = value" in source, (
             "Stage 01 no escribe ads_classification en attrs HDF5"
         )
 
@@ -513,6 +513,135 @@ class TestAdsHolographicStrongPass:
 
 
 # ---------------------------------------------------------------------------
+# 8b. Política canonical/experimental
+# ---------------------------------------------------------------------------
+
+class TestAdsCanonicalExperimentalPolicy:
+    def test_canonical_missing_gate6_is_contract_fail(self):
+        meta = {
+            "family": "ads",
+            "d": 3,
+            "z_h": 1.0,
+            "deformation": 0.0,
+            "ads_pipeline_tier": "canonical",
+            "correlator_type": "GKPW_SOURCE_RESPONSE_NUMERICAL",
+        }
+        result = validate_ads_geometry(meta)
+        assert result["ads_pipeline_tier"] == "canonical"
+        assert result["overall_verdict"] == "ADS_CONTRACT_FAIL"
+
+    def test_canonical_toy_correlator_is_contract_fail(self):
+        meta = {
+            "family": "ads",
+            "d": 3,
+            "z_h": 1.0,
+            "deformation": 0.0,
+            "ads_pipeline_tier": "canonical",
+            "correlator_type": "TOY_PHENOMENOLOGICAL",
+            "bulk_field_name": "TOY_NO_BULK_FIELD",
+            "operator_name": "O1",
+            "m2L2": 0.0,
+            "Delta": 3.0,
+            "bf_bound_pass": True,
+            "uv_source_declared": False,
+            "ir_bc_declared": False,
+        }
+        result = validate_ads_geometry(meta)
+        assert result["ads_pipeline_tier"] == "canonical"
+        assert result["strong_correlator"] is False
+        assert result["overall_verdict"] == "ADS_CONTRACT_FAIL"
+
+    def test_canonical_witten_over_toy_provenance_is_contract_fail(self):
+        meta = {
+            "family": "ads",
+            "d": 3,
+            "z_h": 1.0,
+            "deformation": 0.0,
+            "ads_pipeline_tier": "canonical",
+            "ads_boundary_mode": "toy",
+            "correlator_type": "HOLOGRAPHIC_WITTEN_DIAGRAM",
+            "g2_correlator_type": "GEODESIC_APPROXIMATION",
+            "gr_correlator_type": "TOY_PHENOMENOLOGICAL",
+            "bulk_field_name": "TOY_NO_BULK_FIELD",
+            "operator_name": "O1",
+            "m2L2": 0.0,
+            "Delta": 3.0,
+            "bf_bound_pass": True,
+            "uv_source_declared": True,
+            "ir_bc_declared": True,
+        }
+        result = validate_ads_geometry(meta)
+        assert result["strong_correlator"] is True
+        assert result["toy_provenance"] is True
+        assert result["overall_verdict"] == "ADS_CONTRACT_FAIL"
+
+    def test_experimental_witten_over_toy_provenance_is_not_strong(self):
+        meta = {
+            "family": "ads",
+            "d": 3,
+            "z_h": 1.0,
+            "deformation": 0.0,
+            "ads_pipeline_tier": "experimental",
+            "ads_boundary_mode": "toy",
+            "correlator_type": "HOLOGRAPHIC_WITTEN_DIAGRAM",
+            "g2_correlator_type": "GEODESIC_APPROXIMATION",
+            "gr_correlator_type": "TOY_PHENOMENOLOGICAL",
+            "bulk_field_name": "TOY_NO_BULK_FIELD",
+            "operator_name": "O1",
+            "m2L2": 0.0,
+            "Delta": 3.0,
+            "bf_bound_pass": True,
+            "uv_source_declared": True,
+            "ir_bc_declared": True,
+        }
+        result = validate_ads_geometry(meta)
+        assert result["toy_provenance"] is True
+        assert result["overall_verdict"] == "ADS_EXPERIMENTAL_TOY_ONLY"
+
+    def test_experimental_toy_is_permitted_but_not_strong(self):
+        meta = {
+            "family": "ads",
+            "d": 3,
+            "z_h": 1.0,
+            "deformation": 0.0,
+            "ads_pipeline_tier": "experimental",
+            "correlator_type": "TOY_PHENOMENOLOGICAL",
+            "bulk_field_name": "TOY_NO_BULK_FIELD",
+            "operator_name": "O1",
+            "m2L2": 0.0,
+            "Delta": 3.0,
+            "bf_bound_pass": True,
+            "uv_source_declared": False,
+            "ir_bc_declared": False,
+        }
+        result = validate_ads_geometry(meta)
+        assert result["ads_pipeline_tier"] == "experimental"
+        assert result["strong_correlator"] is False
+        assert result["overall_verdict"] == "ADS_EXPERIMENTAL_TOY_ONLY"
+
+    def test_canonical_gkpw_gate6_complete_strong_pass(self):
+        meta = {
+            "family": "ads",
+            "d": 3,
+            "z_h": 1.0,
+            "deformation": 0.0,
+            "ads_pipeline_tier": "canonical",
+            "correlator_type": "GKPW_SOURCE_RESPONSE_NUMERICAL",
+            "bulk_field_name": "phi_O1",
+            "operator_name": "O1",
+            "m2L2": 0.0,
+            "Delta": 3.0,
+            "bf_bound_pass": True,
+            "uv_source_declared": True,
+            "ir_bc_declared": True,
+        }
+        result = validate_ads_geometry(meta)
+        assert result["ads_pipeline_tier"] == "canonical"
+        assert result["strong_correlator"] is True
+        assert result["overall_verdict"] == "ADS_HOLOGRAPHIC_STRONG_PASS"
+
+
+# ---------------------------------------------------------------------------
 # 9. classify_ads_geometry
 # ---------------------------------------------------------------------------
 
@@ -555,6 +684,7 @@ class TestCanonicalConstants:
     def test_correlator_types_complete(self):
         expected = {
             "HOLOGRAPHIC_WITTEN_DIAGRAM",
+            "GKPW_SOURCE_RESPONSE_NUMERICAL",
             "GEODESIC_APPROXIMATION",
             "QNM_SURROGATE",
             "TOY_PHENOMENOLOGICAL",
@@ -568,6 +698,7 @@ class TestCanonicalConstants:
             "ADS_HOLOGRAPHIC_PARTIAL_PASS",
             "ADS_TEMPLATE_ONLY",
             "ADS_THERMAL_TOY_ONLY",
+            "ADS_EXPERIMENTAL_TOY_ONLY",
             "ADS_UV_IR_FRAGILE",
             "ADS_CONTRACT_FAIL",
         }
