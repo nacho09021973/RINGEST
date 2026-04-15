@@ -39,6 +39,19 @@ class TestStage01AdsGKPWMode(unittest.TestCase):
             L=1.0,
         )
 
+    def _lifshitz_geo(self):
+        return self.stage01.HiddenGeometry(
+            name="lifshitz_unit",
+            family="lifshitz",
+            category="known",
+            d=3,
+            z_h=1.0,
+            theta=0.0,
+            z_dyn=2.0,
+            deformation=0.0,
+            L=1.0,
+        )
+
     def _operators(self):
         return [
             {"name": "O1", "Delta": 3.0, "m2L2": 0.0, "spin": 0},
@@ -164,6 +177,36 @@ class TestStage01AdsGKPWMode(unittest.TestCase):
         self.assertFalse(meta["ir_bc_declared"])
         self.assertIn("G_R_real", data)
         self.assertIn("G2_O1", data)
+
+    def test_lifshitz_strong_mode_fails_explicitly(self):
+        rng = np.random.default_rng(123)
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "lifshitz_boundary_mode=strong aún no implementado",
+        ):
+            self.stage01.generate_boundary_data(
+                self._lifshitz_geo(),
+                self._operators(),
+                n_samples=16,
+                rng=rng,
+                lifshitz_boundary_mode="strong",
+                z_grid=np.linspace(0.01, 0.999, 80),
+            )
+
+    def test_lifshitz_toy_mode_is_honestly_tagged_experimental(self):
+        rng = np.random.default_rng(123)
+        data, meta = self.stage01.generate_boundary_data(
+            self._lifshitz_geo(),
+            self._operators(),
+            n_samples=16,
+            rng=rng,
+            lifshitz_boundary_mode="toy",
+            z_grid=np.linspace(0.01, 0.999, 80),
+        )
+
+        self.assertEqual(meta["lifshitz_boundary_mode"], "toy")
+        self.assertEqual(meta["lifshitz_pipeline_tier"], "experimental")
+        self.assertIn("G_R_real", data)
 
     def test_non_ads_families_keep_toy_geodesic_compatibility(self):
         rng = np.random.default_rng(123)
