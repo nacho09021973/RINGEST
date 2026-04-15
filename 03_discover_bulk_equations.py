@@ -7,7 +7,7 @@
 #   para descubrir ecuaciones de campo en el bulk (para A, f, R, etc.).
 #
 # Inputs: (IO CONTRACT V3)
-#   Usa io_contract_resolver para encontrar geometrías:
+#   Geometrías emergentes bajo:
 #   - Prioridad 1: runs/<exp>/02_emergent_geometry_engine/geometry_emergent/*.h5
 #   - Prioridad 2: runs/<exp>/01_generate_sandbox_geometries/*.h5
 #
@@ -21,7 +21,7 @@
 #   - Las comparaciones con ecuaciones de Einstein o variantes se realizan más tarde,
 #     y se etiquetan explícitamente como "post-hoc".
 #
-# Version: 2024-12-29 — Con io_contract_resolver + fix Ricci
+# Version: 2024-12-29 — fix Ricci
 
 import argparse
 import json
@@ -46,13 +46,10 @@ except Exception as exc:
     HAS_PYSR = False
     print(f"Warning: PySR not available or not usable: {exc}")
 
-# Import IO contract resolver
-try:
-    from io_contract_resolver import resolve_input, resolve_output, IOContractError
-    HAS_CONTRACT_RESOLVER = True
-except ImportError:
-    HAS_CONTRACT_RESOLVER = False
-    print("Warning: io_contract_resolver not available. Using legacy path resolution.")
+# Stage 03 usa resolución de rutas local (resolve_output_dir en este archivo);
+# la antigua importación opcional de `io_contract_resolver` era código muerto
+# (el flag nunca se consumía) y se retiró en abril 2026 para no ocultar deuda
+# detrás de un warning "Using legacy path resolution" permanente.
 
 HAS_STAGE_UTILS = False
 EXIT_OK = 0
