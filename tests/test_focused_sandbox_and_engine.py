@@ -26,6 +26,8 @@ class FocusedSandboxTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.sandbox = load_module("sandbox_stage01", "01_generate_sandbox_geometries.py")
+        if importlib.util.find_spec("torch") is None:
+            raise unittest.SkipTest("torch is not installed; skipping stage 02 integration checks")
         cls.engine = load_module("engine_stage02", "02_emergent_geometry_engine.py")
 
     def test_sandbox_cli_defaults_preserve_retrocompatibility(self):

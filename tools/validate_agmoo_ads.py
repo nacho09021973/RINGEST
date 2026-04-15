@@ -21,7 +21,7 @@ Uso como script::
     python tools/validate_agmoo_ads.py --meta '{"family":"ads","d":3,"z_h":1.0}'
     python tools/validate_agmoo_ads.py --h5 path/to/geometry.h5
 
-Ver docs/checklist_agmoo_ads.md para el contrato completo.
+El contrato completo queda codificado en este validador.
 """
 from __future__ import annotations
 
@@ -300,7 +300,7 @@ def compute_ads_verdict(
     """
     Emite exactamente uno de los ADS_VERDICT_STATES.
 
-    Orden de prioridad (ver docs/checklist_agmoo_ads.md):
+    Orden de prioridad:
 
     1. BF bound violada o campos geométricos críticos ausentes → ADS_CONTRACT_FAIL.
     2. Tier canonical exige correlador fuerte, Gate 6 completo y procedencia no-toy; si falta → ADS_CONTRACT_FAIL.

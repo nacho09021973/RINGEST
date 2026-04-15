@@ -41,9 +41,10 @@ except ImportError:
 try:
     from pysr import PySRRegressor
     HAS_PYSR = True
-except ImportError:
+except Exception as exc:
+    PySRRegressor = None  # type: ignore
     HAS_PYSR = False
-    print("Warning: PySR not available.")
+    print(f"Warning: PySR not available or not usable: {exc}")
 
 # Import IO contract resolver
 try:

@@ -64,7 +64,7 @@ Ecuaciones descubiertas para R(A, f, ∂A, ∂²A, ∂f, ∂²f):
 | Regularidad (A, f finitos) | 90/90 ✓ |
 | Causalidad (f ≥ 0) | 90/90 ✓ |
 | Unitaridad (Δ ≥ bound) | 90/90 ✓ |
-| Power-law correlador G₂ | 28/90 (limitación numérica de Stage 02R) |
+| Power-law correlador G₂ | 28/90 (limitación numérica de Stage real-data bridge) |
 
 ### Stage 05 — Análisis de ecuaciones
 - Ecuaciones AdS estructuralmente distintas de Lifshitz → física diferente en el bulk
@@ -129,17 +129,17 @@ progresivamente: `Δ²` → `(Δ−c)²` → **`Δ(Δ−d)`**.
    y Breitenlohner-Freedman (m²L² ≥ −4) en 540/540 operadores.
 
 5. **Limitación principal:** el contrato de power-law del correlador G₂ pasa
-   solo en 28/90 eventos — ruido numérico en Stage 02R, no violación física.
+   solo en 28/90 eventos — ruido numérico en Stage real-data bridge, no violación física.
 
 ---
 
 ## 4. Artefactos generados
 
 ```
-runs/gwosc_all/
+data/gwosc_events/
 ├── <ev>/raw/                          ← NPZ + HDF5 crudos (GWOSC)
 ├── <ev>/boundary/                     ← boundary HDF5 blanqueado + polos
-├── <ev>/boundary_dataset/             ← G_R, G2 (Stage 02R)
+├── <ev>/boundary_dataset/             ← G_R, G2 (Stage real-data bridge)
 ├── inference_input/                   ← manifest combinado (90 HDF5)
 └── inference_gwosc_v4/
     ├── geometry_emergent/             ← A(z), f(z), R(z) por evento

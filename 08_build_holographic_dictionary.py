@@ -62,8 +62,10 @@ import numpy as np
 try:
     from pysr import PySRRegressor
     HAS_PYSR = True
-except ImportError:
+except Exception as exc:
+    PySRRegressor = None  # type: ignore
     HAS_PYSR = False
+    print(f"Warning: PySR not available or not usable: {exc}")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # V3 INFRASTRUCTURE - PATCH: Probar stage_utils primero, luego tools.stage_utils

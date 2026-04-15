@@ -14,6 +14,8 @@ from pathlib import Path
 
 import numpy as np
 
+TORCH_AVAILABLE = importlib.util.find_spec("torch") is not None
+
 # ---------------------------------------------------------------------------
 # Bootstrap: ensure repo root is on sys.path so feature_support is importable
 # ---------------------------------------------------------------------------
@@ -426,6 +428,8 @@ class TestQnmF1F0SemanticGuardrail(unittest.TestCase):
 
 def _load_engine():
     """Load 02_emergent_geometry_engine as a module (cached after first load)."""
+    if not TORCH_AVAILABLE:
+        raise unittest.SkipTest("torch is not installed; skipping stage 02 integration checks")
     key = "engine_stage02_for_contract_test"
     if key not in sys.modules:
         spec = importlib.util.spec_from_file_location(
@@ -437,6 +441,7 @@ def _load_engine():
     return sys.modules[key]
 
 
+@unittest.skipUnless(TORCH_AVAILABLE, "torch is not installed; skipping stage 02 integration checks")
 class TestStageLevelHardFail(unittest.TestCase):
     """
     Verify that:
@@ -1004,6 +1009,7 @@ class TestTrainFeatureSupportV3PassesWithoutQNMFreeze(unittest.TestCase):
                          "V2_5 audit must FAIL with frozen qnm_* — sanity check")
 
 
+@unittest.skipUnless(TORCH_AVAILABLE, "torch is not installed; skipping stage 02 integration checks")
 class TestInferenceProbeV3ContractNoQNMDependency(unittest.TestCase):
     """
     Minimal pipeline test: run_inference_mode under V3 contract must complete

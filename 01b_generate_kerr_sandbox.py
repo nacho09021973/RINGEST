@@ -11,7 +11,7 @@ Each synthetic geometry corresponds to a binary black-hole merger with
 parameters (M_final [Msun], a/M [dimensionless spin]) drawn from a grid
 or random sample.  Theoretical Kerr QNMs (ℓ=2, m=2, n=0 and n=1) are
 computed with the `qnm` Python package and converted into surrogate
-boundary embeddings using the same functions as 02R_build_ringdown_boundary_dataset.py.
+boundary embeddings using the same functions as realdata_ringdown_to_stage02_boundary_dataset.py.
 
 Output HDF5 structure
 ---------------------
@@ -148,7 +148,7 @@ class KerrQNMCache:
 
 
 # -------------------------------------------------------------------
-# Boundary embedding helpers (mirrors 02R)
+# Boundary embedding helpers (mirrors real-data bridge)
 # -------------------------------------------------------------------
 
 class _Pole:

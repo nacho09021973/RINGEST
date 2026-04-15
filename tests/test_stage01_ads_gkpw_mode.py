@@ -77,6 +77,7 @@ class TestStage01AdsGKPWMode(unittest.TestCase):
         self.assertEqual(meta["correlator_type"], "GKPW_SOURCE_RESPONSE_NUMERICAL")
         self.assertEqual(meta["ads_pipeline_tier"], "canonical")
         self.assertEqual(meta["ads_boundary_mode"], "gkpw")
+        self.assertEqual(meta["family_status"], "canonical_strong")
         self.assertEqual(meta["classification"], "ads_thermal")
         self.assertRegex(meta["config_hash"], r"^[0-9a-f]{64}$")
         self.assertRegex(meta["reproducibility_hash"], r"^[0-9a-f]{64}$")
@@ -170,6 +171,7 @@ class TestStage01AdsGKPWMode(unittest.TestCase):
         self.assertEqual(meta["correlator_type"], "GEODESIC_APPROXIMATION")
         self.assertEqual(meta["ads_pipeline_tier"], "experimental")
         self.assertEqual(meta["ads_boundary_mode"], "toy")
+        self.assertEqual(meta["family_status"], "toy_sandbox")
         self.assertEqual(meta["g2_correlator_type"], "GEODESIC_APPROXIMATION")
         self.assertEqual(meta["gr_correlator_type"], "TOY_PHENOMENOLOGICAL")
         self.assertEqual(meta["bulk_field_name"], "TOY_NO_BULK_FIELD")
@@ -206,6 +208,7 @@ class TestStage01AdsGKPWMode(unittest.TestCase):
 
         self.assertEqual(meta["lifshitz_boundary_mode"], "toy")
         self.assertEqual(meta["lifshitz_pipeline_tier"], "experimental")
+        self.assertEqual(meta["family_status"], "toy_sandbox")
         self.assertIn("G_R_real", data)
 
     def test_non_ads_families_keep_toy_geodesic_compatibility(self):
@@ -231,6 +234,7 @@ class TestStage01AdsGKPWMode(unittest.TestCase):
                 z_grid=np.linspace(0.01, 0.999, 80),
             )
             self.assertEqual(meta["correlator_type"], "GEODESIC_APPROXIMATION")
+            self.assertEqual(meta["family_status"], "toy_sandbox")
             self.assertIsNone(meta["ads_classification"])
             self.assertIn("G_R_real", data)
             self.assertIn("G2_O1", data)

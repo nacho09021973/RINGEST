@@ -3,7 +3,7 @@ tests/test_agmoo_ads_contract.py
 =================================
 Tests de contrato AGMOO para familia ``ads``.
 
-Cobertura mínima obligatoria (ver docs/checklist_agmoo_ads.md):
+Cobertura mínima obligatoria:
 
   1. ads sin metadata del Gate 6 (T=0, no deformación) → ADS_TEMPLATE_ONLY
   2. ads térmico + correlador no-Witten + sin Gate 6 → ADS_TEMPLATE_ONLY
@@ -35,8 +35,10 @@ from family_registry import (
     ADS_CLASSIFICATIONS,
     ADS_VERDICT_STATES,
     CORRELATOR_TYPES,
+    FAMILY_STATUS_STATES,
     classify_ads_geometry,
     get_correlator_type_for_geometry,
+    get_family_status,
 )
 from tools.validate_agmoo_ads import (
     check_bf_bound,
@@ -250,9 +252,9 @@ class TestAdsThermalToyOnly:
         result = validate_ads_geometry(meta)
         assert result["overall_verdict"] == "ADS_EXPERIMENTAL_TOY_ONLY"
 
-    def test_repo_current_case_ads_d3_tfinite(self):
+    def test_ads_d3_tfinite_without_gate6_is_template_only(self):
         """
-        REGRESIÓN: caso real del repo, ads_d3_Tfinite con z_h=1.0.
+        REGRESIÓN: caso ads_d3_Tfinite con z_h=1.0.
         Gate 6 ausente → ADS_TEMPLATE_ONLY (no ADS_THERMAL_TOY_ONLY).
         """
         meta = {
@@ -411,6 +413,17 @@ class TestCorrelatorTypeInStage01Metadata:
         """use_geodesic=False devuelve TOY_PHENOMENOLOGICAL."""
         ct = get_correlator_type_for_geometry("ads", use_geodesic=False)
         assert ct == "TOY_PHENOMENOLOGICAL"
+
+    def test_family_status_contract(self):
+        assert "canonical_strong" in FAMILY_STATUS_STATES
+        assert "toy_sandbox" in FAMILY_STATUS_STATES
+        assert "realdata_surrogate" in FAMILY_STATUS_STATES
+        assert "non_holographic_surrogate" in FAMILY_STATUS_STATES
+        assert get_family_status("ads", ads_boundary_mode="gkpw") == "canonical_strong"
+        assert get_family_status("ads", ads_boundary_mode="toy") == "toy_sandbox"
+        assert get_family_status("lifshitz") == "toy_sandbox"
+        assert get_family_status("kerr") == "non_holographic_surrogate"
+        assert get_family_status("unknown", source="realdata") == "realdata_surrogate"
 
     def test_stage01_metadata_function_present(self):
         """

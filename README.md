@@ -1,67 +1,74 @@
 # RINGEST
 
-RINGEST es un proyecto distinto de `ringhier`.
+Pipeline local para generar datos ADS/GKPW, procesar eventos GWOSC y pasar ambos
+carriles por el motor de geometria emergente.
 
-- `ringhier` / BASURIN conserva validación, trazabilidad, freezes y cierres contractuales.
-- `RINGEST` nace para exploración de patrones y generación de hipótesis.
-- Los claims no se validan en `RINGEST`.
-- Cualquier hallazgo candidato detectado en `RINGEST` debe volver a un carril validado antes de convertirse en claim.
+## Lo primero
 
-Estado analítico actual:
-- `RINGEST` no opera actualmente sobre el corpus bruto de eventos de `ringhier/data`.
-- `RINGEST` opera sobre un snapshot curado e inmutable de artefactos derivados importados desde `ringhier`, descrito en `data/manifests/import_from_ringhier.json`.
-- La fuente analítica actual incluye `data/raw/ringhier_snapshot/runs/phase8_ds46_estimator_input_unblock_20260407T000000Z/experiment/malda_residual_pattern_mining/outputs/residual_feature_table.json` como tabla derivada a nivel de evento.
-- `exp002_pattern_scan_global_simple` (`schema_version = exp002-pattern-scan-0.1`) selecciona una fuente derivada y `candidate_feature_fields`; `exp003_exploratory_clustering` explora estructura y clustering sobre tablas derivadas a nivel de evento. Ninguno de los dos debe describirse como minería sobre datos brutos de eventos ni sobre el corpus completo de `ringhier/data`.
+- Los datos pesados viven en `data/gwosc_events/`.
+- `data/` y `runs/` estan en `.gitignore`.
+- `runs/` es desechable: se usa solo para experimentos nuevos, checkpoints y
+  resultados temporales.
+- `configs/theory_dictionary/theory_dictionary_v1.json` es configuracion minima
+  del stage 08; no es un carril lateral.
+- El orden de scripts esta en [PIPELINE_ROUTES.md](/home/ignac/RINGEST/PIPELINE_ROUTES.md).
+- El manual de ejecucion esta en [instrucciones_pipeline.md](/home/ignac/RINGEST/instrucciones_pipeline.md).
 
-## Estructura inicial
+## Instalacion
 
-- `data/raw/`: snapshots inmutables importados desde proyectos validados. Solo lectura por convención.
-- `data/manifests/`: manifiestos de importación y procedencia.
-- `malda/`: copia local para evitar dependencia frágil de paths hacia `ringhier`.
-- `experiments/`: exploración controlada futura.
-- `notebooks/`: notebooks futuros, no ejecutados en este arranque.
-- `outputs/`: salidas derivadas de RINGEST.
-- `docs/`: notas operativas y convenciones.
-- `scripts/`: utilidades del proyecto.
-
-## Regla operativa
-
-Nada derivado debe escribirse dentro de `data/raw/`.
-
-## Instalación
-
-Base:
 ```bash
+cd /home/ignac/RINGEST
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -e . --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
 ```
 
-GPU / NVIDIA:
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -e ".[gpu]" --index-url https://download.pytorch.org/whl/cu121 --extra-index-url https://pypi.org/simple
-```
+PySR es opcional para busqueda simbolica:
 
-PySR opcional:
 ```bash
 . .venv/bin/activate
 pip install -e ".[pysr]" --extra-index-url https://pypi.org/simple
 ```
 
-Verificación CUDA:
-```bash
-python - <<'PY'
-import torch
-print("torch_version=", torch.__version__)
-print("cuda_available=", torch.cuda.is_available())
-print("cuda_device_count=", torch.cuda.device_count())
-PY
+## Rutas principales
+
+### Sandbox ADS/GKPW
+
+```text
+01_generate_sandbox_geometries.py
+-> 02_emergent_geometry_engine.py
+-> 03_discover_bulk_equations.py
+-> 04_geometry_physics_contracts.py
+-> 05_analyze_bulk_equations.py
+-> 06_build_bulk_eigenmodes_dataset.py
+-> 07_emergent_lambda_sl_dictionary.py
+-> 08_build_holographic_dictionary.py
+-> 09_real_data_and_dictionary_contracts.py
 ```
 
-Nota:
-- `PySR` es opcional y no bloquea el carril base.
-- `PySR` necesita Julia disponible en el primer import/uso efectivo.
+ADS debe ejecutarse en modo `--ads-boundary-mode gkpw`. No usar el modo toy para
+el carril canonico.
+
+Los manifests/HDF5 escriben `family_status`. Actualmente solo `ads` con GKPW es
+`canonical_strong`; el resto de familias sinteticas son `toy_sandbox`.
+
+### Datos reales GWOSC
+
+```text
+00_download_gwosc_events.py
+-> 00_load_ligo_data.py
+-> 01_extract_ringdown_poles.py
+-> realdata_ringdown_to_stage02_boundary_dataset.py
+-> 02_emergent_geometry_engine.py --mode inference
+```
+
+Los eventos canonicos y el layout local estan en
+[docs/canonical_events.md](/home/ignac/RINGEST/docs/canonical_events.md).
+
+## Documentacion minima
+
+- [PIPELINE_ROUTES.md](/home/ignac/RINGEST/PIPELINE_ROUTES.md): orden de scripts.
+- [instrucciones_pipeline.md](/home/ignac/RINGEST/instrucciones_pipeline.md): comandos para correr.
+- [docs/canonical_events.md](/home/ignac/RINGEST/docs/canonical_events.md): datos y eventos canonicos.
+- [docs/manual_pipeline_ads_gkpw.md](/home/ignac/RINGEST/docs/manual_pipeline_ads_gkpw.md): smoke ADS/GKPW verificado.
