@@ -149,46 +149,111 @@ class TestAdsTemplateOnly:
 
 
 # ---------------------------------------------------------------------------
-# 2. ads térmico + no-Witten + sin Gate 6 → ADS_THERMAL_TOY_ONLY
+# 2. ads térmico + Gate 6 ausente → ADS_TEMPLATE_ONLY
+#    (la ausencia de Gate 6 bloquea antes que el origen fenomenológico)
+#
+# ADS_THERMAL_TOY_ONLY solo es alcanzable con Gate 6 presente.
 # ---------------------------------------------------------------------------
 
 class TestAdsThermalToyOnly:
-    def test_thermal_geodesic_no_gate6(self):
+    # -- Regresión crítica: Gate 6 ausente bloquea antes de verificar si es térmico --
+
+    def test_thermal_geodesic_no_gate6_gives_template_only(self):
+        """
+        REGRESIÓN: ads_thermal + GEODESIC_APPROXIMATION + Gate 6 ausente
+        → ADS_TEMPLATE_ONLY, NO ADS_THERMAL_TOY_ONLY.
+
+        Gate 6 ausente bloquea cualquier lectura holográfica más fuerte,
+        incluyendo ADS_THERMAL_TOY_ONLY. (contrato sec. 2b)
+        """
         meta = _meta_ads_thermal_no_gate6()
         result = validate_ads_geometry(meta)
-        assert result["overall_verdict"] == "ADS_THERMAL_TOY_ONLY", (
-            f"Expected ADS_THERMAL_TOY_ONLY, got {result['overall_verdict']}"
+        assert result["overall_verdict"] == "ADS_TEMPLATE_ONLY", (
+            f"Gate 6 ausente debe dar ADS_TEMPLATE_ONLY, got {result['overall_verdict']}"
         )
 
-    def test_classification_is_ads_thermal(self):
+    def test_thermal_toy_phenomenological_no_gate6_gives_template_only(self):
+        """TOY_PHENOMENOLOGICAL + thermal + Gate 6 ausente → ADS_TEMPLATE_ONLY."""
+        meta = dict(_meta_ads_thermal_no_gate6())
+        meta["correlator_type"] = "TOY_PHENOMENOLOGICAL"
+        result = validate_ads_geometry(meta)
+        assert result["overall_verdict"] == "ADS_TEMPLATE_ONLY", (
+            f"Gate 6 ausente debe dar ADS_TEMPLATE_ONLY, got {result['overall_verdict']}"
+        )
+
+    def test_thermal_witten_no_gate6_gives_template_only(self):
+        """HOLOGRAPHIC_WITTEN_DIAGRAM + thermal + Gate 6 ausente → ADS_TEMPLATE_ONLY."""
+        meta = dict(_meta_ads_thermal_no_gate6())
+        meta["correlator_type"] = "HOLOGRAPHIC_WITTEN_DIAGRAM"
+        result = validate_ads_geometry(meta)
+        assert result["overall_verdict"] == "ADS_TEMPLATE_ONLY"
+
+    # -- Campos de clasificación se preservan aunque el veredicto sea TEMPLATE_ONLY --
+
+    def test_classification_is_ads_thermal_regardless_of_verdict(self):
+        """La clasificación geométrica es ads_thermal independientemente del veredicto."""
         meta = _meta_ads_thermal_no_gate6()
         result = validate_ads_geometry(meta)
         assert result["classification"] == "ads_thermal"
 
-    def test_correlator_type_preserved(self):
+    def test_correlator_type_preserved_in_output(self):
+        """correlator_type se preserva en la salida aunque el veredicto sea TEMPLATE_ONLY."""
         meta = _meta_ads_thermal_no_gate6()
         result = validate_ads_geometry(meta)
         assert result["correlator_type"] == "GEODESIC_APPROXIMATION"
 
-    def test_thermal_toy_phenomenological_no_gate6(self):
-        """TOY_PHENOMENOLOGICAL también da ADS_THERMAL_TOY_ONLY si no hay Gate 6."""
-        meta = dict(_meta_ads_thermal_no_gate6())
-        meta["correlator_type"] = "TOY_PHENOMENOLOGICAL"
+    # -- ADS_THERMAL_TOY_ONLY solo es alcanzable con Gate 6 presente --
+
+    def test_thermal_geodesic_with_gate6_gives_thermal_toy_only(self):
+        """
+        ads_thermal + GEODESIC_APPROXIMATION + Gate 6 PRESENTE
+        → ADS_THERMAL_TOY_ONLY.
+        Este es el único camino hacia ADS_THERMAL_TOY_ONLY.
+        """
+        meta = {
+            "family": "ads",
+            "d": 3,
+            "z_h": 1.0,
+            "deformation": 0.0,
+            "correlator_type": "GEODESIC_APPROXIMATION",
+            # Gate 6 completo
+            "bulk_field_name": "phi",
+            "operator_name": "O1",
+            "m2L2": -1.25,
+            "Delta": 2.5,
+            "bf_bound_pass": True,
+            "uv_source_declared": True,
+            "ir_bc_declared": True,
+        }
+        result = validate_ads_geometry(meta)
+        assert result["overall_verdict"] == "ADS_THERMAL_TOY_ONLY", (
+            f"Gate 6 presente + thermal + GEODESIC → ADS_THERMAL_TOY_ONLY, "
+            f"got {result['overall_verdict']}"
+        )
+
+    def test_thermal_toy_with_gate6_gives_thermal_toy_only(self):
+        """TOY_PHENOMENOLOGICAL + thermal + Gate 6 presente → ADS_THERMAL_TOY_ONLY."""
+        meta = {
+            "family": "ads",
+            "d": 3,
+            "z_h": 1.0,
+            "deformation": 0.0,
+            "correlator_type": "TOY_PHENOMENOLOGICAL",
+            "bulk_field_name": "phi",
+            "operator_name": "O1",
+            "m2L2": -1.25,
+            "Delta": 2.5,
+            "bf_bound_pass": True,
+            "uv_source_declared": True,
+            "ir_bc_declared": True,
+        }
         result = validate_ads_geometry(meta)
         assert result["overall_verdict"] == "ADS_THERMAL_TOY_ONLY"
 
-    def test_thermal_witten_no_gate6_gives_template_only(self):
-        """HOLOGRAPHIC_WITTEN_DIAGRAM + thermal + sin Gate 6 → ADS_TEMPLATE_ONLY (Gate 6 requerido)."""
-        meta = dict(_meta_ads_thermal_no_gate6())
-        meta["correlator_type"] = "HOLOGRAPHIC_WITTEN_DIAGRAM"
-        result = validate_ads_geometry(meta)
-        # Gate 6 incompleto → ADS_TEMPLATE_ONLY (no puede ser strong si falta Gate 6)
-        assert result["overall_verdict"] == "ADS_TEMPLATE_ONLY"
-
     def test_repo_current_case_ads_d3_tfinite(self):
         """
-        Caso real del repo: ads_d3_Tfinite con z_h=1.0.
-        Debe resultar en ADS_THERMAL_TOY_ONLY.
+        REGRESIÓN: caso real del repo, ads_d3_Tfinite con z_h=1.0.
+        Gate 6 ausente → ADS_TEMPLATE_ONLY (no ADS_THERMAL_TOY_ONLY).
         """
         meta = {
             "family": "ads",
@@ -200,7 +265,10 @@ class TestAdsThermalToyOnly:
         result = validate_ads_geometry(meta)
         assert result["classification"] == "ads_thermal"
         assert result["correlator_type"] == "GEODESIC_APPROXIMATION"
-        assert result["overall_verdict"] == "ADS_THERMAL_TOY_ONLY"
+        assert result["overall_verdict"] == "ADS_TEMPLATE_ONLY", (
+            f"ads_d3_Tfinite sin Gate 6 debe ser ADS_TEMPLATE_ONLY, "
+            f"got {result['overall_verdict']}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -393,10 +461,13 @@ class TestCorrelatorTypeInStage01Metadata:
 # ---------------------------------------------------------------------------
 
 class TestRepoCurrentState:
-    def test_all_ads_prototypes_are_thermal_toy_only(self):
+    def test_all_ads_prototypes_are_template_only(self):
         """
-        Los prototipos ads actuales del repo (ads_d3_Tfinite, etc.)
-        deben resultar en ADS_THERMAL_TOY_ONLY.
+        REGRESIÓN: los prototipos ads actuales del repo (ads_d3_Tfinite, etc.)
+        sin Gate 6 deben resultar en ADS_TEMPLATE_ONLY, no en ADS_THERMAL_TOY_ONLY.
+
+        Clasificación geométrica: ads_thermal (correcto).
+        Veredicto holográfico: ADS_TEMPLATE_ONLY (Gate 6 ausente bloquea).
         """
         ads_prototypes = [
             {"name": "ads_d3_Tfinite",      "z_h": 1.0, "d": 3, "deformation": 0.0},
@@ -414,8 +485,9 @@ class TestRepoCurrentState:
             assert result["classification"] == "ads_thermal", (
                 f"{proto['name']}: expected ads_thermal, got {result['classification']}"
             )
-            assert result["overall_verdict"] == "ADS_THERMAL_TOY_ONLY", (
-                f"{proto['name']}: expected ADS_THERMAL_TOY_ONLY, got {result['overall_verdict']}"
+            assert result["overall_verdict"] == "ADS_TEMPLATE_ONLY", (
+                f"{proto['name']}: Gate 6 ausente debe dar ADS_TEMPLATE_ONLY, "
+                f"got {result['overall_verdict']}"
             )
 
 
