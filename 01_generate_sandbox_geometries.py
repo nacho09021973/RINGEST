@@ -1742,6 +1742,13 @@ def make_geometry_instance(
     else:
         params["d"] = int(d)
 
+    # Si el nombre base codifica _d<k>_, reescribirlo al d elegido para que
+    # los datos nazcan consistentes (sin depender de autofix aguas abajo).
+    if re.search(r"_d\d+(?=_|$)", base.name):
+        params["name"] = rewrite_geometry_name_for_dimension(
+            params["name"], int(params["d"])
+        )
+
     # --- Jitters especificos por family ---
     if family == "lifshitz":
         # z_dyn > 1 tipico
@@ -2154,19 +2161,21 @@ def main():
             print(f"[{idx+1:04d}/{len(geometries):04d}] {geo.name} ({geo.family}, {category})")
 
             # ============================================================
-            # FIX 2025-12-21: Guardrail IO v1 ANTES de generar datos
+            # Guardrail IO v1: el nombre y geo.d deben nacer consistentes.
+            # Si el nombre codifica "_d<k>_", debe coincidir con geo.d.
+            # make_geometry_instance ya reescribe el nombre al jitterar d,
+            # por lo que cualquier mismatch aquí indica un bug regresivo.
             # ============================================================
-            # Si el nombre codifica "_d<k>_", debe coincidir con geo.d
-            # IMPORTANTE: esto debe ejecutarse ANTES de generar operators,
-            # boundary_data y bulk_truth para que todos usen el valor correcto de d.
-            m_d = re.search(r"_d(\d+)_", geo.name)
+            m_d = re.search(r"_d(\d+)(?:_|$)", geo.name)
             if m_d is not None:
                 d_name = int(m_d.group(1))
                 if int(geo.d) != d_name:
-                    print(
-                        f"[IO_CONTRACT][AUTO-FIX] d mismatch: {geo.name}: geo.d={geo.d} -> {d_name} (from name)"
+                    raise RuntimeError(
+                        f"[IO_CONTRACT] d mismatch at stage 01 loop: "
+                        f"{geo.name!r} carries _d{d_name}_ but geo.d={geo.d}. "
+                        "Nombre y dimensión deben nacer consistentes; "
+                        "revisa make_geometry_instance."
                     )
-                    geo.d = d_name
 
             # operators
             operators = generate_operators_for_geometry(geo, args.n_operators, rng)
