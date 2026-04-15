@@ -61,11 +61,30 @@ import h5py  # type: ignore
 
 # Registro canónico de familias (contract-first)
 try:
-    from family_registry import extra_attrs_for, FAMILY_MAP  # noqa: F401
+    from family_registry import (  # noqa: F401
+        extra_attrs_for,
+        FAMILY_MAP,
+        classify_ads_geometry,
+        get_correlator_type_for_geometry,
+    )
     HAS_FAMILY_REGISTRY = True
 except ImportError:
     HAS_FAMILY_REGISTRY = False
     FAMILY_MAP = {}  # type: ignore
+
+    def classify_ads_geometry(family, z_h, deformation=0.0):  # type: ignore
+        """Stub: family_registry no disponible."""
+        if family != "ads":
+            return None
+        if abs(deformation) > 1e-8:
+            return "ads_deformed"
+        if z_h is not None and float(z_h) > 0.0:
+            return "ads_thermal"
+        return "ads_toy_boundary"
+
+    def get_correlator_type_for_geometry(family, use_geodesic=True):  # type: ignore
+        """Stub: family_registry no disponible."""
+        return "GEODESIC_APPROXIMATION" if use_geodesic else "TOY_PHENOMENOLOGICAL"
 
 # V3 INFRASTRUCTURE - PATCH
 HAS_STAGE_UTILS = False
@@ -422,6 +441,34 @@ class HiddenGeometry:
         integrand = np.exp((self.d - 1) * A)
         c_eff = float(np.trapezoid(integrand, z))
         return c_eff
+
+# ============================================================
+#  METADATA AGMOO: clasificación y tipo de correlador
+# ============================================================
+
+def get_ads_metadata_for_geometry(geo: HiddenGeometry) -> Dict[str, Optional[str]]:
+    """
+    Retorna la metadata AGMOO para una geometría.
+
+    Para familia ``ads``:
+      - ``ads_classification``: sub-clasificación derivada del código
+        (ads_thermal | ads_deformed | ads_toy_boundary | None si no es ads)
+      - ``correlator_type``: tipo de correlador del observable de frontera.
+        Actualmente siempre GEODESIC_APPROXIMATION, pues generate_boundary_data
+        llama a correlator_2pt_geodesic para todos los G2.
+
+    Para otras familias solo se emite ``correlator_type`` (el correlador
+    geodésico es el mismo para todas las familias en este repo).
+    """
+    correlator_type = get_correlator_type_for_geometry(geo.family, use_geodesic=True)
+    ads_cls: Optional[str] = None
+    if geo.family == "ads":
+        ads_cls = classify_ads_geometry(geo.family, geo.z_h, geo.deformation)
+    return {
+        "correlator_type": correlator_type,
+        "ads_classification": ads_cls,
+    }
+
 
 # ============================================================
 #  GEOMETRÍA BASE
@@ -1846,6 +1893,11 @@ def main():
                 # ── Tier A ext (2026-04) ──────────────────────────────────────
                 f.attrs["mu_GR"] = geo.mu_GR
                 f.attrs["kappa_sw"] = geo.kappa_sw
+                # ── AGMOO contract: clasificación ads y tipo de correlador ────
+                agmoo_meta = get_ads_metadata_for_geometry(geo)
+                f.attrs["correlator_type"] = agmoo_meta["correlator_type"]
+                if geo.family == "ads" and agmoo_meta["ads_classification"] is not None:
+                    f.attrs["ads_classification"] = agmoo_meta["ads_classification"]
                 f.attrs["operators"] = json.dumps(operators)
                 f.attrs["sampling_regime"] = (
                     "focused_real_regime" if focused_config.enabled else "default"
@@ -1888,18 +1940,22 @@ def main():
                 f.create_dataset("f_of_z", data=bulk_truth["f_truth"])
 
             # entrada en manifest
-            manifest["geometries"].append(
-                {
-                    "name": geo.name,
-                    "family": geo.family,
-                    "category": category,
-                    "d": geo.d,
-                    "file": str(output_path.name),
-                    "operators": [op["name"] for op in operators],
-                    "sampling_regime": "focused_real_regime" if focused_config.enabled else "default",
-                    "metadata": geo.metadata,
-                }
-            )
+            agmoo_manifest_meta = get_ads_metadata_for_geometry(geo)
+            manifest_entry: Dict = {
+                "name": geo.name,
+                "family": geo.family,
+                "category": category,
+                "d": geo.d,
+                "z_h": geo.z_h,
+                "file": str(output_path.name),
+                "operators": [op["name"] for op in operators],
+                "sampling_regime": "focused_real_regime" if focused_config.enabled else "default",
+                "correlator_type": agmoo_manifest_meta["correlator_type"],
+                "metadata": geo.metadata,
+            }
+            if geo.family == "ads":
+                manifest_entry["ads_classification"] = agmoo_manifest_meta["ads_classification"]
+            manifest["geometries"].append(manifest_entry)
 
         # escribir manifest de geometrías (nombre propio para no colisionar con stage_utils)
         manifest_path = output_dir / "geometries_manifest.json"
