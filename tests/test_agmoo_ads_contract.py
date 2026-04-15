@@ -412,6 +412,7 @@ class TestCorrelatorTypeInStage01Metadata:
         ct = get_correlator_type_for_geometry("ads", use_geodesic=False)
         assert ct == "TOY_PHENOMENOLOGICAL"
 
+    @pytest.mark.skip(reason="01_generate_sandbox_geometries.py archivado en _archive/")
     def test_stage01_metadata_function_present(self):
         """
         La función get_ads_metadata_for_geometry debe existir en Stage 01.
@@ -426,6 +427,7 @@ class TestCorrelatorTypeInStage01Metadata:
             "La función get_ads_metadata_for_geometry no existe en Stage 01"
         )
 
+    @pytest.mark.skip(reason="01_generate_sandbox_geometries.py archivado en _archive/")
     def test_stage01_writes_correlator_type_attr(self):
         """
         Stage 01 debe contener la escritura de correlator_type en los attrs HDF5.
@@ -436,6 +438,7 @@ class TestCorrelatorTypeInStage01Metadata:
             "Stage 01 no escribe correlator_type en attrs HDF5"
         )
 
+    @pytest.mark.skip(reason="01_generate_sandbox_geometries.py archivado en _archive/")
     def test_stage01_writes_ads_classification_attr(self):
         """
         Stage 01 debe contener la escritura de ads_classification en los attrs HDF5
@@ -446,6 +449,7 @@ class TestCorrelatorTypeInStage01Metadata:
             "Stage 01 no escribe ads_classification en attrs HDF5"
         )
 
+    @pytest.mark.skip(reason="01_generate_sandbox_geometries.py archivado en _archive/")
     def test_stage01_manifest_includes_correlator_type(self):
         """
         Stage 01 debe incluir correlator_type en las entradas del manifest.
