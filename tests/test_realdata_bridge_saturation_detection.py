@@ -1,5 +1,5 @@
 """
-Tests for observed saturation detection and automatic contract selection in 02R.
+Tests for observed saturation detection and automatic contract selection in real-data bridge.
 
 These tests cover:
 - detect_observed_saturation() function (post-hoc on constructed G2)
@@ -19,11 +19,11 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _load_02r():
-    key = "stage02r_saturation_test"
+def _load_realdata_bridge():
+    key = "realdata_bridge_saturation_test"
     sys.modules.pop(key, None)
     spec = importlib.util.spec_from_file_location(
-        key, REPO_ROOT / "02R_build_ringdown_boundary_dataset.py"
+        key, REPO_ROOT / "realdata_ringdown_to_stage02_boundary_dataset.py"
     )
     mod = importlib.util.module_from_spec(spec)
     sys.modules[key] = mod
@@ -35,7 +35,7 @@ class TestObservedSaturationDetection(unittest.TestCase):
     """Tests for the detect_observed_saturation function."""
 
     def setUp(self):
-        self.mod = _load_02r()
+        self.mod = _load_realdata_bridge()
 
     def test_all_ones_array_is_saturated(self):
         """Array with all values >= 0.99 should be detected as saturated."""
@@ -102,7 +102,7 @@ class TestSaturatedByConstructionRegime(unittest.TestCase):
     """Tests simulating the SATURATED_BY_CONSTRUCTION regime (8 events)."""
 
     def setUp(self):
-        self.mod = _load_02r()
+        self.mod = _load_realdata_bridge()
 
     def test_monomodal_high_q_with_omega_v1_produces_saturated_g2(self):
         """
@@ -168,7 +168,7 @@ class TestHighTailNonSaturatedRegime(unittest.TestCase):
     """Tests simulating the HIGH_TAIL_NON_SATURATED regime (55 events)."""
 
     def setUp(self):
-        self.mod = _load_02r()
+        self.mod = _load_realdata_bridge()
 
     def test_high_tail_multimodal_is_not_detected_as_saturated(self):
         """
@@ -208,7 +208,7 @@ class TestPassCorridorRegression(unittest.TestCase):
     """Regression tests to ensure PASS-25 corridor is not affected."""
 
     def setUp(self):
-        self.mod = _load_02r()
+        self.mod = _load_realdata_bridge()
 
     def test_multimodal_event_with_high_q_not_saturated(self):
         """
@@ -286,7 +286,7 @@ class TestContractConstants(unittest.TestCase):
     """Verify contract constants are correctly defined."""
 
     def setUp(self):
-        self.mod = _load_02r()
+        self.mod = _load_realdata_bridge()
 
     def test_saturation_thresholds(self):
         """Default saturation thresholds should be 0.99 and 1.0."""
@@ -306,7 +306,7 @@ class TestTracingAttributes(unittest.TestCase):
     """Verify that tracing attributes are correctly set."""
 
     def setUp(self):
-        self.mod = _load_02r()
+        self.mod = _load_realdata_bridge()
 
     def test_saturation_meta_contains_expected_keys(self):
         """Saturation metadata should contain all expected keys."""

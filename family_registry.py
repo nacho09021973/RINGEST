@@ -38,6 +38,13 @@ TIERS
                   linear axion, charged hvLif)
   TIER_SPECIAL:   carriles no holográficos (Kerr); no usan bulk_truth
 
+FAMILY STATUS
+-------------
+  canonical_strong:          carril físico fuerte actualmente aceptado
+  toy_sandbox:               geometría/observable sintético o fenomenológico
+  realdata_surrogate:        embedding derivado de datos reales, no dual fuerte
+  non_holographic_surrogate: carril especial sin bulk holográfico
+
 METADATA CANÓNICA POR FAMILIA
 ------------------------------
 Cada familia declara los campos de metadata adicionales que escribe Stage 01
@@ -87,11 +94,41 @@ ALL_FAMILIES: FrozenSet[str] = HOLOGRAPHIC_FAMILIES | TIER_SPECIAL
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+#  Estado físico-operativo de familias
+# ──────────────────────────────────────────────────────────────────────────────
+
+FAMILY_STATUS_STATES: FrozenSet[str] = frozenset({
+    "canonical_strong",
+    "toy_sandbox",
+    "realdata_surrogate",
+    "non_holographic_surrogate",
+})
+
+FAMILY_STATUS_DESCRIPTIONS: Dict[str, str] = {
+    "canonical_strong": (
+        "Carril físico fuerte. En este repo actualmente solo aplica a ads "
+        "cuando Stage 01 corre con ads_boundary_mode=gkpw."
+    ),
+    "toy_sandbox": (
+        "Familia sintética/sandbox: warp, blackening u observable de frontera "
+        "son analíticos, geodésicos o fenomenológicos."
+    ),
+    "realdata_surrogate": (
+        "Embedding derivado de datos reales/ringdown; no constituye por sí solo "
+        "un dual holográfico fuerte."
+    ),
+    "non_holographic_surrogate": (
+        "Carril especial no holográfico dentro de este gauge, por ejemplo Kerr."
+    ),
+}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 #  Contrato AGMOO para familia ads
 # ──────────────────────────────────────────────────────────────────────────────
 
 #: Sub-clasificaciones canónicas de la familia ads.
-#: Ver docs/checklist_agmoo_ads.md para las condiciones de asignación.
+#: Las condiciones de asignación viven en el validador AGMOO ADS.
 ADS_CLASSIFICATIONS: FrozenSet[str] = frozenset({
     "ads_pure",          # AdS puro: T=0, sin deformación, Gate 6 completo
     "ads_thermal",       # AdS con horizonte (temperatura finita)
@@ -314,6 +351,32 @@ def extra_attrs_for(family: str) -> List[FamilyMetaSpec]:
     Para familias sin metadata extra (o no registradas) retorna lista vacía.
     """
     return FAMILY_EXTRA_ATTRS.get(family, [])
+
+
+def get_family_status(
+    family: str,
+    *,
+    ads_boundary_mode: str = "toy",
+    source: str = "sandbox",
+) -> str:
+    """
+    Retorna el estado físico-operativo de una familia en este repo.
+
+    `family` por sí sola no basta para ads: ads es fuerte solo cuando el
+    observable de frontera se genera por el carril GKPW.
+    """
+    if source == "realdata":
+        return "realdata_surrogate"
+    if family == "kerr":
+        return "non_holographic_surrogate"
+    if family == "ads" and ads_boundary_mode == "gkpw":
+        return "canonical_strong"
+    return "toy_sandbox"
+
+
+def get_family_status_description(status: str) -> str:
+    """Descripcion humana corta de un family_status."""
+    return FAMILY_STATUS_DESCRIPTIONS.get(status, "Estado de familia desconocido.")
 
 
 def read_extra_attrs_from_h5(h5_attrs: Mapping, family: str) -> Dict[str, float]:

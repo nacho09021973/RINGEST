@@ -10,11 +10,11 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _load_02r():
-    key = "stage02r_g2_contracts_test"
+def _load_realdata_bridge():
+    key = "realdata_bridge_g2_contracts_test"
     sys.modules.pop(key, None)
     spec = importlib.util.spec_from_file_location(
-        key, REPO_ROOT / "02R_build_ringdown_boundary_dataset.py"
+        key, REPO_ROOT / "realdata_ringdown_to_stage02_boundary_dataset.py"
     )
     mod = importlib.util.module_from_spec(spec)
     sys.modules[key] = mod
@@ -24,7 +24,7 @@ def _load_02r():
 
 class TestG2TimeContracts(unittest.TestCase):
     def setUp(self):
-        self.mod = _load_02r()
+        self.mod = _load_realdata_bridge()
 
     def test_gamma_dom_v2_decays_faster_than_omega_dom_v1_for_same_pole(self):
         pole = self.mod.Pole(freq_hz=100.0, damping_1_over_s=1.0, amp_abs=1.0)

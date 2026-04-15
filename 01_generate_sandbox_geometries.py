@@ -102,6 +102,8 @@ try:
         extra_attrs_for,
         FAMILY_MAP,
         classify_ads_geometry,
+        get_family_status,
+        get_family_status_description,
         get_correlator_type_for_geometry,
     )
     HAS_FAMILY_REGISTRY = True
@@ -122,6 +124,20 @@ except ImportError:
     def get_correlator_type_for_geometry(family, use_geodesic=True):  # type: ignore
         """Stub: family_registry no disponible."""
         return "GEODESIC_APPROXIMATION" if use_geodesic else "TOY_PHENOMENOLOGICAL"
+
+    def get_family_status(family, *, ads_boundary_mode="toy", source="sandbox"):  # type: ignore
+        """Stub: family_registry no disponible."""
+        if source == "realdata":
+            return "realdata_surrogate"
+        if family == "kerr":
+            return "non_holographic_surrogate"
+        if family == "ads" and ads_boundary_mode == "gkpw":
+            return "canonical_strong"
+        return "toy_sandbox"
+
+    def get_family_status_description(status):  # type: ignore
+        """Stub: family_registry no disponible."""
+        return status
 
 # V3 INFRASTRUCTURE - PATCH
 HAS_STAGE_UTILS = False
@@ -513,7 +529,13 @@ def get_ads_metadata_for_geometry(
         "correlator_type": correlator_type,
         "classification": ads_cls,
         "ads_classification": ads_cls,
+        "family_status": get_family_status(
+            geo.family,
+            ads_boundary_mode=ads_boundary_mode if geo.family == "ads" else "toy",
+            source="sandbox",
+        ),
     }
+    result["family_status_description"] = get_family_status_description(result["family_status"])
     if geo.family == "ads":
         result["ads_boundary_mode"] = ads_boundary_mode
         result["ads_pipeline_tier"] = "canonical" if ads_boundary_mode == "gkpw" else "experimental"
@@ -1416,6 +1438,10 @@ def generate_ads_gkpw_boundary_data(
             ),
             "ads_boundary_mode": "gkpw",
             "ads_pipeline_tier": "canonical",
+            "family_status": get_family_status(geo.family, ads_boundary_mode="gkpw", source="sandbox"),
+            "family_status_description": get_family_status_description(
+                get_family_status(geo.family, ads_boundary_mode="gkpw", source="sandbox")
+            ),
             "g2_construction": "spectral_laplace_from_gkpw_retarded_correlator",
             "gkpw_primary_operator": str(op0["name"]),
         }
@@ -2127,19 +2153,12 @@ def main():
         for idx, (geo, category) in enumerate(geometries):
             print(f"[{idx+1:04d}/{len(geometries):04d}] {geo.name} ({geo.family}, {category})")
 
-            # operators
-            operators = generate_operators_for_geometry(geo, args.n_operators, rng)
-            deltas_str = ", ".join(f"{op['Delta']:.2f}" for op in operators)
-            zh_display = geo.z_h if geo.z_h is not None else 0.0
-            print(f"   d={geo.d}, z_h={zh_display:.3f}, θ={geo.theta:.2f}, z_dyn={geo.z_dyn:.2f}")
-            print(f"   Δ: [{deltas_str}]")
-
             # ============================================================
             # FIX 2025-12-21: Guardrail IO v1 ANTES de generar datos
             # ============================================================
             # Si el nombre codifica "_d<k>_", debe coincidir con geo.d
-            # IMPORTANTE: esto debe ejecutarse ANTES de generar boundary_data
-            # y bulk_truth para que ambos usen el valor correcto de d.
+            # IMPORTANTE: esto debe ejecutarse ANTES de generar operators,
+            # boundary_data y bulk_truth para que todos usen el valor correcto de d.
             m_d = re.search(r"_d(\d+)_", geo.name)
             if m_d is not None:
                 d_name = int(m_d.group(1))
@@ -2148,6 +2167,13 @@ def main():
                         f"[IO_CONTRACT][AUTO-FIX] d mismatch: {geo.name}: geo.d={geo.d} -> {d_name} (from name)"
                     )
                     geo.d = d_name
+
+            # operators
+            operators = generate_operators_for_geometry(geo, args.n_operators, rng)
+            deltas_str = ", ".join(f"{op['Delta']:.2f}" for op in operators)
+            zh_display = geo.z_h if geo.z_h is not None else 0.0
+            print(f"   d={geo.d}, z_h={zh_display:.3f}, θ={geo.theta:.2f}, z_dyn={geo.z_dyn:.2f}")
+            print(f"   Δ: [{deltas_str}]")
 
             # boundary (VISIBLE para el learner)
             boundary_data, boundary_meta = generate_boundary_data(
@@ -2264,9 +2290,6 @@ def main():
                 manifest_entry["ads_classification"] = agmoo_manifest_meta["ads_classification"]
                 manifest_entry["ads_boundary_mode"] = agmoo_manifest_meta.get("ads_boundary_mode")
                 manifest_entry["ads_pipeline_tier"] = agmoo_manifest_meta.get("ads_pipeline_tier")
-            if geo.family == "lifshitz":
-                manifest_entry["lifshitz_boundary_mode"] = agmoo_manifest_meta.get("lifshitz_boundary_mode")
-                manifest_entry["lifshitz_pipeline_tier"] = agmoo_manifest_meta.get("lifshitz_pipeline_tier")
                 for key in (
                     "bulk_field_name",
                     "operator_name",
@@ -2280,6 +2303,9 @@ def main():
                 ):
                     if key in agmoo_manifest_meta:
                         manifest_entry[key] = agmoo_manifest_meta[key]
+            if geo.family == "lifshitz":
+                manifest_entry["lifshitz_boundary_mode"] = agmoo_manifest_meta.get("lifshitz_boundary_mode")
+                manifest_entry["lifshitz_pipeline_tier"] = agmoo_manifest_meta.get("lifshitz_pipeline_tier")
             manifest["geometries"].append(manifest_entry)
 
         # escribir manifest de geometrías (nombre propio para no colisionar con stage_utils)

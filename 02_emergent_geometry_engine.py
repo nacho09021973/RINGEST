@@ -646,7 +646,7 @@ def build_feature_vector(boundary_data: Dict[str, Any], operators: List[Dict]) -
     # Replaces the 4 Δ operator features, which are 0 for all LIGO data
     # (no CFT operator spectrum) but non-zero for sandbox — breaking generalization.
     # QNM features are stored as boundary attrs by both 00_compute_sandbox_qnms.py
-    # (sandbox) and 02R_build_ringdown_boundary_dataset.py (LIGO).
+    # (sandbox) and realdata_ringdown_to_stage02_boundary_dataset.py (LIGO).
     qnm_Q0   = float(boundary_data.get("qnm_Q0",   0.0))
     qnm_f1f0 = float(boundary_data.get("qnm_f1f0", 0.0))
     qnm_g1g0 = float(boundary_data.get("qnm_g1g0", 0.0))
