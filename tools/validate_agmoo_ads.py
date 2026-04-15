@@ -250,47 +250,49 @@ def compute_ads_verdict(
 
     Orden de prioridad (ver docs/checklist_agmoo_ads.md):
 
-    1. BF bound violada → ADS_CONTRACT_FAIL
-    2. Campos geométricos críticos ausentes → ADS_CONTRACT_FAIL
-    3. correlator_type = UNKNOWN → ADS_TEMPLATE_ONLY
-    4. Gate 6 incompleto:
-         a. ads_thermal + no-Witten → ADS_THERMAL_TOY_ONLY
-         b. resto → ADS_TEMPLATE_ONLY
-    5. Gate UV/IR = FRAGILE → ADS_UV_IR_FRAGILE
-    6. Gate UV/IR = PASS → ADS_HOLOGRAPHIC_STRONG_PASS
-    7. Default → ADS_HOLOGRAPHIC_PARTIAL_PASS
+    1. BF bound violada o campos geométricos críticos ausentes → ADS_CONTRACT_FAIL
+    2. correlator_type = UNKNOWN o Gate 6 ausente → ADS_TEMPLATE_ONLY
+       (Gate 6 ausente bloquea CUALQUIER lectura holográfica, incluso la térmica)
+    3. Gate 6 presente + caso térmico + correlador no-Witten → ADS_THERMAL_TOY_ONLY
+    4. Gate UV/IR = FRAGILE → ADS_UV_IR_FRAGILE
+    5. Gate UV/IR = PASS → ADS_HOLOGRAPHIC_STRONG_PASS
+    6. Default (Gate 6 OK, UV/IR no declarado) → ADS_HOLOGRAPHIC_PARTIAL_PASS
     """
     # 1. BF bound violation
     if bf_check.get("pass") is False:
         return "ADS_CONTRACT_FAIL"
 
-    # 2. Geometry gate: campos críticos ausentes
+    # 1b. Geometry gate: campos críticos ausentes
     geo_missing = set(geometry_gate.get("missing", []))
     if "family" in geo_missing or "d" in geo_missing:
         return "ADS_CONTRACT_FAIL"
 
-    # 3. Correlator type unknown
+    # 2. correlator_type UNKNOWN → ADS_TEMPLATE_ONLY
     if correlator_type == "UNKNOWN":
         return "ADS_TEMPLATE_ONLY"
 
-    # 4. Gate 6 holográfico incompleto
+    # 2b. Gate 6 incompleto → ADS_TEMPLATE_ONLY (sin excepción térmica)
+    # La ausencia de Gate 6 bloquea cualquier lectura holográfica más fuerte,
+    # incluido ADS_THERMAL_TOY_ONLY. Este estado requiere Gate 6 presente.
     holo_gate_ok = holographic_gate.get("status") == "PASS"
     if not holo_gate_ok:
-        is_thermal = classification == "ads_thermal"
-        is_witten = correlator_type == "HOLOGRAPHIC_WITTEN_DIAGRAM"
-        if is_thermal and not is_witten:
-            return "ADS_THERMAL_TOY_ONLY"
         return "ADS_TEMPLATE_ONLY"
 
-    # 5. UV/IR gate fragile
+    # 3. Gate 6 presente: discriminar caso térmico + no-Witten
+    is_thermal = classification == "ads_thermal"
+    is_witten = correlator_type == "HOLOGRAPHIC_WITTEN_DIAGRAM"
+    if is_thermal and not is_witten:
+        return "ADS_THERMAL_TOY_ONLY"
+
+    # 4. UV/IR gate fragile
     if uv_ir_gate.get("status") == "FRAGILE":
         return "ADS_UV_IR_FRAGILE"
 
-    # 6. Todos los gates pasan
+    # 5. Todos los gates pasan
     if uv_ir_gate.get("status") == "PASS":
         return "ADS_HOLOGRAPHIC_STRONG_PASS"
 
-    # 7. Default (Gate 6 OK pero UV/IR no declarado)
+    # 6. Default (Gate 6 OK pero UV/IR no declarado)
     return "ADS_HOLOGRAPHIC_PARTIAL_PASS"
 
 
