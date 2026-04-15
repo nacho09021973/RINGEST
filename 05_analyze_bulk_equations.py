@@ -446,7 +446,7 @@ def main():
     
     # Prioridad 2: V3 - buscar en 03_discover_bulk_equations
     if input_path is None and ctx:
-        candidate = ctx.run_root / "03_discover_bulk_equations" / "einstein_discovery_summary.json"
+        candidate = ctx.run_root / "03_discover_bulk_equations" / "outputs" / "einstein_discovery_summary.json"
         if candidate.exists():
             input_path = candidate
             print(f"[V3] Input desde stage 03: {input_path}")
