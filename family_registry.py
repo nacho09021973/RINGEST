@@ -47,7 +47,7 @@ deformation, L) son comunes a todas.
 
 from __future__ import annotations
 
-from typing import Dict, FrozenSet, List, Mapping, NamedTuple
+from typing import Dict, FrozenSet, List, Mapping, NamedTuple, Optional
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Constantes de tier
@@ -84,6 +84,39 @@ HOLOGRAPHIC_FAMILIES: FrozenSet[str] = TIER_CANONICAL | TIER_A
 
 #: Todas las familias reconocidas (incluyendo carriles especiales).
 ALL_FAMILIES: FrozenSet[str] = HOLOGRAPHIC_FAMILIES | TIER_SPECIAL
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  Contrato AGMOO para familia ads
+# ──────────────────────────────────────────────────────────────────────────────
+
+#: Sub-clasificaciones canónicas de la familia ads.
+#: Ver docs/checklist_agmoo_ads.md para las condiciones de asignación.
+ADS_CLASSIFICATIONS: FrozenSet[str] = frozenset({
+    "ads_pure",          # AdS puro: T=0, sin deformación, Gate 6 completo
+    "ads_thermal",       # AdS con horizonte (temperatura finita)
+    "ads_deformed",      # AdS con deformación explícita del warp factor
+    "ads_toy_boundary",  # AdS T=0 sin deformación pero sin Gate 6 completo
+})
+
+#: Tipos de correlador para el observable de frontera.
+CORRELATOR_TYPES: FrozenSet[str] = frozenset({
+    "HOLOGRAPHIC_WITTEN_DIAGRAM",  # Diagrama de Witten completo (AdS/CFT exacto)
+    "GEODESIC_APPROXIMATION",      # Aproximación geodésica (AGMOO Sec. 3.5.1)
+    "QNM_SURROGATE",               # Surrogate basado en QNMs
+    "TOY_PHENOMENOLOGICAL",        # Modelo fenomenológico toy
+    "UNKNOWN",                     # No inferible del código disponible
+})
+
+#: Estados de veredicto AGMOO para familia ads.
+ADS_VERDICT_STATES: FrozenSet[str] = frozenset({
+    "ADS_HOLOGRAPHIC_STRONG_PASS",  # Todos los gates pasan completamente
+    "ADS_HOLOGRAPHIC_PARTIAL_PASS", # Gates geométrico y holográfico pasan; UV/IR parcial
+    "ADS_TEMPLATE_ONLY",            # Gate 6 ausente en caso no térmico, o correlador UNKNOWN
+    "ADS_THERMAL_TOY_ONLY",         # Térmico + correlador no-Witten + Gate 6 ausente
+    "ADS_UV_IR_FRAGILE",            # Gates anteriores OK, UV/IR gate FRAGILE
+    "ADS_CONTRACT_FAIL",            # Cota BF violada o campos geométricos críticos ausentes
+})
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -303,6 +336,66 @@ def read_extra_attrs_from_h5(h5_attrs: Mapping, family: str) -> Dict[str, float]
         else:
             result[spec.h5_attr] = spec.dtype(raw)
     return result
+
+
+def classify_ads_geometry(
+    family: str,
+    z_h: Optional[float],
+    deformation: float = 0.0,
+) -> Optional[str]:
+    """
+    Retorna la sub-clasificación ads para una geometría, o None si no es ads.
+
+    Reglas (conservadoras, derivadas del código):
+      - family != "ads"          → None
+      - deformation ≠ 0          → "ads_deformed"
+      - z_h > 0                  → "ads_thermal"
+      - z_h is None o z_h <= 0   → "ads_toy_boundary"
+        (ads_pure requiere Gate 6 completo, que se verifica en validate_agmoo_ads)
+
+    Parameters
+    ----------
+    family      : nombre de la familia
+    z_h         : posición del horizonte (None o 0.0 → sin horizonte)
+    deformation : valor del campo deformation en HiddenGeometry
+
+    Returns
+    -------
+    str con la sub-clasificación ads, o None si family != "ads".
+    """
+    if family != "ads":
+        return None
+    if abs(deformation) > 1e-8:
+        return "ads_deformed"
+    if z_h is not None and float(z_h) > 0.0:
+        return "ads_thermal"
+    # T=0, sin deformación: no se puede confirmar ads_pure sin Gate 6
+    return "ads_toy_boundary"
+
+
+def get_correlator_type_for_geometry(family: str, use_geodesic: bool = True) -> str:
+    """
+    Retorna el correlator_type basado en el camino real del observable en el repo.
+
+    En el estado actual del repo, todos los correladores G2 se calculan
+    mediante correlator_2pt_geodesic (AGMOO Sec. 3.5.1), con fallback interno
+    al correlador térmico fenomenológico si el cálculo geodésico falla.
+
+    El campo G_R (respuesta lineal) es un polo Lorentziano toy, pero no es
+    el observable principal para la reconstrucción de Stage 02.
+
+    Parameters
+    ----------
+    family       : nombre de la familia (solo documentativo aquí)
+    use_geodesic : True si el script usa correlator_2pt_geodesic (default)
+
+    Returns
+    -------
+    str con el correlator_type canónico.
+    """
+    if use_geodesic:
+        return "GEODESIC_APPROXIMATION"
+    return "TOY_PHENOMENOLOGICAL"
 
 
 def validate_family(family: str, *, strict: bool = False) -> bool:
