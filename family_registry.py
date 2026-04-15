@@ -102,6 +102,7 @@ ADS_CLASSIFICATIONS: FrozenSet[str] = frozenset({
 #: Tipos de correlador para el observable de frontera.
 CORRELATOR_TYPES: FrozenSet[str] = frozenset({
     "HOLOGRAPHIC_WITTEN_DIAGRAM",  # Diagrama de Witten completo (AdS/CFT exacto)
+    "GKPW_SOURCE_RESPONSE_NUMERICAL", # Source/response bulk numerico sin renormalizacion completa
     "GEODESIC_APPROXIMATION",      # Aproximación geodésica (AGMOO Sec. 3.5.1)
     "QNM_SURROGATE",               # Surrogate basado en QNMs
     "TOY_PHENOMENOLOGICAL",        # Modelo fenomenológico toy
@@ -112,8 +113,9 @@ CORRELATOR_TYPES: FrozenSet[str] = frozenset({
 ADS_VERDICT_STATES: FrozenSet[str] = frozenset({
     "ADS_HOLOGRAPHIC_STRONG_PASS",  # Todos los gates pasan completamente
     "ADS_HOLOGRAPHIC_PARTIAL_PASS", # Gates geométrico y holográfico pasan; UV/IR parcial
-    "ADS_TEMPLATE_ONLY",            # Gate 6 ausente en caso no térmico, o correlador UNKNOWN
-    "ADS_THERMAL_TOY_ONLY",         # Térmico + correlador no-Witten + Gate 6 ausente
+    "ADS_TEMPLATE_ONLY",            # Gate 6 ausente en experimental/legacy, o correlador UNKNOWN
+    "ADS_THERMAL_TOY_ONLY",         # Térmico + correlador no fuerte (compatibilidad histórica)
+    "ADS_EXPERIMENTAL_TOY_ONLY",    # Tier experimental con correlador toy/geodésico/QNM
     "ADS_UV_IR_FRAGILE",            # Gates anteriores OK, UV/IR gate FRAGILE
     "ADS_CONTRACT_FAIL",            # Cota BF violada o campos geométricos críticos ausentes
 })
