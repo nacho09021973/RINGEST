@@ -85,27 +85,28 @@ el gate retorna `FRAGILE`.
 
 ## Estados de veredicto
 
-| Estado                          | Condición                                                          |
-|---------------------------------|--------------------------------------------------------------------|
-| `ADS_CONTRACT_FAIL`             | Cota BF violada, o campos geométricos críticos ausentes            |
-| `ADS_TEMPLATE_ONLY`             | `correlator_type=UNKNOWN`, o Gate 6 ausente en caso no térmico     |
-| `ADS_THERMAL_TOY_ONLY`          | Térmico + correlador no-Witten + Gate 6 ausente                    |
-| `ADS_UV_IR_FRAGILE`             | Todos los gates anteriores pasan, pero UV/IR gate retorna FRAGILE  |
-| `ADS_HOLOGRAPHIC_PARTIAL_PASS`  | Gates geométrico y holográfico pasan; UV/IR parcial                |
-| `ADS_HOLOGRAPHIC_STRONG_PASS`   | Todos los gates pasan completamente                                |
+| Estado                          | Condición                                                                      |
+|---------------------------------|--------------------------------------------------------------------------------|
+| `ADS_CONTRACT_FAIL`             | Cota BF violada, o campos geométricos críticos (`family`, `d`) ausentes        |
+| `ADS_TEMPLATE_ONLY`             | `correlator_type=UNKNOWN` **o** Gate 6 ausente (sin excepción térmica)         |
+| `ADS_THERMAL_TOY_ONLY`          | Gate 6 **presente** + térmico + correlador no-Witten                           |
+| `ADS_UV_IR_FRAGILE`             | Gate 6 presente, Gate UV/IR retorna FRAGILE                                    |
+| `ADS_HOLOGRAPHIC_PARTIAL_PASS`  | Gates geométrico y holográfico pasan; UV/IR no declarado                       |
+| `ADS_HOLOGRAPHIC_STRONG_PASS`   | Todos los gates pasan completamente                                            |
+
+> **Invariante clave**: `ADS_THERMAL_TOY_ONLY` requiere Gate 6 presente.
+> La ausencia de Gate 6 bloquea siempre con `ADS_TEMPLATE_ONLY`, aunque el caso sea térmico.
 
 ### Lógica de prioridad (orden de evaluación)
 
 ```
-1. BF bound violada → ADS_CONTRACT_FAIL
-2. Campos geométricos críticos (family, d) ausentes → ADS_CONTRACT_FAIL
-3. correlator_type = UNKNOWN → ADS_TEMPLATE_ONLY
-4. Gate 6 incompleto:
-     a. ads_thermal + correlador ≠ HOLOGRAPHIC_WITTEN_DIAGRAM → ADS_THERMAL_TOY_ONLY
-     b. Resto → ADS_TEMPLATE_ONLY
-5. Gate UV/IR = FRAGILE → ADS_UV_IR_FRAGILE
-6. Gate UV/IR = PASS → ADS_HOLOGRAPHIC_STRONG_PASS
-7. Por defecto → ADS_HOLOGRAPHIC_PARTIAL_PASS
+1. BF bound violada o campos geométricos críticos ausentes → ADS_CONTRACT_FAIL
+2. correlator_type = UNKNOWN → ADS_TEMPLATE_ONLY
+   Gate 6 incompleto (cualquier clasificación) → ADS_TEMPLATE_ONLY
+3. Gate 6 presente + ads_thermal + correlador ≠ HOLOGRAPHIC_WITTEN_DIAGRAM → ADS_THERMAL_TOY_ONLY
+4. Gate UV/IR = FRAGILE → ADS_UV_IR_FRAGILE
+5. Gate UV/IR = PASS → ADS_HOLOGRAPHIC_STRONG_PASS
+6. Por defecto → ADS_HOLOGRAPHIC_PARTIAL_PASS
 ```
 
 ---
@@ -117,13 +118,20 @@ el gate retorna `FRAGILE`.
 | `ads_classification`    | `ads_thermal` (todos los prototipos tienen `z_h=1.0`)      |
 | `correlator_type`       | `GEODESIC_APPROXIMATION` (`correlator_2pt_geodesic`)       |
 | Gate 6 completo         | **NO** — `uv_source_declared`, `ir_bc_declared`, `bulk_field_name`, `operator_name`, `bf_bound_pass` ausentes |
-| Veredicto esperado      | `ADS_THERMAL_TOY_ONLY`                                     |
+| Veredicto esperado      | **`ADS_TEMPLATE_ONLY`**                                    |
 
 **Justificación**:
 - Todos los prototipos `ads` actuales (`ads_d3_Tfinite`, etc.) tienen horizonte → `ads_thermal`.
 - El correlador usa `correlator_2pt_geodesic` → `GEODESIC_APPROXIMATION`.
 - No existen campos del Gate 6 holográfico en los HDF5 generados actualmente.
-- Térmico + GEODESIC_APPROXIMATION + Gate 6 ausente → `ADS_THERMAL_TOY_ONLY`.
+- Gate 6 ausente bloquea con `ADS_TEMPLATE_ONLY` **antes** de evaluar si el caso es térmico.
+  (`ADS_THERMAL_TOY_ONLY` solo es alcanzable cuando Gate 6 está **presente**.)
+
+**Deuda contractual registrada**:
+- `correlator_2pt_geodesic` tiene un fallback silencioso a `correlator_2pt_thermal` cuando
+  el cálculo geodésico falla. El campo `correlator_type = GEODESIC_APPROXIMATION` refleja
+  el camino principal, no el fallback interno. Pendiente: declarar el fallback explícitamente
+  en metadata cuando ocurra.
 
 ---
 
