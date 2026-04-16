@@ -129,11 +129,16 @@ python3 02_emergent_geometry_engine.py --mode inference \
 ### Ruta C — cadena QNM (modo análisis, sin dependencias pesadas)
 
 ```bash
-python3 02_poles_to_dataset.py      --runs-dir data/gwosc_events --params-csv catalog_params.csv
+python3 02_poles_to_dataset.py      --runs-dir data/gwosc_events --params-csv catalog_params.csv \
+  --min-freq-hz 30 --max-freq-hz 1500 --min-damping-hz 5 --require-decay \
+  --mode-order amp_desc
 python3 03_discover_qnm_equations.py --dataset-csv runs/qnm_dataset/qnm_dataset.csv --analysis-only
 python3 04_kan_qnm_classifier.py    --summary runs/qnm_symbolic/qnm_symbolic_summary.json --analysis-only
 python3 05_validate_qnm_kerr.py     --summary runs/qnm_kan/qnm_kan_summary.json
 ```
+
+`02_poles_to_dataset.py` permite filtrar polos no físicos upstream (decaimiento, rangos de frecuencia y amortiguamiento)
+y fijar cómo se asigna `mode_rank` (`--mode-order`) antes de pasar a PySR/KAN.
 
 ---
 
