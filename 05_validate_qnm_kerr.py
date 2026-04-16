@@ -647,8 +647,8 @@ def main() -> int:
     print()
     print("Next step — connect Route C output to the holographic dictionary:")
     print("  python3 08_build_holographic_dictionary.py \\")
-    print("      --kerr-validation runs/qnm_kerr_validation/"
-          "qnm_kerr_validation_summary.json")
+    print("      --kerr-audit runs/qnm_kerr_validation/"
+          "cluster_audit_summary.json")
 
     if audit_summary:
         print("\n" + "=" * 60)

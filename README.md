@@ -24,8 +24,8 @@ Extracción de polos QNM (ESPRIT)          ← 01_extract_ringdown_poles
         │
         └─▶  Ruta C — Cadena QNM simbólica
              Dataset QNM → regresión simbólica (PySR) → clasificador KAN
-             → validación contra tabla Kerr (Berti 2009), que ahora también
-             audita la composición de los clústeres.
+             → validación contra tabla Kerr (Berti 2009), que audita la
+             composición de clústeres y se inyecta en el diccionario holográfico.
 ```
 
 La única familia con `family_status = canonical_strong` es AdS con frontera

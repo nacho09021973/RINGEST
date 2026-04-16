@@ -425,6 +425,12 @@ def parse_args():
         default=42,
         help="Semilla para PySR",
     )
+    parser.add_argument(
+        "--kerr-audit",
+        type=str,
+        default=None,
+        help="Path to cluster_audit_summary.json from Route C (05_validate_qnm_kerr.py)",
+    )
     return parser.parse_args()
 
 
@@ -644,6 +650,15 @@ def main() -> int:
                 geometry_results.append(geo_result)
 
         by_system = {}
+        kerr_audit_payload = None
+        if args.kerr_audit:
+            kerr_audit_path = Path(args.kerr_audit).resolve()
+            if kerr_audit_path.exists():
+                print(f"\n>> Loading Kerr QNM audit from: {kerr_audit_path}")
+                kerr_audit_payload = json.loads(kerr_audit_path.read_text(encoding="utf-8"))
+            else:
+                print(f"[WARN] --kerr-audit file not found: {kerr_audit_path}")
+
         for key, fdata in sorted(data_by_family_d.items()):
             n = min(len(fdata["Deltas"]), len(fdata["m2L2"]))
             if n == 0:
@@ -693,6 +708,7 @@ def main() -> int:
         summary = {
             "by_system": by_system,
             "discoveries": discovery_results,
+            "kerr_qnm_surrogate": kerr_audit_payload,
             "geometry_results": geometry_results,
             "mass_source": args.mass_source,
             "compute_m2_from_delta": args.compute_m2_from_delta,
@@ -707,6 +723,8 @@ def main() -> int:
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text(json.dumps(summary, indent=2))
         print(f"\nResumen guardado en: {output_file}")
+        if kerr_audit_payload:
+            print(f"   + Injected Kerr QNM audit data for {len(kerr_audit_payload)} clusters.")
 
         counts = {
             "h5_files_scanned": len(h5_files),
