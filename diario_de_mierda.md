@@ -237,4 +237,66 @@ Y ya.
 * **archivar `03_clean_physical_dataset.py` cuando el corte quede fijado**
 * **mantener solo el carril 02 → 03 → 04 → 05**
 
-Si quieres, el siguiente mensaje te lo doy en formato de **bitácora de laboratorio** para pegarlo en `resumen_experimento.md`.
+### TABLA DE MIERDA
+
+| Ruta                       | Función física real                                               | Qué transforma                                                | Riesgo principal                                                       | Prioridad      | Veredicto                                                   |
+| -------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------- | ----------------------------------------------------------- |
+| **A — Sandbox ADS/GKPW**   | Calibrar motor, solver, PySR y contratos en un entorno controlado | geometrías sintéticas → bulk/eigenmodos/diccionario           | parecer física cuando en realidad es banco de pruebas                  | **media-baja** | **RESCATAR como infraestructura, no como evidencia física** |
+| **B — Datos reales GWOSC** | Convertir strain real en objetos físicos explotables              | strain/NPZ reales → boundary HDF5 → polos/QNM                 | que el preprocesado y ESPRIT metan basura irreversible                 | **máxima**     | **CRÍTICA**                                                 |
+| **C — Cadena QNM**         | Sacar observables, clustering y contraste Kerr desde polos reales | polos reales → `qnm_dataset.csv` → clusters → validación Kerr | interpretar artefactos como familias físicas; `mode_rank` mal alineado | **alta**       | **RESCATAR con poda**                                       |
+
+## Ruta A
+
+**Archivo / ruta:** sandbox ADS/GKPW en docs canónicas. 
+**Inputs reales:** ninguno
+**Outputs reales:** internos al sandbox
+**Función física:** validar andamiaje matemático y numérico
+**Dependencia toy/teórica:** total
+**Veredicto:** **RESCATAR**, pero solo como carril de calibración. Si el objetivo es “datos reales → observables/familias físicas”, por sí sola **no responde**.
+
+## Ruta B
+
+**Archivo / ruta:** descarga GWOSC → boundary → polos. 
+**Inputs reales:** strain GWOSC
+**Outputs reales:** `poles_joint.json`, `poles_H1.json`, boundary HDF5
+**Función física:** aquí nace la física real del pipeline
+**Dependencia toy/teórica:** mínima; es el carril observacional
+**Veredicto:** **CRÍTICA**. Si B mete basura, C solo la ordena y la decora. La calidad de B decide casi todo.
+
+## Ruta C
+
+**Archivo / ruta:** `02_poles_to_dataset.py` → `03_discover_qnm_equations.py` → `04_kan_qnm_classifier.py` → `05_validate_qnm_kerr.py` 
+**Inputs reales:** polos de B
+**Outputs reales:** `qnm_dataset.csv`, clusters, validación Kerr
+**Función física:** transformar polos reales en observables y familias empíricas
+**Dependencia toy/teórica:** baja, pero dependiente de que B esté limpio
+**Veredicto:** **RESCATAR con poda**. Ya ha dado algo real: un cluster Kerr-compatible. Pero sigue mezclando ruido y familias mal interpretadas.
+
+## Ranking brutal
+
+1. **B** — la que importa de verdad
+2. **C** — la que puede convertir B en física útil
+3. **A** — la que ayuda a construir, pero no demuestra física real
+
+## Riesgo de fracaso
+
+* **A** fracasa si se convierte en religión del sandbox.
+* **B** fracasa si el preprocesado/extracción modal está mal.
+* **C** fracasa si sigues dejando crecer scripts y clusters sin poda física.
+
+## Qué haría yo
+
+* **Mantener A** estable y congelada.
+* **Concentrar esfuerzo en B**: robustez de polos y orden modal.
+* **Usar C solo en modo austero**: dataset limpio, validación Kerr, estudio del cluster 0.
+* **No añadir más scripts** salvo que eliminen otro.
+
+## Poda recomendada
+
+* **Deprecar `--fetch-params`** en docs y flujo principal.
+* **Mantener temporalmente** `03_clean_physical_dataset.py`.
+* Si el corte final se consolida, **absorberlo** en `02_poles_to_dataset.py` o `03_discover_qnm_equations.py` y luego **archivar** `03_clean_physical_dataset.py`.
+* No crecer más por la vía de wrappers.
+
+Mi lectura final: **A construye, B observa, C decide si de verdad hay física o solo artefactos**.
+
