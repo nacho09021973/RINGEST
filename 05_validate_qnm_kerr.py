@@ -217,7 +217,7 @@ def validate_event_modes(
             "kerr_match": row_match,
         }
         # Add extra fields for audit trail
-        for key in ("ifo", "pole_source", "mode_order", "M_final_Msun", "chi_final"):
+        for key in ("ifo", "pole_source", "M_final_Msun", "chi_final"):
             row_data[key] = r.get(key)
         results.append(row_data)
 
@@ -288,7 +288,7 @@ def write_cluster_audit_csv(
 ) -> None:
     """Write detailed per-row audit trail with Kerr match info."""
     cols = [
-        "event", "ifo", "mode_rank", "pole_source", "mode_order",
+        "event", "ifo", "mode_rank", "pole_source",
         "M_final_Msun", "chi_final",
         "omega_re_norm", "omega_im_norm",
         "cluster_id", "best_kerr_n", "best_kerr_chi",
@@ -304,7 +304,6 @@ def write_cluster_audit_csv(
                 "ifo": r.get("ifo"),
                 "mode_rank": r.get("mode_rank"),
                 "pole_source": r.get("pole_source"),
-                "mode_order": r.get("mode_order"),
                 "M_final_Msun": r.get("M_final_Msun"),
                 "chi_final": r.get("chi_final"),
                 "omega_re_norm": r.get("omega_re_norm"),
