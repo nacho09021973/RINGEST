@@ -28,3 +28,16 @@ pysr = [
 
 [tool.setuptools]
 py-modules = ["stage_utils"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = [
+    ".git",
+    ".venv",
+    ".venv-pysr",
+    "__pycache__",
+    "data",
+    "outputs",
+    "repo",
+    "runs",
+]

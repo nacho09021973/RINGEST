@@ -1,4 +1,5 @@
 # ── Datos de eventos (volumen elevado) ────────────────────────────────────────
+/data/
 /runs/
 /malda/runs/
 
@@ -51,6 +52,9 @@ repo/
 *.key
 *.pem
 *.json
+!/configs/
+!/configs/theory_dictionary/
+!/configs/theory_dictionary/theory_dictionary_v1.json
 credentials*
 service-account*
 

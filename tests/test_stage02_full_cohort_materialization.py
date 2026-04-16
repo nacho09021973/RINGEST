@@ -9,9 +9,6 @@ only the test split.
 from __future__ import annotations
 
 import ast
-import inspect
-import importlib.util
-import sys
 import unittest
 from pathlib import Path
 
@@ -19,22 +16,22 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def load_module(module_name: str, relative_path: str):
-    module_path = REPO_ROOT / relative_path
-    spec = importlib.util.spec_from_file_location(module_name, module_path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Cannot load module from {module_path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    return module
+def _get_function_source(module_path: Path, function_name: str) -> str:
+    source = module_path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name == function_name:
+            return ast.get_source_segment(source, node) or ""
+    raise RuntimeError(f"Function {function_name} not found in {module_path}")
 
 
 class RunTrainModeMaterializesFullCohort(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.engine = load_module("engine_stage02", "02_emergent_geometry_engine.py")
-        cls.source = inspect.getsource(cls.engine.run_train_mode)
+        cls.source = _get_function_source(
+            REPO_ROOT / "02_emergent_geometry_engine.py",
+            "run_train_mode",
+        )
         cls.tree = ast.parse(cls.source)
 
     def test_builds_combined_names_list(self):

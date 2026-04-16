@@ -1,0 +1,104 @@
+{
+  "theories": [
+    {
+      "theory_id": "ads_gkpw_scalar",
+      "family": "ads",
+      "version": "v1",
+      "status": "evaluable",
+      "assumptions": [
+        "canonical ADS/GKPW scalar boundary correlator"
+      ],
+      "domain_of_validity": [
+        "ADS geometries with explicit UV/IR metadata and Gate 6 provenance"
+      ],
+      "required_observables": [
+        "curvature.stage04.fraction_ads_asymptotic_A_logarithmic_uv",
+        "curvature.stage04.fraction_holographic_mass_dimension_ok"
+      ],
+      "predicted_relations": [
+        "m2L2 = Delta(Delta-d)"
+      ],
+      "predicted_signatures": [
+        "ADS UV asymptotics",
+        "holographic mass-dimension consistency"
+      ],
+      "free_parameters": [],
+      "comparison_protocol": [
+        {
+          "rule_id": "ads_uv_asymptotic_fraction",
+          "observable": "curvature.stage04.fraction_ads_asymptotic_A_logarithmic_uv",
+          "operator": "min",
+          "value": 0.75,
+          "weight": 1.0,
+          "evidence_if_pass": "ADS UV asymptotics present",
+          "evidence_if_fail": "ADS UV asymptotics absent or weak"
+        },
+        {
+          "rule_id": "mass_dimension_fraction",
+          "observable": "curvature.stage04.fraction_holographic_mass_dimension_ok",
+          "operator": "min",
+          "value": 0.75,
+          "weight": 1.0,
+          "evidence_if_pass": "mass-dimension relation supported",
+          "evidence_if_fail": "mass-dimension relation not supported"
+        }
+      ],
+      "pass_fail_policy": {
+        "base_complexity_penalty": 0.0,
+        "free_parameter_penalty": 0.0,
+        "supported_if_score_gte": 2.0,
+        "weakly_supported_if_score_gte": 1.0,
+        "tension_if_score_lte": -1.0,
+        "contradicted_if_score_lte": -2.0
+      },
+      "notes": [
+        "This is the only canonical strong family currently documented as complete."
+      ]
+    },
+    {
+      "theory_id": "qnm_shift_effective",
+      "family": "ringdown_surrogate",
+      "version": "v1",
+      "status": "context_only",
+      "assumptions": [
+        "observed ringdown poles can be projected into boundary-like features"
+      ],
+      "domain_of_validity": [
+        "real-data surrogate bridge; not a holographic proof"
+      ],
+      "required_observables": [
+        "spectral.lambda_delta.degenerate_input"
+      ],
+      "predicted_relations": [],
+      "predicted_signatures": [
+        "QNM-derived shifts in surrogate spectral summaries"
+      ],
+      "free_parameters": [
+        "ringdown_fit_window",
+        "dominant_mode_selection"
+      ],
+      "comparison_protocol": [
+        {
+          "rule_id": "lambda_delta_not_degenerate",
+          "observable": "spectral.lambda_delta.degenerate_input",
+          "operator": "eq",
+          "value": false,
+          "weight": 1.0,
+          "evidence_if_pass": "lambda-Delta input is non-degenerate",
+          "evidence_if_fail": "lambda-Delta input is degenerate"
+        }
+      ],
+      "pass_fail_policy": {
+        "base_complexity_penalty": 0.0,
+        "free_parameter_penalty": 0.0,
+        "supported_if_score_gte": 2.5,
+        "weakly_supported_if_score_gte": 0.75,
+        "tension_if_score_lte": -0.5,
+        "contradicted_if_score_lte": -2.0
+      },
+      "notes": [
+        "Kept as context only so it cannot be scored as a competing holographic theory."
+      ]
+    }
+  ]
+}

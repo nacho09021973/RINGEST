@@ -90,7 +90,7 @@ QNM_F1F0_SANE_MAX: float = 20.0
 #
 # qnm_Q0 / qnm_f1f0 / qnm_g1g0 are removed because they are not
 # interoperable between the Kerr analytical sandbox (01b, Q0≈2–7) and the
-# real ESPRIT bridge (02R, Q0≈100–10000).  See docs/qnm_contract_v3_spec.md.
+# real ESPRIT bridge (real-data bridge, Q0≈100–10000).
 #
 # V2_5 and CRITICAL_FEATURES are kept frozen as evidence of the v1 block.
 # -----------------------------------------------------------------------

@@ -608,11 +608,18 @@ def main() -> int:
     h1 = data["H1"]
     l1 = data["L1"]
 
-    # reference signal for peak picking
-    if l1 is not None:
-        y_ref = np.abs(h1) + np.abs(l1)
-    else:
-        y_ref = np.abs(h1)
+    def _channel_valid_for_peak(y):
+        return y is not None and np.isfinite(y).any() and float(np.nanstd(y)) > 0.0
+
+    # reference signal for peak picking (ignore corrupt detector channels)
+    y_ref_parts = []
+    if _channel_valid_for_peak(h1):
+        y_ref_parts.append(np.nan_to_num(np.abs(h1), nan=0.0, posinf=0.0, neginf=0.0))
+    if _channel_valid_for_peak(l1):
+        y_ref_parts.append(np.nan_to_num(np.abs(l1), nan=0.0, posinf=0.0, neginf=0.0))
+    if not y_ref_parts:
+        raise RuntimeError("No valid input strain channels available for peak picking")
+    y_ref = y_ref_parts[0] if len(y_ref_parts) == 1 else (y_ref_parts[0] + y_ref_parts[1])
 
     i0, i1, t0_used = pick_window(
         t_rel=t_rel,
@@ -640,21 +647,34 @@ def main() -> int:
         if args.hp_hz is not None or args.lp_hz is not None:
             l1p = apply_rfft_bandpass(l1p, fs, args.hp_hz, args.lp_hz)
 
+    def _channel_usable(y):
+        return y is not None and y.size > 0 and np.isfinite(y).all() and float(np.std(y)) > 0.0
+
     Nw = h1p.size
     L = int(args.L) if args.L and args.L > 0 else int(min(max(2, Nw // 2), 4096))
 
-    # fit per channel
-    pf_h1 = esprit_poles(h1p, dt=dt, L=L, rank=args.rank, sv_thresh=args.sv_thresh)
-    pf_h1 = _sort_and_filter(pf_h1, require_decay=bool(args.require_decay), max_modes=int(args.max_modes))
+    # fit per channel (skip corrupt/degenerate detectors)
+    pf_h1 = None
+    if _channel_usable(h1p):
+        pf_h1 = esprit_poles(h1p, dt=dt, L=L, rank=args.rank, sv_thresh=args.sv_thresh)
+        pf_h1 = _sort_and_filter(pf_h1, require_decay=bool(args.require_decay), max_modes=int(args.max_modes))
+    else:
+        print("[WARN] Skipping H1: invalid or degenerate channel after preprocessing")
 
     pf_l1 = None
     if l1p is not None:
-        pf_l1 = esprit_poles(l1p, dt=dt, L=L, rank=args.rank, sv_thresh=args.sv_thresh)
-        pf_l1 = _sort_and_filter(pf_l1, require_decay=bool(args.require_decay), max_modes=int(args.max_modes))
+        if _channel_usable(l1p):
+            pf_l1 = esprit_poles(l1p, dt=dt, L=L, rank=args.rank, sv_thresh=args.sv_thresh)
+            pf_l1 = _sort_and_filter(pf_l1, require_decay=bool(args.require_decay), max_modes=int(args.max_modes))
+        else:
+            print("[WARN] Skipping L1: invalid or degenerate channel after preprocessing")
+
+    if pf_h1 is None and pf_l1 is None:
+        raise RuntimeError("No valid strain channels after preprocessing")
 
     # joint: simple merge by concatenation then unique-ish by rounding omega_qnm
     pf_joint = None
-    if pf_l1 is not None and pf_h1.rank > 0 and pf_l1.rank > 0:
+    if pf_h1 is not None and pf_l1 is not None and pf_h1.rank > 0 and pf_l1.rank > 0:
         w_all = np.concatenate([pf_h1.omega_qnm, pf_l1.omega_qnm])
         a_all = np.concatenate([pf_h1.a, pf_l1.a])
         z_all = np.concatenate([pf_h1.z, pf_l1.z])
@@ -727,10 +747,12 @@ def main() -> int:
     spec_sha_file = _sha256_file(spec_path)
 
     # write per-IFO outputs
-    poles_h1_json = out_dir / "poles_H1.json"
-    poles_h1_csv = out_dir / "poles_H1.csv"
-    write_poles_json(poles_h1_json, event, "H1", t0_used, args.duration, fs, dt, preprocess, window_info, pf_h1)
-    write_poles_csv(poles_h1_csv, pf_h1)
+    poles_h1_json = poles_h1_csv = None
+    if pf_h1 is not None:
+        poles_h1_json = out_dir / "poles_H1.json"
+        poles_h1_csv = out_dir / "poles_H1.csv"
+        write_poles_json(poles_h1_json, event, "H1", t0_used, args.duration, fs, dt, preprocess, window_info, pf_h1)
+        write_poles_csv(poles_h1_csv, pf_h1)
 
     poles_l1_json = poles_l1_csv = None
     if pf_l1 is not None:
@@ -763,15 +785,15 @@ def main() -> int:
         "outputs": {
             "ringdown_dir_rel": out_dir.relative_to(run_dir).as_posix(),
             "ringdown_spec_rel": spec_path.relative_to(run_dir).as_posix(),
-            "poles_h1_json_rel": poles_h1_json.relative_to(run_dir).as_posix(),
-            "poles_h1_csv_rel": poles_h1_csv.relative_to(run_dir).as_posix(),
+            "poles_h1_json_rel": poles_h1_json.relative_to(run_dir).as_posix() if poles_h1_json else None,
+            "poles_h1_csv_rel": poles_h1_csv.relative_to(run_dir).as_posix() if poles_h1_csv else None,
             "poles_l1_json_rel": poles_l1_json.relative_to(run_dir).as_posix() if poles_l1_json else None,
             "poles_l1_csv_rel": poles_l1_csv.relative_to(run_dir).as_posix() if poles_l1_csv else None,
             "poles_joint_json_rel": poles_joint_json.relative_to(run_dir).as_posix() if poles_joint_json else None,
             "poles_joint_csv_rel": poles_joint_csv.relative_to(run_dir).as_posix() if poles_joint_csv else None,
         },
         "fit_quality": {
-            "H1_relative_rms": float(pf_h1.relative_rms),
+            "H1_relative_rms": float(pf_h1.relative_rms) if pf_h1 is not None else None,
             "L1_relative_rms": float(pf_l1.relative_rms) if pf_l1 is not None else None,
         },
         "input_strain_whitened": bool(data.get("whitened", False)),
@@ -782,10 +804,12 @@ def main() -> int:
     new_artifacts = {
         "ringdown_dir": out_dir.relative_to(run_dir).as_posix(),
         "ringdown_spec": spec_path.relative_to(run_dir).as_posix(),
-        "ringdown_poles_h1_json": poles_h1_json.relative_to(run_dir).as_posix(),
-        "ringdown_poles_h1_csv": poles_h1_csv.relative_to(run_dir).as_posix(),
         "ringdown_summary": (out_dir / "summary.json").relative_to(run_dir).as_posix(),
     }
+    if poles_h1_json:
+        new_artifacts["ringdown_poles_h1_json"] = poles_h1_json.relative_to(run_dir).as_posix()
+    if poles_h1_csv:
+        new_artifacts["ringdown_poles_h1_csv"] = poles_h1_csv.relative_to(run_dir).as_posix()
     if poles_l1_json:
         new_artifacts["ringdown_poles_l1_json"] = poles_l1_json.relative_to(run_dir).as_posix()
     if poles_l1_csv:
@@ -813,7 +837,8 @@ def main() -> int:
     print(f"RUN_DIR: {run_dir}")
     print(f"Boundary: {boundary_h5}")
     print(f"Ringdown window: t0_rel={t0_used:.6f}, duration={args.duration:.6f}, Nw={i1-i0}")
-    print(f"Wrote: {out_dir.relative_to(run_dir).as_posix()}/poles_H1.json")
+    if poles_h1_json:
+        print(f"Wrote: {out_dir.relative_to(run_dir).as_posix()}/poles_H1.json")
     if poles_l1_json:
         print(f"Wrote: {out_dir.relative_to(run_dir).as_posix()}/poles_L1.json")
     if poles_joint_json:

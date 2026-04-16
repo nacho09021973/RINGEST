@@ -646,7 +646,7 @@ def build_feature_vector(boundary_data: Dict[str, Any], operators: List[Dict]) -
     # Replaces the 4 Δ operator features, which are 0 for all LIGO data
     # (no CFT operator spectrum) but non-zero for sandbox — breaking generalization.
     # QNM features are stored as boundary attrs by both 00_compute_sandbox_qnms.py
-    # (sandbox) and 02R_build_ringdown_boundary_dataset.py (LIGO).
+    # (sandbox) and realdata_ringdown_to_stage02_boundary_dataset.py (LIGO).
     qnm_Q0   = float(boundary_data.get("qnm_Q0",   0.0))
     qnm_f1f0 = float(boundary_data.get("qnm_f1f0", 0.0))
     qnm_g1g0 = float(boundary_data.get("qnm_g1g0", 0.0))
@@ -2307,7 +2307,11 @@ def run_train_mode(args):
         out_h5_path = geom_dir / f"{name}_emergent.h5"
         with h5py.File(out_h5_path, "w") as f_out:
             f_out.attrs["system_name"] = name
-            f_out.attrs["family"] = family_pred_name
+            # `family` es la semántica canónica (ground truth) preservada
+            # desde stage 01. La predicción del modelo vive en `family_pred`.
+            # No pisar la verdad con la predicción rompe la trazabilidad
+            # semántica en el carril canónico (e.g. ADS/GKPW -> massive_gravity).
+            f_out.attrs["family"] = family_truth_name
             f_out.attrs["family_pred"] = family_pred_name
             f_out.attrs["family_truth"] = family_truth_name
             f_out.attrs["family_pred_id"] = family_pred_idx

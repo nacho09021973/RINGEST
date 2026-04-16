@@ -4,7 +4,6 @@ import argparse
 import os
 import sys
 import tempfile
-import types
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -12,16 +11,6 @@ from unittest import mock
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
-
-common_models_stub = types.ModuleType("contracts.common_models")
-common_models_stub.StageRuntimeManifestModel = type("StageRuntimeManifestModel", (), {"model_validate": staticmethod(lambda payload: payload)})
-common_models_stub.StageSummaryModel = type("StageSummaryModel", (), {"model_validate": staticmethod(lambda payload: payload)})
-common_models_stub.write_stage_runtime_manifest = lambda model, path: None
-common_models_stub.write_stage_summary = lambda model, path: None
-contracts_stub = types.ModuleType("contracts")
-contracts_stub.common_models = common_models_stub
-sys.modules.setdefault("contracts", contracts_stub)
-sys.modules["contracts.common_models"] = common_models_stub
 
 from stage_utils import StageContext, add_standard_arguments, infer_experiment
 

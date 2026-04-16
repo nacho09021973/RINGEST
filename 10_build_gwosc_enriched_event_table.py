@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
 Build a single enriched event-level table for all events materialized under
-runs/gwosc_all by combining:
+data/gwosc_events by combining:
 
 - local ringdown observables and quality flags already produced in the repo
 - official GWOSC event metadata / default PE values
 - Kerr-derived horizon quantities computed from final mass and final spin
 
 Outputs:
-- runs/gwosc_all/gwosc_enriched_event_table.csv
-- runs/gwosc_all/gwosc_enriched_event_table_summary.json
+- data/gwosc_events/gwosc_enriched_event_table.csv
+- data/gwosc_events/gwosc_enriched_event_table_summary.json
 """
 
 from __future__ import annotations
@@ -37,8 +37,8 @@ M_SUN_LENGTH_M = G_SI * MSUN_KG / (C_SI ** 2)
 
 
 def parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(description="Build enriched GWOSC event table for local runs/gwosc_all")
-    ap.add_argument("--runs-dir", default="runs/gwosc_all", help="Local GWOSC runs directory")
+    ap = argparse.ArgumentParser(description="Build enriched GWOSC event table for local data/gwosc_events")
+    ap.add_argument("--runs-dir", default="data/gwosc_events", help="Local GWOSC runs directory")
     ap.add_argument("--timeout", type=float, default=60.0, help="HTTP timeout in seconds")
     return ap.parse_args()
 
