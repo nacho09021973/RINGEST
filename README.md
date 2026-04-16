@@ -129,7 +129,7 @@ python3 02_emergent_geometry_engine.py --mode inference \
 ### Ruta C — cadena QNM (modo análisis, sin dependencias pesadas)
 
 ```bash
-python3 02_poles_to_dataset.py      --runs-dir data/gwosc_events --fetch-params
+python3 02_poles_to_dataset.py      --runs-dir data/gwosc_events --params-csv catalog_params.csv
 python3 03_discover_qnm_equations.py --dataset-csv runs/qnm_dataset/qnm_dataset.csv --analysis-only
 python3 04_kan_qnm_classifier.py    --summary runs/qnm_symbolic/qnm_symbolic_summary.json --analysis-only
 python3 05_validate_qnm_kerr.py     --summary runs/qnm_kan/qnm_kan_summary.json
