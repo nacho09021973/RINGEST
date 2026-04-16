@@ -322,7 +322,6 @@ COLUMNS = [
 
 
 def write_csv(rows: List[Dict[str, Any]], path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=COLUMNS)
         writer.writeheader()
@@ -357,7 +356,6 @@ def write_manifest(
         },
         "columns": COLUMNS,
     }
-    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
@@ -410,6 +408,8 @@ def main() -> int:
     if args.max_rms:
         print(f"max-rms  : {args.max_rms}")
     print("=" * 60)
+
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     # Load event parameters
     params: Dict[str, Dict[str, float]] = {}
