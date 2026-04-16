@@ -567,7 +567,7 @@ def build_argparser() -> argparse.ArgumentParser:
 
     # preprocessing
     p.add_argument("--detrend", choices=["none", "mean", "linear"], default="mean", help="Detrend mode applied to window before fit.")
-    p.add_argument("--hp-hz", type=float, default=None, help="Optional high-pass cutoff in Hz (FFT-domain).")
+    p.add_argument("--hp-hz", type=float, default=30.0, help="Optional high-pass cutoff in Hz (FFT-domain).")
     p.add_argument("--lp-hz", type=float, default=None, help="Optional low-pass cutoff in Hz (FFT-domain).")
 
     # ESPRIT params
