@@ -80,7 +80,7 @@ Dependencias opcionales por ruta:
 
 | Componente | Ruta | Instalar con |
 |---|---|---|
-| PyTorch | A (entrenamiento), B (inferencia) | `pip install -e ".[torch]"` |
+| PyTorch | A (entrenamiento), B (inferencia) | `pip install -e ".[gpu]"` |
 | PySR + Julia | A (`03_discover_bulk_equations`), C (`03_discover_qnm_equations`) | `pip install -e ".[pysr]"` |
 | pykan + torch | C (`04_kan_qnm_classifier`) | `pip install kan torch` |
 | scipy | C (clustering k-means) | `pip install scipy` |
@@ -106,7 +106,7 @@ python3 05_analyze_bulk_equations.py      --run-dir $RUN
 python3 06_build_bulk_eigenmodes_dataset.py --run-dir $RUN
 python3 07_emergent_lambda_sl_dictionary.py --run-dir $RUN
 python3 08_build_holographic_dictionary.py  --run-dir $RUN
-python3 09_real_data_and_dictionary_contracts.py --run-dir $RUN
+python3 09_real_data_and_dictionary_contracts.py --run-dir $RUN --phase both
 ```
 
 ### Ruta B — datos reales GWOSC
@@ -117,7 +117,10 @@ python3 00_download_gwosc_events.py --out-dir data/gwosc_events \
 bash run_batch_load.sh --jobs 4
 python3 01_extract_ringdown_poles.py --run-dir data/gwosc_events/GW150914/boundary
 python3 realdata_ringdown_to_stage02_boundary_dataset.py \
-  --run-dir data/gwosc_events/GW150914/boundary --d 4
+  --run-dir data/gwosc_events/GW150914/boundary \
+  --ringdown-dirs ringdown \
+  --out-dir data/gwosc_events/GW150914/boundary_dataset \
+  --d 4
 python3 02_emergent_geometry_engine.py --mode inference \
   --data-dir data/gwosc_events/GW150914/boundary_dataset \
   --checkpoint runs/<run_ruta_a>/02_emergent_geometry_engine/emergent_geometry_model.pt
