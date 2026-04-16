@@ -473,7 +473,7 @@ def write_poles_json(out_path: Path, event: str, ifo: str, t0: float, duration: 
             "q": c2(pf.q[i]),
             "omega_qnm": c2(w),
             "freq_hz": float(np.real(w) / (2.0 * np.pi)),
-            "damping_1_over_s": float(-np.imag(w)),  # >0 for decay if Im(w)<0
+            "damping_1_over_s": float(-np.imag(w) / (2.0 * np.pi)),  # >0 for decay if Im(w)<0
             "a": c2(pf.a[i]),
             "amp_abs": float(np.abs(pf.a[i])),
         })
@@ -515,7 +515,7 @@ def write_poles_csv(out_path: Path, pf: PoleFit) -> None:
                 f"{np.real(w):.18e}",
                 f"{np.imag(w):.18e}",
                 f"{(np.real(w)/(2*np.pi)):.18e}",
-                f"{(-np.imag(w)):.18e}",
+                f"{(-np.imag(w)/(2*np.pi)):.18e}",
                 f"{(np.abs(pf.a[i])):.18e}",
                 f"{np.real(pf.a[i]):.18e}",
                 f"{np.imag(pf.a[i]):.18e}",
