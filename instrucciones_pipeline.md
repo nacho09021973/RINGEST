@@ -210,6 +210,9 @@ Salida: `runs/qnm_kerr_validation/qnm_kerr_validation_summary.json`
 `05_validate_qnm_kerr.py` ahora escribe `cluster_audit.csv` y
 `cluster_audit_summary.json` para auditar la composición física de cada clúster.
 
+El sumario de auditoría se puede inyectar en el diccionario holográfico de la Ruta A
+con el flag `--kerr-audit` en `08_build_holographic_dictionary.py`.
+
 Veredictos posibles:
 
 | Veredicto | Significado |
