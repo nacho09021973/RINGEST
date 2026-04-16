@@ -85,7 +85,7 @@ Dependencias opcionales por ruta:
 | PySR + Julia | A (`03_discover_bulk_equations`), C (`03_discover_qnm_equations`) | `pip install -e ".[pysr]"` |
 | pykan + torch | C (`04_kan_qnm_classifier`) | `pip install kan torch` |
 | scipy | C (clustering k-means) | `pip install scipy` |
-| gwosc | B, C (fetch params automático) | `pip install gwosc` |
+| gwosc | B (descarga de eventos) | `pip install gwosc` |
 
 Los scripts con dependencias opcionales aceptan `--analysis-only` para ejecutarse
 sin ellas y escribir igualmente su contrato de salida JSON.
