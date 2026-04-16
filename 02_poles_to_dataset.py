@@ -248,11 +248,51 @@ def find_poles_files(runs_dir: Path) -> List[Tuple[str, Path]]:
     return found
 
 
+def _pole_sort_key(pole: Dict[str, Any], mode_order: str) -> float:
+    amp_abs = float(pole.get("amp_abs", float("nan")))
+    freq_hz = float(pole.get("freq_hz", float("nan")))
+    damping = float(pole.get("damping_1_over_s", float("nan")))
+
+    if mode_order == "amp_desc":
+        return -amp_abs if np.isfinite(amp_abs) else float("inf")
+    if mode_order == "freq_asc":
+        return freq_hz if np.isfinite(freq_hz) else float("inf")
+    if mode_order == "damping_desc":
+        return -damping if np.isfinite(damping) else float("inf")
+    return 0.0
+
+
+def _is_physical_pole(
+    omega_re: float,
+    omega_im: float,
+    freq_hz: float,
+    damping_hz: float,
+    min_freq_hz: Optional[float],
+    max_freq_hz: Optional[float],
+    min_damping_hz: Optional[float],
+    require_decay: bool,
+) -> bool:
+    if require_decay and not (omega_im < 0):
+        return False
+    if min_freq_hz is not None and freq_hz < min_freq_hz:
+        return False
+    if max_freq_hz is not None and freq_hz > max_freq_hz:
+        return False
+    if min_damping_hz is not None and damping_hz < min_damping_hz:
+        return False
+    return True
+
+
 def parse_poles_file(
     event_name: str,
     path: Path,
     max_modes: int,
     max_rms: Optional[float],
+    min_freq_hz: Optional[float],
+    max_freq_hz: Optional[float],
+    min_damping_hz: Optional[float],
+    require_decay: bool,
+    mode_order: str,
 ) -> List[Dict[str, Any]]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     ifo = payload.get("ifo", "UNKNOWN")
@@ -262,8 +302,12 @@ def parse_poles_file(
         return []
 
     poles = payload.get("poles", [])
+    if mode_order != "input":
+        poles = sorted(poles, key=lambda p: _pole_sort_key(p, mode_order))
+
     rows: List[Dict[str, Any]] = []
-    for rank, pole in enumerate(poles):
+    rank = 0
+    for pole in poles:
         if max_modes > 0 and rank >= max_modes:
             break
 
@@ -273,6 +317,19 @@ def parse_poles_file(
         freq_hz = float(pole.get("freq_hz", omega_re / (2.0 * np.pi)))
         damping_hz = float(pole.get("damping_1_over_s", -omega_im / (2.0 * np.pi)))
         tau_ms = 1000.0 / damping_hz if damping_hz > 1e-10 else float("nan")
+
+        is_physical = _is_physical_pole(
+            omega_re=omega_re,
+            omega_im=omega_im,
+            freq_hz=freq_hz,
+            damping_hz=damping_hz,
+            min_freq_hz=min_freq_hz,
+            max_freq_hz=max_freq_hz,
+            min_damping_hz=min_damping_hz,
+            require_decay=require_decay,
+        )
+        if not is_physical:
+            continue
 
         rows.append({
             "event": event_name,
@@ -285,7 +342,10 @@ def parse_poles_file(
             "omega_im": omega_im,
             "amp_abs": float(pole.get("amp_abs", float("nan"))),
             "relative_rms": relative_rms,
+            "mode_order": mode_order,
+            "pole_source": path.name,
         })
+        rank += 1
     return rows
 
 
@@ -294,6 +354,11 @@ def build_dataset(
     params: Dict[str, Dict[str, float]],
     max_modes: int,
     max_rms: Optional[float],
+    min_freq_hz: Optional[float],
+    max_freq_hz: Optional[float],
+    min_damping_hz: Optional[float],
+    require_decay: bool,
+    mode_order: str,
 ) -> List[Dict[str, Any]]:
     poles_files = find_poles_files(runs_dir)
     if not poles_files:
@@ -305,7 +370,17 @@ def build_dataset(
     n_skipped = 0
 
     for event_name, poles_path in poles_files:
-        event_rows = parse_poles_file(event_name, poles_path, max_modes, max_rms)
+        event_rows = parse_poles_file(
+            event_name,
+            poles_path,
+            max_modes,
+            max_rms,
+            min_freq_hz,
+            max_freq_hz,
+            min_damping_hz,
+            require_decay,
+            mode_order,
+        )
         if not event_rows:
             n_skipped += 1
             continue
@@ -341,6 +416,7 @@ COLUMNS = [
     "amp_abs", "relative_rms",
     "M_final_Msun", "chi_final",
     "omega_re_norm", "omega_im_norm",
+    "mode_order", "pole_source",
 ]
 
 
@@ -365,6 +441,11 @@ def write_manifest(rows: List[Dict[str, Any]], path: Path, runs_dir: Path, args:
         "fetch_params": args.fetch_params,
         "max_modes": args.max_modes,
         "max_rms": args.max_rms,
+        "min_freq_hz": args.min_freq_hz,
+        "max_freq_hz": args.max_freq_hz,
+        "min_damping_hz": args.min_damping_hz,
+        "require_decay": args.require_decay,
+        "mode_order": args.mode_order,
         "n_events": len(events),
         "n_events_with_mass_spin": n_with_params,
         "n_rows": len(rows),
@@ -387,6 +468,11 @@ def main() -> int:
     ap.add_argument("--fetch-params", action="store_true", help="Fetch from GWOSC (requires gwosc)")
     ap.add_argument("--max-modes", type=int, default=4, help="Keep at most N modes per event (0 = all)")
     ap.add_argument("--max-rms", type=float, default=None, help="Skip events with relative_rms > this")
+    ap.add_argument("--min-freq-hz", type=float, default=None, help="Keep poles with freq_hz >= this")
+    ap.add_argument("--max-freq-hz", type=float, default=None, help="Keep poles with freq_hz <= this")
+    ap.add_argument("--min-damping-hz", type=float, default=None, help="Keep poles with damping_hz >= this")
+    ap.add_argument("--require-decay", action=argparse.BooleanOptionalAction, default=True, help="Require Im(omega_qnm) < 0")
+    ap.add_argument("--mode-order", choices=["input", "amp_desc", "freq_asc", "damping_desc"], default="input", help="How to order poles before assigning mode_rank")
     args = ap.parse_args()
 
     runs_dir = Path(args.runs_dir).resolve()
@@ -423,7 +509,17 @@ def main() -> int:
         print("\n[NOTE] No event parameters loaded → omega_*_norm will be NaN.")
 
     print("\nScanning for poles files...")
-    rows = build_dataset(runs_dir, params, args.max_modes, args.max_rms)
+    rows = build_dataset(
+        runs_dir,
+        params,
+        args.max_modes,
+        args.max_rms,
+        args.min_freq_hz,
+        args.max_freq_hz,
+        args.min_damping_hz,
+        args.require_decay,
+        args.mode_order,
+    )
 
     if not rows:
         print("[ERROR] No rows produced.")
