@@ -270,7 +270,6 @@ def write_match_table_csv(
     cluster_matches: List[Dict[str, Any]],
     path: Path,
 ) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
     cols = [
         "cluster_id", "n_rows",
         "centroid_omega_re", "centroid_omega_im",
@@ -288,7 +287,6 @@ def write_cluster_audit_csv(
     row_validation_results: List[Dict[str, Any]], path: Path
 ) -> None:
     """Write detailed per-row audit trail with Kerr match info."""
-    path.parent.mkdir(parents=True, exist_ok=True)
     cols = [
         "event", "ifo", "mode_rank", "pole_source", "mode_order",
         "M_final_Msun", "chi_final",
