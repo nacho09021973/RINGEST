@@ -533,9 +533,9 @@ def main() -> int:
                 f"{m.get('match_quality', '?')})"
             )
     print()
-    print("Next step — connect to Kerr QNM dictionary:")
-    print("  python3 07K_kerr_qnm_dictionary.py \\")
-    print("      --validation-summary runs/qnm_kerr_validation/"
+    print("Next step — connect Route C output to the holographic dictionary:")
+    print("  python3 08_build_holographic_dictionary.py \\")
+    print("      --kerr-validation runs/qnm_kerr_validation/"
           "qnm_kerr_validation_summary.json")
 
     return 0

@@ -145,7 +145,8 @@ class TestCommonContractModels(unittest.TestCase):
             with self.assertRaises(ContractValidationError):
                 load_stage_summary(path)
 
-    def test_stage08_writes_valid_manifest_and_stage_summary(self):
+    def _skip_test_stage08_writes_valid_manifest_and_stage_summary(self):
+        # 08_theory_dictionary_contrast.py archived — test disabled
         stage08 = _load_module("stage08_contract_test", "08_theory_dictionary_contrast.py")
 
         with tempfile.TemporaryDirectory() as tmp:
