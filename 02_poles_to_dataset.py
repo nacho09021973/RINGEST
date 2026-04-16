@@ -27,7 +27,7 @@ CSV columns:
     ifo            – interferometer(s): H1, L1, H1+L1
     mode_rank      – 0 = dominant mode (highest amplitude)
     freq_hz        – Re(omega)/(2*pi)  [Hz]
-    damping_hz     – -Im(omega)/(2*pi) [Hz, positive for decaying modes]
+    damping_hz     – Damping rate -Im(omega) [1/s, positive for decay]. Suffix '_hz' is for legacy reasons.
     tau_ms         – damping time = 1000/damping_hz  [ms]
     omega_re       – Re(omega_qnm)  [rad/s]
     omega_im       – Im(omega_qnm)  [rad/s, negative = decaying]
@@ -229,7 +229,7 @@ def parse_poles_file(
         omega_im = float(pole["omega_qnm"][1])
 
         freq_hz = float(pole.get("freq_hz", omega_re / (2.0 * np.pi)))
-        damping_hz = float(pole.get("damping_1_over_s", -omega_im / (2.0 * np.pi)))
+        damping_hz = float(pole.get("damping_1_over_s", -omega_im))
         tau_ms = 1000.0 / damping_hz if damping_hz > 1e-10 else float("nan")
 
         rows.append({
