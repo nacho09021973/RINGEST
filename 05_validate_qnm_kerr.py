@@ -208,14 +208,19 @@ def validate_event_modes(
         if row_finite:
             row_match = nearest_kerr_mode(ore_f, oim_f)
 
-        results.append({
+        row_data = {
             "event": event,
             "mode_rank": mode_rank,
             "cluster_id": cluster_id,
             "omega_re_norm": float(ore_f) if row_finite else None,
             "omega_im_norm": float(oim_f) if row_finite else None,
             "kerr_match": row_match,
-        })
+        }
+        # Add extra fields for audit trail
+        for key in ("ifo", "pole_source", "mode_order", "M_final_Msun", "chi_final"):
+            row_data[key] = r.get(key)
+        results.append(row_data)
+
     return results
 
 
@@ -277,6 +282,98 @@ def write_match_table_csv(
         writer.writeheader()
         for m in cluster_matches:
             writer.writerow({c: m.get(c, "") for c in cols})
+
+
+def write_cluster_audit_csv(
+    row_validation_results: List[Dict[str, Any]], path: Path
+) -> None:
+    """Write detailed per-row audit trail with Kerr match info."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    cols = [
+        "event", "ifo", "mode_rank", "pole_source", "mode_order",
+        "M_final_Msun", "chi_final",
+        "omega_re_norm", "omega_im_norm",
+        "cluster_id", "best_kerr_n", "best_kerr_chi",
+        "kerr_distance", "kerr_quality",
+    ]
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=cols)
+        writer.writeheader()
+        for r in row_validation_results:
+            kerr_match = r.get("kerr_match") or {}
+            row_data = {
+                "event": r.get("event"),
+                "ifo": r.get("ifo"),
+                "mode_rank": r.get("mode_rank"),
+                "pole_source": r.get("pole_source"),
+                "mode_order": r.get("mode_order"),
+                "M_final_Msun": r.get("M_final_Msun"),
+                "chi_final": r.get("chi_final"),
+                "omega_re_norm": r.get("omega_re_norm"),
+                "omega_im_norm": r.get("omega_im_norm"),
+                "cluster_id": r.get("cluster_id"),
+                "best_kerr_n": kerr_match.get("ref_n"),
+                "best_kerr_chi": kerr_match.get("ref_chi"),
+                "kerr_distance": kerr_match.get("distance"),
+                "kerr_quality": kerr_match.get("match_quality"),
+            }
+            writer.writerow({k: (v if v is not None else "") for k, v in row_data.items()})
+
+
+def build_cluster_audit_summary(
+    row_validation_results: List[Dict[str, Any]],
+    cluster_matches: List[Dict[str, Any]],
+    clusters_info: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Build summary of cluster composition."""
+    # Group rows by cluster_id
+    rows_by_cluster: Dict[int, List[Dict[str, Any]]] = {}
+    for r in row_validation_results:
+        cid = r.get("cluster_id")
+        if cid is not None:
+            cid = int(cid)
+            if cid not in rows_by_cluster:
+                rows_by_cluster[cid] = []
+            rows_by_cluster[cid].append(r)
+
+    audit_summary: Dict[str, Any] = {}
+    for cluster_match in cluster_matches:
+        cid = cluster_match["cluster_id"]
+        cluster_rows = rows_by_cluster.get(cid, [])
+
+        def _dist(items):
+            d: Dict[Any, int] = {}
+            for item in items:
+                d[item] = d.get(item, 0) + 1
+            return dict(sorted(d.items()))
+
+        mode_ranks = [r["mode_rank"] for r in cluster_rows if r.get("mode_rank") is not None]
+        pole_sources = [r["pole_source"] for r in cluster_rows if r.get("pole_source")]
+
+        chi_finals = [r.get("chi_final") for r in cluster_rows]
+        chi_finite = np.array([float(c) for c in chi_finals if c is not None and np.isfinite(float(c))])
+        chi_mean = float(np.mean(chi_finite)) if len(chi_finite) > 0 else None
+        chi_median = float(np.median(chi_finite)) if len(chi_finite) > 0 else None
+
+        qualities = [r.get("kerr_match", {}).get("match_quality") for r in cluster_rows if r.get("kerr_match")]
+        quality_counts = {"good": qualities.count("good"), "fair": qualities.count("fair"), "poor": qualities.count("poor")}
+
+        # Strip cluster_id and n_rows from match dict to avoid redundancy
+        match_payload = {k: v for k, v in cluster_match.items() if k not in ("cluster_id", "n_rows")}
+
+        audit_summary[str(cid)] = {
+            "n_rows": cluster_match["n_rows"],
+            "centroid": clusters_info.get(str(cid), {}).get("centroid"),
+            "kerr_match": match_payload,
+            "population_stats": {
+                "mode_rank_distribution": _dist(mode_ranks),
+                "pole_source_distribution": _dist(pole_sources),
+                "chi_final_mean": chi_mean,
+                "chi_final_median": chi_median,
+                "row_quality_counts": quality_counts,
+            },
+        }
+    return audit_summary
 
 
 # ---------------------------------------------------------------------------
@@ -435,6 +532,7 @@ def main() -> int:
     # Per-row validation (if cluster CSV + dataset available)
     # ------------------------------------------------------------------
     row_validation: Optional[List[Dict[str, Any]]] = None
+    audit_summary: Optional[Dict[str, Any]] = None
     n_good = n_fair = n_poor = 0
 
     if cluster_csv_path and cluster_csv_path.exists() and dataset_csv_path and dataset_csv_path.exists():
@@ -458,6 +556,18 @@ def main() -> int:
         total_matched = n_good + n_fair + n_poor
         print(f"  {total_matched} rows matched  "
               f"good={n_good}  fair={n_fair}  poor={n_poor}")
+
+        # Build and write cluster audit files
+        audit_summary = build_cluster_audit_summary(
+            row_validation, cluster_matches, clusters
+        )
+        audit_summary_path = out_dir / "cluster_audit_summary.json"
+        audit_summary_path.write_text(
+            json.dumps(audit_summary, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        audit_csv_path = out_dir / "cluster_audit.csv"
+        write_cluster_audit_csv(row_validation, audit_csv_path)
 
     # ------------------------------------------------------------------
     # Write outputs
@@ -506,6 +616,8 @@ def main() -> int:
             "n_fair": n_fair,
             "n_poor": n_poor,
         }
+        summary["cluster_audit_csv"] = str(out_dir / "cluster_audit.csv")
+        summary["cluster_audit_summary"] = str(out_dir / "cluster_audit_summary.json")
 
     summary_path = out_dir / "qnm_kerr_validation_summary.json"
     summary_path.write_text(
@@ -537,6 +649,26 @@ def main() -> int:
     print("  python3 08_build_holographic_dictionary.py \\")
     print("      --kerr-validation runs/qnm_kerr_validation/"
           "qnm_kerr_validation_summary.json")
+
+    if audit_summary:
+        print("\n" + "=" * 60)
+        print("Cluster audit summary (cluster 0):")
+        if "0" in audit_summary:
+            c0 = audit_summary["0"]
+            pop = c0["population_stats"]
+            chi_mean = pop.get('chi_final_mean')
+            chi_median = pop.get('chi_final_median')
+            print(f"  n_rows: {c0['n_rows']}")
+            print(f"  mode_rank distribution: {pop.get('mode_rank_distribution', {})}")
+            print(f"  pole_source distribution: {pop.get('pole_source_distribution', {})}")
+            if chi_mean is not None and chi_median is not None:
+                print(f"  chi_final: mean={chi_mean:.3f}, median={chi_median:.3f}")
+            print(f"  row quality: {pop.get('row_quality_counts', {})}")
+        else:
+            print("  Cluster 0 not found in audit.")
+        print("=" * 60)
+        print()
+
 
     return 0
 

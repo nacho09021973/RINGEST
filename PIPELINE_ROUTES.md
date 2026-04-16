@@ -47,6 +47,9 @@ Prerequisito: completar B-1 a B-3 para todos los eventos deseados.
  └→ 03_discover_qnm_equations.py    (PySR / --analysis-only; escribe kan_contract)
      └→ 04_kan_qnm_classifier.py    (k-means + KAN; escribe downstream_contract)
          └→ 05_validate_qnm_kerr.py (Berti 2009, l=m=2 n=0,1,2)
+
+`05_validate_qnm_kerr.py` ahora escribe `cluster_audit.csv` y `cluster_audit_summary.json`
+para auditar la composición física de cada clúster.
 ```
 
 ---

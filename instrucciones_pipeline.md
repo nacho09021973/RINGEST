@@ -146,18 +146,13 @@ Prerequisito: ejecutar los pasos B-1 a B-3 para todos los eventos deseados.
 ### C-1 · Construir dataset QNM
 
 ```bash
-# Con parámetros M_final/chi_final desde el catálogo GWOSC:
+# Con parámetros M_final/chi_final desde una tabla externa.
+# Columnas requeridas: event, M_final_Msun, chi_final.
 python3 02_poles_to_dataset.py \
   --runs-dir data/gwosc_events \
   --out-dir runs/qnm_dataset \
-  --fetch-params \
+  --params-csv catalog_params.csv \
   --max-modes 4
-
-# O con tabla propia (columnas: event,M_final_Msun,chi_final):
-python3 02_poles_to_dataset.py \
-  --runs-dir data/gwosc_events \
-  --out-dir runs/qnm_dataset \
-  --params-csv mi_catalogo.csv
 ```
 
 Salida: `runs/qnm_dataset/qnm_dataset.csv`
@@ -212,6 +207,9 @@ python3 05_validate_qnm_kerr.py \
 
 Salida: `runs/qnm_kerr_validation/qnm_kerr_validation_summary.json`
 
+`05_validate_qnm_kerr.py` ahora escribe `cluster_audit.csv` y
+`cluster_audit_summary.json` para auditar la composición física de cada clúster.
+
 Veredictos posibles:
 
 | Veredicto | Significado |
@@ -227,7 +225,8 @@ Veredictos posibles:
 python3 02_poles_to_dataset.py \
   --runs-dir data/gwosc_events \
   --out-dir runs/qnm_dataset \
-  --fetch-params --max-modes 4
+  --params-csv catalog_params.csv \
+  --max-modes 4
 
 python3 03_discover_qnm_equations.py \
   --dataset-csv runs/qnm_dataset/qnm_dataset.csv \

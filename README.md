@@ -24,7 +24,8 @@ Extracción de polos QNM (ESPRIT)          ← 01_extract_ringdown_poles
         │
         └─▶  Ruta C — Cadena QNM simbólica
              Dataset QNM → regresión simbólica (PySR) → clasificador KAN
-             → validación contra tabla Kerr (Berti 2009)
+             → validación contra tabla Kerr (Berti 2009), que ahora también
+             audita la composición de los clústeres.
 ```
 
 La única familia con `family_status = canonical_strong` es AdS con frontera
@@ -48,7 +49,7 @@ RINGEST/
   04_geometry_physics_contracts.py     Ruta A — contratos físicos (R<0, f≥0)
   04_kan_qnm_classifier.py             Ruta C — k-means + KAN + auto_symbolic
   05_analyze_bulk_equations.py         Ruta A — análisis de ecuaciones descubiertas
-  05_validate_qnm_kerr.py              Ruta C — match vs tabla Kerr Berti 2009
+  05_validate_qnm_kerr.py              Ruta C — match vs Kerr y auditoría de clústeres
   06_build_bulk_eigenmodes_dataset.py  Ruta A — Sturm-Liouville
   07_emergent_lambda_sl_dictionary.py  Ruta A — redescubrimiento λ_SL = Δ(Δ−d)
   08_build_holographic_dictionary.py   Ruta A — atlas holográfico completo
@@ -129,7 +130,7 @@ python3 02_emergent_geometry_engine.py --mode inference \
 ### Ruta C — cadena QNM (modo análisis, sin dependencias pesadas)
 
 ```bash
-python3 02_poles_to_dataset.py      --runs-dir data/gwosc_events --fetch-params
+python3 02_poles_to_dataset.py      --runs-dir data/gwosc_events --params-csv catalog_params.csv
 python3 03_discover_qnm_equations.py --dataset-csv runs/qnm_dataset/qnm_dataset.csv --analysis-only
 python3 04_kan_qnm_classifier.py    --summary runs/qnm_symbolic/qnm_symbolic_summary.json --analysis-only
 python3 05_validate_qnm_kerr.py     --summary runs/qnm_kan/qnm_kan_summary.json
