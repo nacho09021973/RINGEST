@@ -411,6 +411,8 @@ def main() -> int:
     print(f"  mode    : {'analysis-only' if args.analysis_only else 'kan-training'}")
     print("=" * 60)
 
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     # ------------------------------------------------------------------
     # Resolve dataset CSV + feature list
     # ------------------------------------------------------------------
@@ -470,7 +472,6 @@ def main() -> int:
         print(f"  cluster {k}: {s['n']} rows  centroid={s['centroid']}")
 
     cluster_csv_path = out_dir / "cluster_labels.csv"
-    out_dir.mkdir(parents=True, exist_ok=True)
     write_cluster_labels_csv(rows, valid_idx, labels, cluster_csv_path)
     print(f"  Labels → {cluster_csv_path}")
 

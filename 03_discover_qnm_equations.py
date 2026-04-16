@@ -373,6 +373,8 @@ def main() -> int:
     print(f"  mode    : {'analysis-only' if args.analysis_only else 'symbolic-regression'}")
     print("=" * 60)
 
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     if not dataset_csv.exists():
         print(f"[ERROR] Dataset CSV not found: {dataset_csv}")
         print(
@@ -394,7 +396,6 @@ def main() -> int:
         f"{profile['n_with_norm']} rows with dimensionless columns"
     )
 
-    out_dir.mkdir(parents=True, exist_ok=True)
     profile_path = out_dir / "qnm_dataset_profile.json"
     profile_path.write_text(
         json.dumps(profile, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"

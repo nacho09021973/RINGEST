@@ -480,6 +480,7 @@ def main() -> int:
 
         geometry_dir = resolve_geometry_dir(args, ctx, run_dir)
         output_file = resolve_output_file(args, ctx, run_dir)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
 
         print("=" * 70)
         print("FASE XI - DICCIONARIO HOLOGRÁFICO v3.1 (FIX EMERGENT)")
@@ -719,7 +720,6 @@ def main() -> int:
             ],
         }
 
-        output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text(json.dumps(summary, indent=2))
         print(f"\nResumen guardado en: {output_file}")
         if kerr_audit_payload:
