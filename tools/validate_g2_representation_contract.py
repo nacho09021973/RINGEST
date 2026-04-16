@@ -90,7 +90,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--source-h5", required=True, type=Path)
     ap.add_argument("--output-dir", required=True, type=Path)
     ap.add_argument("--modified-file", action="append", default=[])
-    ap.add_argument("--whether-02r-was-modified", action="store_true")
+    ap.add_argument("--whether-realdata-bridge-was-modified", action="store_true")
     return ap.parse_args()
 
 
@@ -220,7 +220,7 @@ def main() -> int:
         "source_h5": str(source_h5),
         "files_created": files_created,
         "files_modified": args.modified_file,
-        "whether_02R_was_modified": bool(args.whether_02r_was_modified),
+        "whether_realdata_bridge_was_modified": bool(args.whether_realdata_bridge_was_modified),
         "compat_mode": DEFAULT_COMPAT_MODE,
         "contract_name": DEFAULT_G2_REPR_CONTRACT,
         "feature_vector_shape": feature_vector_shape,

@@ -7,7 +7,7 @@ fórmulas analíticas de QNM (AdS, Lifshitz, hyperscaling).
 
 Para cada HDF5 sandbox produce un gemelo con:
   - G2_ringdown = |Σ aₙ exp((-γ̃ₙ + iω̃ₙ) x̃)|²   (x̃ = t × ω_dom)
-  - G_R_real/imag del mismo estilo que 02R
+  - G_R_real/imag del mismo estilo que real-data bridge
   - operators = [] (vacío, igual que datos LIGO)
   - temperature = 0.0
 
@@ -30,7 +30,7 @@ import h5py
 import numpy as np
 
 
-# ── Embedding functions (same logic as 02R) ──────────────────────────────────
+# ── Embedding functions (same logic as real-data bridge) ──────────────────────────────────
 
 @dataclass
 class Pole:

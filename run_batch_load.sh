@@ -5,7 +5,7 @@
 #   - Si tiene H1: usa H1 como primario, L1 como secundario (si existe)
 #   - Si NO tiene H1 pero sí L1: usa L1 como primario (--h1-npz = L1 file)
 #
-# Uso:    cd ~/RINGEST && bash malda/run_batch_load.sh [--jobs N] [--dry-run]
+# Uso:    cd ~/RINGEST && bash run_batch_load.sh [--jobs N] [--dry-run]
 # Opciones:
 #   --jobs N    Paralelismo con GNU parallel (default: 4; 1 = secuencial)
 #   --dry-run   Imprime comandos sin ejecutarlos
@@ -13,8 +13,8 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-RUNS_ROOT="$PROJECT_ROOT/malda/runs/gwosc_all"
+PROJECT_ROOT="$SCRIPT_DIR"
+RUNS_ROOT="$PROJECT_ROOT/data/gwosc_events"
 PYTHON="${PYTHON:-python3}"
 JOBS=4
 DRY_RUN=0
@@ -31,7 +31,9 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="$RUNS_ROOT/batch_load_${TIMESTAMP}.log"
 RESULTS_FILE="$RUNS_ROOT/batch_load_${TIMESTAMP}_results.tsv"
 
-mapfile -t EVENTS < <(ls "$RUNS_ROOT" | grep -v download_manifest | sort)
+mapfile -t EVENTS < <(
+    find "$RUNS_ROOT" -mindepth 1 -maxdepth 1 -type d -exec test -d "{}/raw" \; -printf '%f\n' | sort
+)
 TOTAL=${#EVENTS[@]}
 
 echo "======================================================"
@@ -98,7 +100,8 @@ _run_event() {
 export -f _run_event
 export RUNS_ROOT SCRIPT_DIR PYTHON DRY_RUN LOG_FILE
 
-[[ "$DRY_RUN" -eq 0 ]] && touch "$LOG_FILE" && touch "$RESULTS_FILE"
+[[ "$DRY_RUN" -eq 0 ]] && touch "$LOG_FILE"
+: > "$RESULTS_FILE"
 
 # Ejecutar
 if [[ "$JOBS" -gt 1 ]] && command -v parallel &>/dev/null; then
@@ -121,8 +124,9 @@ if [[ "$DRY_RUN" -eq 0 ]]; then
     sk=$(grep -c $'^SKIP\t' "$RESULTS_FILE" || true)
     fa=$(grep -c $'^FAIL\t' "$RESULTS_FILE" || true)
 else
-    ok=$(grep -c $'^OK\t'   /dev/stdin <<< "$(cat /dev/stdin)" 2>/dev/null || true)
-    ok=0; sk=0; fa=0
+    ok=$(grep -c $'^OK\t'   "$RESULTS_FILE" || true)
+    sk=$(grep -c $'^SKIP\t' "$RESULTS_FILE" || true)
+    fa=$(grep -c $'^FAIL\t' "$RESULTS_FILE" || true)
 fi
 
 echo " OK    : $ok / $TOTAL"

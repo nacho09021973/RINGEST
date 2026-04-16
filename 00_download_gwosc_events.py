@@ -24,7 +24,7 @@ Skips events/IFOs already downloaded unless --force is passed.
 
 USAGE
 -----
-  python3 malda/00_download_gwosc_events.py --out-dir runs/gwosc_all
+  python3 00_download_gwosc_events.py --out-dir data/gwosc_events
 
   # Dry-run (shows what would be downloaded):
       --dry-run
@@ -357,8 +357,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description="Download all confident LIGO/Virgo events from GWOSC."
     )
-    ap.add_argument("--out-dir",    default="runs/gwosc_all",
-                    help="Root output directory (default: runs/gwosc_all)")
+    ap.add_argument("--out-dir",    default="data/gwosc_events",
+                    help="Root output directory (default: data/gwosc_events)")
     ap.add_argument("--catalogs",   nargs="+", default=DEFAULT_CATALOGS,
                     help="GWOSC catalogs to fetch (default: all three GWTC)")
     ap.add_argument("--sample-rate", type=int, default=4096,
@@ -465,11 +465,11 @@ def main() -> int:
     print("=" * 70)
     print()
     print("Next step — run 00_load_ligo_data.py for each event:")
-    print("  for npz in runs/gwosc_all/*/raw/*_H1_*.npz; do")
+    print("  for npz in data/gwosc_events/*/raw/*_H1_*.npz; do")
     print("    ev=$(basename $(dirname $(dirname $npz)))")
     print("    python3 malda/00_load_ligo_data.py \\")
     print("      --npz $npz \\")
-    print("      --out-dir runs/gwosc_all/${ev}/boundary \\")
+    print("      --out-dir data/gwosc_events/${ev}/boundary \\")
     print("      --whiten")
     print("  done")
 

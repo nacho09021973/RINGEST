@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-02R_build_ringdown_boundary_dataset.py — CUERDAS-MALDACENA (Stage 02R bridge, v1.0)
+realdata_ringdown_to_stage02_boundary_dataset.py — CUERDAS-MALDACENA
+Real-data bridge: ringdown poles -> stage-02 boundary dataset.
 
 Purpose
 -------
 Convert Stage-01 ringdown artifacts (poles_*.json, coincident_pairs.json, null_test.json)
 into a boundary-only HDF5 dataset + manifest.json consumable by:
 
-  run_pipeline.py --experiment <exp> --stage 02_emergent_geometry_engine --mode inference --data-dir <OUT_DIR>
+  02_emergent_geometry_engine.py --mode inference --data-dir <OUT_DIR> --checkpoint <MODEL>
 
 Contract / Epistemic honesty
 ----------------------------
@@ -39,11 +40,20 @@ from tools.g2_representation_contract import (
 )
 
 try:
+    from family_registry import get_family_status, get_family_status_description
+except ImportError:
+    def get_family_status(family: str, *, ads_boundary_mode: str = "toy", source: str = "sandbox") -> str:
+        return "realdata_surrogate" if source == "realdata" else "toy_sandbox"
+
+    def get_family_status_description(status: str) -> str:
+        return status
+
+try:
     import h5py
 except Exception as e:
     raise SystemExit(f"[ERROR] h5py not available: {e}")
 
-SCRIPT_VERSION = "02R_build_ringdown_boundary_dataset.py v1.1 (2026-04-10)"
+SCRIPT_VERSION = "realdata_ringdown_to_stage02_boundary_dataset.py v1.1 (2026-04-10)"
 G2_TIME_CONTRACT_OMEGA_DOM_V1 = "omega_dom_v1"
 G2_TIME_CONTRACT_GAMMA_DOM_V2 = "gamma_dom_v2"
 DEFAULT_G2_TIME_CONTRACT = G2_TIME_CONTRACT_OMEGA_DOM_V1
@@ -441,7 +451,10 @@ def make_sandbox_compatible_gr(gr_column: np.ndarray, n_k: int = SANDBOX_N_K) ->
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Stage 02R: build boundary dataset from ringdown_* artifacts (poles -> surrogate boundary embeddings)."
+        description=(
+            "Real-data bridge: build a stage-02 boundary dataset from "
+            "ringdown artifacts (poles -> surrogate boundary embeddings)."
+        )
     )
     ap.add_argument("--run-dir", required=True, type=str, help="Run directory containing ringdown_* and data_boundary/")
     ap.add_argument("--ringdown-dirs", required=True, nargs="+", help="One or more ringdown_* subdirectories inside --run-dir")
@@ -505,7 +518,7 @@ def main() -> int:
         event_id = run_dir.name  # fallback
 
     print("=" * 70)
-    print("PHASE 2 — Stage 02R (Ringdown → Boundary Dataset)")
+    print("REAL-DATA BRIDGE — Ringdown -> stage-02 boundary dataset")
     print(f"Script:    {SCRIPT_VERSION}")
     print(f"Run dir:   {run_dir}")
     print(f"Out dir:   {out_dir}")
@@ -515,7 +528,11 @@ def main() -> int:
     manifest: Dict[str, Any] = {
         "created_at": utc_now_iso(),
         "script": SCRIPT_VERSION,
-        "version": "02R-v1",
+        "version": "realdata-ringdown-to-stage02-boundary-v1",
+        "family_status": get_family_status("unknown", source="realdata"),
+        "family_status_description": get_family_status_description(
+            get_family_status("unknown", source="realdata")
+        ),
         "source_run_dir": str(run_dir),
         "event_id": event_id,
         "config": {
@@ -731,6 +748,7 @@ def main() -> int:
         out_h5 = out_dir / f"{system_name}.h5"
 
         with h5py.File(out_h5, "w") as f:
+            family_status = get_family_status("unknown", source="realdata")
             # File-level attrs
             f.attrs["created_at"] = utc_now_iso()
             f.attrs["script"] = SCRIPT_VERSION
@@ -738,6 +756,8 @@ def main() -> int:
             f.attrs["system_name"] = system_name
             f.attrs["category"] = "ringdown"
             f.attrs["family"] = "unknown"
+            f.attrs["family_status"] = family_status
+            f.attrs["family_status_description"] = get_family_status_description(family_status)
             f.attrs["operators"] = "[]"  # boundary-only: no operator spectrum provided
 
             # boundary group (what Stage 02 consumes)
@@ -791,6 +811,9 @@ def main() -> int:
                 b.create_dataset("central_charge_eff", data=np.array([0.0], dtype=np.float64))
 
             b.attrs["d"] = int(args.d)
+            b.attrs["family"] = "unknown"
+            b.attrs["family_status"] = family_status
+            b.attrs["family_status_description"] = get_family_status_description(family_status)
             b.attrs["temperature"] = float(args.temperature)
             b.attrs["T"] = float(args.temperature)
 
@@ -855,6 +878,7 @@ def main() -> int:
             {
                 "name": system_name,
                 "family": "unknown",
+                "family_status": get_family_status("unknown", source="realdata"),
                 "category": "ringdown",
                 "d": int(args.d),
                 "file": str(out_h5.name),
@@ -872,8 +896,8 @@ def main() -> int:
     print(f"[OK] wrote: {manifest_path}")
 
     print("=" * 70)
-    print("[OK] Stage 02R completed")
-    print("Next step: run_pipeline.py --experiment <exp> --stage 02_emergent_geometry_engine --mode inference --data-dir <OUT_DIR> --checkpoint <MODEL>")
+    print("[OK] real-data bridge completed")
+    print("Next step: 02_emergent_geometry_engine.py --mode inference --data-dir <OUT_DIR> --checkpoint <MODEL>")
     print("=" * 70)
     return 0
 

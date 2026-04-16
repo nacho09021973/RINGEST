@@ -59,12 +59,51 @@ from typing import Any, List, Dict, Tuple, Optional
 import numpy as np  # type: ignore
 import h5py  # type: ignore
 
+try:
+    from tools.gkpw_ads_scalar_correlator import (
+        CORRELATOR_TYPE as GKPW_ADS_CORRELATOR_TYPE,
+        AdsGeometry as GKPWAdsGeometry,
+        GKPWConfig,
+        GATE6_REQUIRED_FIELDS as GKPW_GATE6_REQUIRED_FIELDS,
+        build_correlator_grid as build_gkpw_ads_correlator_grid,
+        config_hash as gkpw_config_hash,
+        output_hash as gkpw_output_hash,
+        validate_gate6_metadata as validate_gkpw_gate6_metadata,
+    )
+    HAS_GKPW_ADS = True
+except ImportError:
+    GKPW_ADS_CORRELATOR_TYPE = "GKPW_SOURCE_RESPONSE_NUMERICAL"
+    GKPW_GATE6_REQUIRED_FIELDS = (
+        "bulk_field_name",
+        "operator_name",
+        "m2L2",
+        "Delta",
+        "bf_bound_pass",
+        "uv_source_declared",
+        "ir_bc_declared",
+        "correlator_type",
+    )
+    GKPWAdsGeometry = None  # type: ignore
+    GKPWConfig = None  # type: ignore
+    build_gkpw_ads_correlator_grid = None  # type: ignore
+    gkpw_config_hash = None  # type: ignore
+    gkpw_output_hash = None  # type: ignore
+    validate_gkpw_gate6_metadata = None  # type: ignore
+    HAS_GKPW_ADS = False
+
+try:
+    from tools.validate_agmoo_ads import validate_ads_geometry
+except ImportError:
+    validate_ads_geometry = None  # type: ignore
+
 # Registro canónico de familias (contract-first)
 try:
     from family_registry import (  # noqa: F401
         extra_attrs_for,
         FAMILY_MAP,
         classify_ads_geometry,
+        get_family_status,
+        get_family_status_description,
         get_correlator_type_for_geometry,
     )
     HAS_FAMILY_REGISTRY = True
@@ -85,6 +124,20 @@ except ImportError:
     def get_correlator_type_for_geometry(family, use_geodesic=True):  # type: ignore
         """Stub: family_registry no disponible."""
         return "GEODESIC_APPROXIMATION" if use_geodesic else "TOY_PHENOMENOLOGICAL"
+
+    def get_family_status(family, *, ads_boundary_mode="toy", source="sandbox"):  # type: ignore
+        """Stub: family_registry no disponible."""
+        if source == "realdata":
+            return "realdata_surrogate"
+        if family == "kerr":
+            return "non_holographic_surrogate"
+        if family == "ads" and ads_boundary_mode == "gkpw":
+            return "canonical_strong"
+        return "toy_sandbox"
+
+    def get_family_status_description(status):  # type: ignore
+        """Stub: family_registry no disponible."""
+        return status
 
 # V3 INFRASTRUCTURE - PATCH
 HAS_STAGE_UTILS = False
@@ -446,7 +499,12 @@ class HiddenGeometry:
 #  METADATA AGMOO: clasificación y tipo de correlador
 # ============================================================
 
-def get_ads_metadata_for_geometry(geo: HiddenGeometry) -> Dict[str, Optional[str]]:
+def get_ads_metadata_for_geometry(
+    geo: HiddenGeometry,
+    ads_boundary_mode: str = "toy",
+    lifshitz_boundary_mode: str = "toy",
+    gkpw_meta: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """
     Retorna la metadata AGMOO para una geometría.
 
@@ -460,13 +518,88 @@ def get_ads_metadata_for_geometry(geo: HiddenGeometry) -> Dict[str, Optional[str
     Para otras familias solo se emite ``correlator_type`` (el correlador
     geodésico es el mismo para todas las familias en este repo).
     """
-    correlator_type = get_correlator_type_for_geometry(geo.family, use_geodesic=True)
+    if geo.family == "ads" and ads_boundary_mode == "gkpw":
+        correlator_type = GKPW_ADS_CORRELATOR_TYPE
+    else:
+        correlator_type = get_correlator_type_for_geometry(geo.family, use_geodesic=True)
     ads_cls: Optional[str] = None
     if geo.family == "ads":
         ads_cls = classify_ads_geometry(geo.family, geo.z_h, geo.deformation)
-    return {
+    result: Dict[str, Any] = {
         "correlator_type": correlator_type,
+        "classification": ads_cls,
         "ads_classification": ads_cls,
+        "family_status": get_family_status(
+            geo.family,
+            ads_boundary_mode=ads_boundary_mode if geo.family == "ads" else "toy",
+            source="sandbox",
+        ),
+    }
+    result["family_status_description"] = get_family_status_description(result["family_status"])
+    if geo.family == "ads":
+        result["ads_boundary_mode"] = ads_boundary_mode
+        result["ads_pipeline_tier"] = "canonical" if ads_boundary_mode == "gkpw" else "experimental"
+    if geo.family == "lifshitz":
+        result["lifshitz_boundary_mode"] = lifshitz_boundary_mode
+        result["lifshitz_pipeline_tier"] = "experimental"
+    if gkpw_meta:
+        result.update(gkpw_meta)
+    return result
+
+
+def build_ads_gkpw_run_summary(manifest: Dict[str, Any]) -> Dict[str, Any]:
+    ads_entries = [entry for entry in manifest.get("geometries", []) if entry.get("family") == "ads"]
+    items: List[Dict[str, Any]] = []
+    for entry in ads_entries:
+        gate6_complete = all(entry.get(field) is not None for field in GKPW_GATE6_REQUIRED_FIELDS)
+        validation_entry = dict(entry)
+        operators = validation_entry.get("operators", [])
+        if operators and all(isinstance(op, str) for op in operators):
+            validation_entry["operators"] = [
+                {
+                    "name": validation_entry.get("operator_name", operators[0]),
+                    "Delta": validation_entry.get("Delta"),
+                    "m2L2": validation_entry.get("m2L2"),
+                }
+            ]
+        validation = (
+            validate_ads_geometry(validation_entry)
+            if validate_ads_geometry is not None
+            else {"overall_verdict": "AGMOO_VALIDATOR_UNAVAILABLE"}
+        )
+        items.append(
+            {
+                "name": entry.get("name"),
+                "file": entry.get("file"),
+                "ads_pipeline_tier": entry.get("ads_pipeline_tier"),
+                "ads_boundary_mode": entry.get("ads_boundary_mode"),
+                "correlator_type": entry.get("correlator_type"),
+                "classification": entry.get("classification"),
+                "gate6_complete": gate6_complete,
+                "bf_bound_pass": bool(entry.get("bf_bound_pass", False)),
+                "agmoo_verdict": validation.get("overall_verdict"),
+                "reproducibility_hash": entry.get("reproducibility_hash"),
+                "config_hash": entry.get("config_hash"),
+            }
+        )
+
+    canonical = [item for item in items if item.get("ads_pipeline_tier") == "canonical"]
+    canonical_ok = all(
+        item.get("gate6_complete")
+        and item.get("correlator_type") == GKPW_ADS_CORRELATOR_TYPE
+        and item.get("agmoo_verdict") in {
+            "ADS_HOLOGRAPHIC_STRONG_PASS",
+            "ADS_HOLOGRAPHIC_PARTIAL_PASS",
+        }
+        for item in canonical
+    )
+    return {
+        "summary_type": "ads_gkpw_migration_contract",
+        "ads_count": len(items),
+        "canonical_ads_count": len(canonical),
+        "canonical_ads_contract_pass": bool(canonical_ok),
+        "required_gate6_fields": list(GKPW_GATE6_REQUIRED_FIELDS),
+        "items": items,
     }
 
 
@@ -1195,12 +1328,136 @@ def correlator_2pt_geodesic(
     return G2.astype(np.float32)
 
 
+def _compute_temperature(geo: HiddenGeometry) -> float:
+    if geo.z_h is not None and geo.z_h > 0:
+        return float(geo.d) / (4.0 * np.pi * float(geo.z_h))
+    return 0.0
+
+
+def _gkpw_config_from_operator(op: Dict[str, Any]) -> Any:
+    if GKPWConfig is None:
+        raise RuntimeError("GKPWConfig no disponible; no se puede activar ads_boundary_mode=gkpw")
+    return GKPWConfig(
+        m2L2=float(op["m2L2"]),
+        operator_name=str(op["name"]),
+        bulk_field_name=f"phi_{op['name']}",
+        omega_min=0.2,
+        omega_max=6.0,
+        n_omega=32,
+        k_min=0.0,
+        k_max=2.0,
+        n_k=8,
+        uv_fit_points=10,
+    )
+
+
+def _g2_from_gkpw_spectral(
+    x_grid: np.ndarray,
+    omega_grid: np.ndarray,
+    gr_imag: np.ndarray,
+) -> np.ndarray:
+    """
+    Construye un G2 euclideo derivado del spectral density de G_R.
+
+    No es una formula toy cerrada: usa la salida source/response numerica como
+    entrada y aplica una representacion espectral discreta simple. La metadata
+    del carril mantiene que el artefacto canonico fuerte es G_R.
+    """
+    spectral = np.mean(-2.0 * np.asarray(gr_imag, dtype=np.float64), axis=0)
+    spectral = np.maximum(spectral, 0.0)
+    if not np.any(spectral > 0.0):
+        spectral = np.abs(np.mean(np.asarray(gr_imag, dtype=np.float64), axis=0))
+    kernel = np.exp(-np.outer(np.asarray(x_grid, dtype=np.float64), omega_grid))
+    g2 = np.trapezoid(kernel * spectral[None, :], omega_grid, axis=1)
+    if not np.all(np.isfinite(g2)) or float(np.max(g2)) <= 0.0:
+        raise RuntimeError("GKPW spectral G2 construction failed")
+    return (g2 / np.max(g2)).astype(np.float32)
+
+
+def generate_ads_gkpw_boundary_data(
+    geo: HiddenGeometry,
+    operators: List[Dict],
+    n_samples: int,
+    z_grid: np.ndarray,
+) -> Tuple[Dict[str, np.ndarray], Dict[str, Any]]:
+    if not HAS_GKPW_ADS or GKPWAdsGeometry is None or build_gkpw_ads_correlator_grid is None:
+        raise RuntimeError("ads_boundary_mode=gkpw requiere tools.gkpw_ads_scalar_correlator importable")
+    if not operators:
+        raise RuntimeError("ads_boundary_mode=gkpw requiere al menos un operador")
+
+    x_grid = np.linspace(0.1, 10.0, n_samples)
+    A = geo.warp_factor(z_grid)
+    f = geo.blackening_factor(z_grid)
+    gkpw_geo = GKPWAdsGeometry(
+        name=geo.name,
+        family=geo.family,
+        d=int(geo.d),
+        z_h=geo.z_h if geo.z_h and geo.z_h > 0 else None,
+        z=np.asarray(z_grid, dtype=np.float64),
+        A=np.asarray(A, dtype=np.float64),
+        f=np.asarray(f, dtype=np.float64),
+    )
+
+    op0 = operators[0]
+    config = _gkpw_config_from_operator(op0)
+    result = build_gkpw_ads_correlator_grid(gkpw_geo, config)
+    meta = dict(result["metadata"])
+    if gkpw_config_hash is not None:
+        meta["config_hash"] = gkpw_config_hash(config, gkpw_geo.name)
+    if gkpw_output_hash is not None:
+        meta["reproducibility_hash"] = gkpw_output_hash(result)
+    if validate_gkpw_gate6_metadata is not None:
+        validate_gkpw_gate6_metadata(meta)
+
+    data: Dict[str, np.ndarray] = {
+        "x_grid": x_grid,
+        "temperature": np.array([_compute_temperature(geo)], dtype=float),
+        "d": np.array([geo.d], dtype=np.int32),
+        "omega_grid": np.asarray(result["omega_grid"], dtype=np.float64),
+        "k_grid": np.asarray(result["k_grid"], dtype=np.float64),
+        "G_R_real": np.asarray(result["G_R_real"], dtype=np.float32),
+        "G_R_imag": np.asarray(result["G_R_imag"], dtype=np.float32),
+        "gkpw_source_real": np.asarray(result["source_real"], dtype=np.float32),
+        "gkpw_source_imag": np.asarray(result["source_imag"], dtype=np.float32),
+        "gkpw_response_real": np.asarray(result["response_real"], dtype=np.float32),
+        "gkpw_response_imag": np.asarray(result["response_imag"], dtype=np.float32),
+        "gkpw_uv_fit_residual_norm": np.asarray(result["uv_fit_residual_norm"], dtype=np.float32),
+    }
+    data[f"G2_{op0['name']}"] = _g2_from_gkpw_spectral(
+        x_grid,
+        data["omega_grid"],
+        data["G_R_imag"],
+    )
+    for op in operators[1:]:
+        data[f"G2_{op['name']}"] = data[f"G2_{op0['name']}"].copy()
+
+    meta.update(
+        {
+            "classification": meta.get("classification") or classify_ads_geometry(
+                geo.family, geo.z_h, geo.deformation
+            ),
+            "ads_boundary_mode": "gkpw",
+            "ads_pipeline_tier": "canonical",
+            "family_status": get_family_status(geo.family, ads_boundary_mode="gkpw", source="sandbox"),
+            "family_status_description": get_family_status_description(
+                get_family_status(geo.family, ads_boundary_mode="gkpw", source="sandbox")
+            ),
+            "g2_construction": "spectral_laplace_from_gkpw_retarded_correlator",
+            "gkpw_primary_operator": str(op0["name"]),
+        }
+    )
+    return data, meta
+
+
 def generate_boundary_data(
     geo: HiddenGeometry,
     operators: List[Dict],
     n_samples: int,
     rng: np.random.Generator,
-) -> Dict[str, np.ndarray]:
+    ads_boundary_mode: str = "toy",
+    lifshitz_boundary_mode: str = "toy",
+    z_grid: Optional[np.ndarray] = None,
+) -> Tuple[Dict[str, np.ndarray], Dict[str, Any]]:
     """
     Genera datos del boundary (LO ÚNICO visible al learner).
 
@@ -1210,6 +1467,17 @@ def generate_boundary_data(
         - G2_<O> para cada operador
         - omega_grid, k_grid, G_R_real, G_R_imag
     """
+    if geo.family == "ads" and ads_boundary_mode == "gkpw":
+        if z_grid is None:
+            raise RuntimeError("ads_boundary_mode=gkpw requiere z_grid")
+        return generate_ads_gkpw_boundary_data(geo, operators, n_samples, z_grid)
+
+    if geo.family == "lifshitz" and lifshitz_boundary_mode != "toy":
+        raise RuntimeError(
+            "lifshitz_boundary_mode=strong aún no implementado; "
+            "no existe carril fuerte de frontera para lifshitz en este commit"
+        )
+
     d = geo.d
 
     # Temperatura aproximada a partir del horizonte
@@ -1259,7 +1527,29 @@ def generate_boundary_data(
     data["G_R_real"] = np.real(G_R).astype(np.float32)
     data["G_R_imag"] = np.imag(G_R).astype(np.float32)
 
-    return data
+    meta = get_ads_metadata_for_geometry(
+        geo,
+        ads_boundary_mode="toy",
+        lifshitz_boundary_mode=lifshitz_boundary_mode if geo.family == "lifshitz" else "toy",
+    )
+    if geo.family == "ads":
+        first_op = operators[0] if operators else {"name": "O_unknown", "m2L2": np.nan, "Delta": np.nan}
+        meta.update(
+            {
+                "ads_pipeline_tier": "experimental",
+                "ads_boundary_mode": "toy",
+                "gr_correlator_type": "TOY_PHENOMENOLOGICAL",
+                "g2_correlator_type": "GEODESIC_APPROXIMATION",
+                "bulk_field_name": "TOY_NO_BULK_FIELD",
+                "operator_name": str(first_op["name"]),
+                "m2L2": float(first_op["m2L2"]),
+                "Delta": float(first_op["Delta"]),
+                "bf_bound_pass": bool(float(first_op["m2L2"]) >= -((float(geo.d) / 2.0) ** 2)),
+                "uv_source_declared": False,
+                "ir_bc_declared": False,
+            }
+        )
+    return data, meta
 
 
 # ============================================================
@@ -1452,6 +1742,13 @@ def make_geometry_instance(
     else:
         params["d"] = int(d)
 
+    # Si el nombre base codifica _d<k>_, reescribirlo al d elegido para que
+    # los datos nazcan consistentes (sin depender de autofix aguas abajo).
+    if re.search(r"_d\d+(?=_|$)", base.name):
+        params["name"] = rewrite_geometry_name_for_dimension(
+            params["name"], int(params["d"])
+        )
+
     # --- Jitters especificos por family ---
     if family == "lifshitz":
         # z_dyn > 1 tipico
@@ -1625,6 +1922,25 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Si se activa, filtra las geometrias base para quedarse solo con "
             "family='ads' (control positivo AdS puro)."
+        ),
+    )
+    parser.add_argument(
+        "--ads-boundary-mode",
+        choices=("gkpw", "toy"),
+        default="gkpw",
+        help=(
+            "Modo de boundary para family='ads'. Default: gkpw (canonical). "
+            "Use toy solo para compatibilidad experimental explicita."
+        ),
+    )
+    parser.add_argument(
+        "--lifshitz-boundary-mode",
+        choices=("toy", "strong"),
+        default="toy",
+        help=(
+            "Modo de boundary para family='lifshitz'. Default: toy. "
+            "'strong' queda reservado y debe fallar explícitamente hasta que "
+            "exista implementación fuerte real."
         ),
     )
     parser.add_argument(
@@ -1833,6 +2149,8 @@ def main():
                 "n_z": args.n_z,
                 "seed": args.seed,
                 "use_emd_lifshitz": args.use_emd_lifshitz,
+                "ads_boundary_mode": args.ads_boundary_mode,
+                "lifshitz_boundary_mode": args.lifshitz_boundary_mode,
                 "focused_real_regime": focused_config.enabled,
                 "focused_sampling": asdict(focused_config),
             },
@@ -1842,6 +2160,23 @@ def main():
         for idx, (geo, category) in enumerate(geometries):
             print(f"[{idx+1:04d}/{len(geometries):04d}] {geo.name} ({geo.family}, {category})")
 
+            # ============================================================
+            # Guardrail IO v1: el nombre y geo.d deben nacer consistentes.
+            # Si el nombre codifica "_d<k>_", debe coincidir con geo.d.
+            # make_geometry_instance ya reescribe el nombre al jitterar d,
+            # por lo que cualquier mismatch aquí indica un bug regresivo.
+            # ============================================================
+            m_d = re.search(r"_d(\d+)(?:_|$)", geo.name)
+            if m_d is not None:
+                d_name = int(m_d.group(1))
+                if int(geo.d) != d_name:
+                    raise RuntimeError(
+                        f"[IO_CONTRACT] d mismatch at stage 01 loop: "
+                        f"{geo.name!r} carries _d{d_name}_ but geo.d={geo.d}. "
+                        "Nombre y dimensión deben nacer consistentes; "
+                        "revisa make_geometry_instance."
+                    )
+
             # operators
             operators = generate_operators_for_geometry(geo, args.n_operators, rng)
             deltas_str = ", ".join(f"{op['Delta']:.2f}" for op in operators)
@@ -1849,23 +2184,16 @@ def main():
             print(f"   d={geo.d}, z_h={zh_display:.3f}, θ={geo.theta:.2f}, z_dyn={geo.z_dyn:.2f}")
             print(f"   Δ: [{deltas_str}]")
 
-            # ============================================================
-            # FIX 2025-12-21: Guardrail IO v1 ANTES de generar datos
-            # ============================================================
-            # Si el nombre codifica "_d<k>_", debe coincidir con geo.d
-            # IMPORTANTE: esto debe ejecutarse ANTES de generar boundary_data
-            # y bulk_truth para que ambos usen el valor correcto de d.
-            m_d = re.search(r"_d(\d+)_", geo.name)
-            if m_d is not None:
-                d_name = int(m_d.group(1))
-                if int(geo.d) != d_name:
-                    print(
-                        f"[IO_CONTRACT][AUTO-FIX] d mismatch: {geo.name}: geo.d={geo.d} -> {d_name} (from name)"
-                    )
-                    geo.d = d_name
-
             # boundary (VISIBLE para el learner)
-            boundary_data = generate_boundary_data(geo, operators, args.n_samples, rng)
+            boundary_data, boundary_meta = generate_boundary_data(
+                geo,
+                operators,
+                args.n_samples,
+                rng,
+                ads_boundary_mode=args.ads_boundary_mode,
+                lifshitz_boundary_mode=args.lifshitz_boundary_mode,
+                z_grid=z_grid,
+            )
 
             # bulk (solo para validacion/contratos)
             bulk_truth = generate_bulk_truth(geo, z_grid, use_emd=args.use_emd_lifshitz)
@@ -1894,10 +2222,15 @@ def main():
                 f.attrs["mu_GR"] = geo.mu_GR
                 f.attrs["kappa_sw"] = geo.kappa_sw
                 # ── AGMOO contract: clasificación ads y tipo de correlador ────
-                agmoo_meta = get_ads_metadata_for_geometry(geo)
-                f.attrs["correlator_type"] = agmoo_meta["correlator_type"]
-                if geo.family == "ads" and agmoo_meta["ads_classification"] is not None:
-                    f.attrs["ads_classification"] = agmoo_meta["ads_classification"]
+                agmoo_meta = get_ads_metadata_for_geometry(
+                    geo,
+                    ads_boundary_mode=args.ads_boundary_mode if geo.family == "ads" else "toy",
+                    lifshitz_boundary_mode=args.lifshitz_boundary_mode if geo.family == "lifshitz" else "toy",
+                    gkpw_meta=boundary_meta if geo.family == "ads" else None,
+                )
+                for key, value in agmoo_meta.items():
+                    if value is not None:
+                        f.attrs[key] = value
                 f.attrs["operators"] = json.dumps(operators)
                 f.attrs["sampling_regime"] = (
                     "focused_real_regime" if focused_config.enabled else "default"
@@ -1917,6 +2250,9 @@ def main():
                         bgrp.attrs[key] = val
                 bgrp.attrs["d"] = geo.d
                 bgrp.attrs["family"] = geo.family
+                for key, value in agmoo_meta.items():
+                    if value is not None:
+                        bgrp.attrs[key] = value
 
                 # Delta_mass_dict para Stage 08 (holographic dictionary)
                 Delta_mass_dict = {
@@ -1940,7 +2276,12 @@ def main():
                 f.create_dataset("f_of_z", data=bulk_truth["f_truth"])
 
             # entrada en manifest
-            agmoo_manifest_meta = get_ads_metadata_for_geometry(geo)
+            agmoo_manifest_meta = get_ads_metadata_for_geometry(
+                geo,
+                ads_boundary_mode=args.ads_boundary_mode if geo.family == "ads" else "toy",
+                lifshitz_boundary_mode=args.lifshitz_boundary_mode if geo.family == "lifshitz" else "toy",
+                gkpw_meta=boundary_meta if geo.family == "ads" else None,
+            )
             manifest_entry: Dict = {
                 "name": geo.name,
                 "family": geo.family,
@@ -1951,15 +2292,37 @@ def main():
                 "operators": [op["name"] for op in operators],
                 "sampling_regime": "focused_real_regime" if focused_config.enabled else "default",
                 "correlator_type": agmoo_manifest_meta["correlator_type"],
+                "classification": agmoo_manifest_meta.get("classification"),
                 "metadata": geo.metadata,
             }
             if geo.family == "ads":
                 manifest_entry["ads_classification"] = agmoo_manifest_meta["ads_classification"]
+                manifest_entry["ads_boundary_mode"] = agmoo_manifest_meta.get("ads_boundary_mode")
+                manifest_entry["ads_pipeline_tier"] = agmoo_manifest_meta.get("ads_pipeline_tier")
+                for key in (
+                    "bulk_field_name",
+                    "operator_name",
+                    "m2L2",
+                    "Delta",
+                    "bf_bound_pass",
+                    "uv_source_declared",
+                    "ir_bc_declared",
+                    "config_hash",
+                    "reproducibility_hash",
+                ):
+                    if key in agmoo_manifest_meta:
+                        manifest_entry[key] = agmoo_manifest_meta[key]
+            if geo.family == "lifshitz":
+                manifest_entry["lifshitz_boundary_mode"] = agmoo_manifest_meta.get("lifshitz_boundary_mode")
+                manifest_entry["lifshitz_pipeline_tier"] = agmoo_manifest_meta.get("lifshitz_pipeline_tier")
             manifest["geometries"].append(manifest_entry)
 
         # escribir manifest de geometrías (nombre propio para no colisionar con stage_utils)
         manifest_path = output_dir / "geometries_manifest.json"
         manifest_path.write_text(json.dumps(manifest, indent=2))
+        ads_gkpw_summary = build_ads_gkpw_run_summary(manifest)
+        ads_gkpw_summary_path = output_dir / "ads_gkpw_migration_summary.json"
+        ads_gkpw_summary_path.write_text(json.dumps(ads_gkpw_summary, indent=2, sort_keys=True))
 
         # resumen final por family
         families: Dict[str, Dict[str, int]] = {}
@@ -1982,6 +2345,7 @@ def main():
         print("\n" + "=" * 70)
         print("✓ SANDBOX GEOMETRY GENERATION v3 COMPLETADA")
         print(f"  Manifest: {manifest_path}")
+        print(f"  ADS GKPW summary: {ads_gkpw_summary_path}")
         print(f"  Total:    {len(geometries)} universes")
         print("=" * 70)
         print("Next step: 02_emergent_geometry_engine.py")
@@ -1989,6 +2353,7 @@ def main():
 
         ctx.record_artifact(output_dir)
         ctx.record_artifact(manifest_path)
+        ctx.record_artifact(ads_gkpw_summary_path)
         ctx.write_manifest(
             outputs={"sandbox_dir": "01_generate_sandbox_geometries"},
             metadata={"command": " ".join(sys.argv)},

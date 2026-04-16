@@ -17,6 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 def _load_stage04():
     sys.modules.pop("stage_utils", None)
     stage_utils_stub = types.ModuleType("stage_utils")
+    stage_utils_stub.Path = Path
     stage_utils_stub.StageContext = object
     stage_utils_stub.add_standard_arguments = lambda parser: None
     stage_utils_stub.parse_stage_args = lambda parser: parser.parse_args([])

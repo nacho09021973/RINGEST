@@ -33,7 +33,7 @@ CANONICAL_X_MAX: float = DEFAULT_X_MAX
 # ESPRIT-extracted G2 on 250 ms windows reliably covers x∈[0.001, ~5],
 # so extending to 10 forces edge-hold extrapolation that inflates G2_large_x
 # z-scores above the 5σ FAIL threshold.
-# See docs/g2_representation_xmax6_contract.md.
+# Kept inline here so the runtime contract does not depend on historical docs.
 # -----------------------------------------------------------------------
 XMAX6_V1_X_MAX: float = 6.0
 XMAX6_V1_CONTRACT_NAME: str = "xmax_6_v1"
@@ -422,7 +422,7 @@ def main() -> int:
         "source_h5": str(Path(args.source_h5)),
         "files_created": [str(Path(args.output_h5))],
         "files_modified": [],
-        "whether_02R_was_modified": False,
+        "whether_realdata_bridge_was_modified": False,
         "compat_mode": args.compat_mode,
         "contract_name": args.compat_contract,
         "g2_repr_contract": args.g2_repr_contract,
