@@ -204,7 +204,6 @@ def run_pysr_target(
             "n_valid": len(valid_rows),
             "min_rows": min_rows,
         }
-        out_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / "equation_summary.json").write_text(
             json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
@@ -212,8 +211,6 @@ def run_pysr_target(
 
     X = np.array([[float(r[c]) for c in feature_cols] for r in valid_rows])
     y = np.array([float(r[target_col]) for r in valid_rows])
-
-    out_dir.mkdir(parents=True, exist_ok=True)
 
     model = PySRRegressor(
         niterations=niterations,
@@ -435,6 +432,10 @@ def main() -> int:
     # Symbolic regression (skipped in analysis-only mode)
     # ------------------------------------------------------------------
     target_summaries: List[Dict[str, Any]] = []
+
+    if not args.analysis_only:
+        for t in targets:
+            (out_dir / t["col"]).mkdir(parents=True, exist_ok=True)
 
     if args.analysis_only:
         print("\n[analysis-only] Skipping PySR.")

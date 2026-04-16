@@ -275,7 +275,6 @@ def train_kan(
 
     # Save model
     model_dir = out_dir / "kan_model"
-    model_dir.mkdir(parents=True, exist_ok=True)
     try:
         torch.save(model.state_dict(), model_dir / "model_state.pt")
         model_path = str(model_dir / "model_state.pt")
@@ -505,6 +504,7 @@ def main() -> int:
             f"[{len(feature_cols)}, {args.kan_hidden}, {n_clusters}]  "
             f"grid={args.kan_grid}  steps={args.kan_steps}..."
         )
+        (out_dir / "kan_model").mkdir(parents=True, exist_ok=True)
         kan_result = train_kan(
             X=X,
             labels=labels,
