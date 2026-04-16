@@ -426,6 +426,8 @@ def main() -> int:
     print(f"  out-dir : {out_dir}")
     print("=" * 60)
 
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     # ------------------------------------------------------------------
     # Resolve inputs
     # ------------------------------------------------------------------
@@ -572,8 +574,6 @@ def main() -> int:
     # ------------------------------------------------------------------
     # Write outputs
     # ------------------------------------------------------------------
-    out_dir.mkdir(parents=True, exist_ok=True)
-
     match_csv_path = out_dir / "kerr_match_table.csv"
     write_match_table_csv(cluster_matches, match_csv_path)
 
