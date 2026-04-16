@@ -184,7 +184,6 @@ def resolve_output_file(args, ctx, run_dir: Optional[Path]) -> Path:
     
     if run_dir is not None:
         out_dir = run_dir.resolve() / "08_build_holographic_dictionary"
-        out_dir.mkdir(parents=True, exist_ok=True)
         return out_dir / "holographic_dictionary_v3_summary.json"
 
     raise ValueError(

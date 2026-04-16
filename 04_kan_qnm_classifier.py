@@ -320,7 +320,6 @@ def write_cluster_labels_csv(
     labels: np.ndarray,
     path: Path,
 ) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as fh:
         writer = csv.writer(fh)
         writer.writerow(["event", "ifo", "mode_rank", "cluster_id"])
