@@ -40,15 +40,16 @@ Inferencia holográfica sobre ringdown real.
 ## Ruta C — Cadena QNM
 
 Descubrimiento simbólico + KAN + validación Kerr sobre polos de ringdown.
-Prerequisito: completar B-1 a B-3 para todos los eventos deseados.
+Prerequisito: completar B-1 a B-3 para todos los eventos deseados y disponer
+de un CSV local con masa y espín final (`catalog_params.csv`).
 
 ```text
-02_poles_to_dataset.py              (rings → qnm_dataset.csv)
- └→ 03_discover_qnm_equations.py    (PySR / --analysis-only; escribe kan_contract)
-     └→ 04_kan_qnm_classifier.py    (k-means + KAN; escribe downstream_contract)
-         └→ 05_validate_qnm_kerr.py (Berti 2009, l=m=2 n=0,1,2)
+catalog_params.csv                  (columnas: event,M_final_Msun,chi_final)
+ └→ 02_poles_to_dataset.py          (--params-csv, rings → qnm_dataset.csv)
+     └→ 03_discover_qnm_equations.py    (PySR / --analysis-only; escribe kan_contract)
+         └→ 04_kan_qnm_classifier.py    (k-means + KAN; escribe downstream_contract)
+             └→ 05_validate_qnm_kerr.py (Berti 2009, l=m=2 n=0,1,2)
 ```
-
 ---
 
 ## Estado de familias

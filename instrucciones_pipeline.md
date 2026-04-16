@@ -141,23 +141,27 @@ python3 02_emergent_geometry_engine.py \
 Descubrimiento simbólico + clasificador KAN + validación Kerr sobre los polos
 de ringdown colectados por la Ruta B.
 
-Prerequisito: ejecutar los pasos B-1 a B-3 para todos los eventos deseados.
+Prerequisito: ejecutar los pasos B-1 a B-3 para todos los eventos deseados y
+disponer de un CSV local con columnas `event,M_final_Msun,chi_final`.
+
+### C-0 · Preparar catálogo local de masa/espín
+
+Generar o colocar en la raíz del repo un archivo `catalog_params.csv` con formato:
+
+```csv
+event,M_final_Msun,chi_final
+GW150914,61.5,0.68
+GW151012,...
+```
 
 ### C-1 · Construir dataset QNM
 
 ```bash
-# Con parámetros M_final/chi_final desde el catálogo GWOSC:
 python3 02_poles_to_dataset.py \
   --runs-dir data/gwosc_events \
   --out-dir runs/qnm_dataset \
-  --fetch-params \
+  --params-csv catalog_params.csv \
   --max-modes 4
-
-# O con tabla propia (columnas: event,M_final_Msun,chi_final):
-python3 02_poles_to_dataset.py \
-  --runs-dir data/gwosc_events \
-  --out-dir runs/qnm_dataset \
-  --params-csv mi_catalogo.csv
 ```
 
 Salida: `runs/qnm_dataset/qnm_dataset.csv`
@@ -227,7 +231,8 @@ Veredictos posibles:
 python3 02_poles_to_dataset.py \
   --runs-dir data/gwosc_events \
   --out-dir runs/qnm_dataset \
-  --fetch-params --max-modes 4
+  --params-csv catalog_params.csv \
+  --max-modes 4
 
 python3 03_discover_qnm_equations.py \
   --dataset-csv runs/qnm_dataset/qnm_dataset.csv \
@@ -243,7 +248,6 @@ python3 05_validate_qnm_kerr.py \
   --summary runs/qnm_kan/qnm_kan_summary.json \
   --out-dir runs/qnm_kerr_validation
 ```
-
 ---
 
 ## Estado de familias
