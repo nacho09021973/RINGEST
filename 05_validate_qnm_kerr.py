@@ -658,7 +658,13 @@ def main() -> int:
             pop = c0["population_stats"]
             chi_mean = pop.get('chi_final_mean')
             chi_median = pop.get('chi_final_median')
+            centroid = c0.get("centroid", {})
+            centroid_re = centroid.get("omega_re_norm")
+            centroid_im = centroid.get("omega_im_norm")
+
             print(f"  n_rows: {c0['n_rows']}")
+            if centroid_re is not None and centroid_im is not None:
+                print(f"  centroid (re, im): ({centroid_re:.4f}, {centroid_im:.4f})")
             print(f"  mode_rank distribution: {pop.get('mode_rank_distribution', {})}")
             print(f"  pole_source distribution: {pop.get('pole_source_distribution', {})}")
             if chi_mean is not None and chi_median is not None:
