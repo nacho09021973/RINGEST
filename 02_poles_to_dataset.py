@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-SCRIPT_VERSION = "02_poles_to_dataset.py v1.6 (gwosc v2 + results/parameters fix)"
+SCRIPT_VERSION = "02_poles_to_dataset.py v1.7 (physical-filter decay sign fix)"
 
 # G/c^3 in seconds per solar mass — for dimensionless QNM normalization
 G_OVER_C3_PER_MSUN = 4.925491025543576e-6  # s / M_sun
@@ -272,7 +272,12 @@ def _is_physical_pole(
     min_damping_hz: Optional[float],
     require_decay: bool,
 ) -> bool:
-    if require_decay and not (omega_im < 0):
+    # Defensive decay criterion:
+    # - canonical QNM convention: Im(omega_qnm) < 0 means decaying
+    # - some payloads may expose damping directly as positive damping_1_over_s
+    # Accept either signature when require_decay is enabled.
+    is_decaying = (omega_im < 0.0) or (damping_hz > 0.0)
+    if require_decay and not is_decaying:
         return False
     if min_freq_hz is not None and freq_hz < min_freq_hz:
         return False
@@ -404,7 +409,7 @@ def build_dataset(
         print(f"    {event_name}: {len(event_rows)} modes  (rms={event_rows[0]['relative_rms']:.3f})")
 
     if n_skipped:
-        print(f"  Skipped {n_skipped} events (rms > {max_rms or 'n/a'})")
+        print(f"  Skipped {n_skipped} events (RMS cut, no modes, or all poles filtered)")
 
     return rows
 
