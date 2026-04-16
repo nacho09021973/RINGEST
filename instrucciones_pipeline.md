@@ -1,185 +1,267 @@
 # Instrucciones para correr RINGEST
 
-Ejecutar siempre desde la raiz del repo:
+Ejecutar siempre desde la raíz del repo:
 
 ```bash
-cd /home/ignac/RINGEST
+cd /path/to/RINGEST
 ```
 
-## Datos
+`runs/` y `data/` están en `.gitignore` y se consideran desechables.
+Para empezar desde cero basta con `rm -rf runs/`.
 
-Los eventos reales viven en:
+---
 
-```text
-data/gwosc_events/
-```
+## Índice de rutas
 
-`data/` esta en `.gitignore` por tamano. `runs/` tambien esta en `.gitignore` y
-se considera desechable: se puede borrar para empezar de cero.
+| Ruta | Descripción |
+|---|---|
+| [A — Sandbox ADS/GKPW](#ruta-a-sandbox-adsgkpw) | Geometría emergente sobre datos sintéticos |
+| [B — Datos reales GWOSC](#ruta-b-datos-reales-gwosc) | Inferencia holográfica sobre ringdown real |
+| [C — Cadena QNM](#ruta-c-cadena-qnm) | Descubrimiento simbólico + KAN + validación Kerr |
 
-Eventos canarios canonicos:
+---
 
-```text
-GW150914
-GW151012
-GW170104
-GW190521_030229
-GW191109_010717
-```
+## Ruta A — Sandbox ADS/GKPW
 
-Layout por evento:
-
-```text
-data/gwosc_events/<EVENT>/
-  raw/
-  boundary/
-  boundary/ringdown/
-  boundary_dataset/
-```
-
-## Ruta A: sandbox ADS/GKPW
-
-Usar esta ruta para entrenar o probar el motor con datos sinteticos ADS. El modo
-canonico es GKPW, no toy.
+Pipeline canónico para entrenar y validar el motor con geometrías ADS sintéticas.
 
 ```bash
 RUN_DIR=runs/ads_gkpw_$(date +%Y%m%d_%H%M%S)
 
-python 01_generate_sandbox_geometries.py \
+# 1. Generar geometrías sintéticas
+python3 01_generate_sandbox_geometries.py \
   --run-dir "$RUN_DIR" \
   --ads-only \
   --ads-boundary-mode gkpw \
   --n-z 256
 
-python 02_emergent_geometry_engine.py \
+# 2. Entrenar motor de geometría emergente
+python3 02_emergent_geometry_engine.py \
   --run-dir "$RUN_DIR" \
   --data-dir "$RUN_DIR/01_generate_sandbox_geometries" \
   --mode train
 
-python 03_discover_bulk_equations.py \
+# 3. Descubrimiento simbólico de ecuaciones de bulk (requiere PySR/Julia)
+python3 03_discover_bulk_equations.py \
   --run-dir "$RUN_DIR" \
   --geometry-dir "$RUN_DIR/02_emergent_geometry_engine/geometry_emergent"
 
-python 04_geometry_physics_contracts.py --run-dir "$RUN_DIR"
-python 05_analyze_bulk_equations.py --run-dir "$RUN_DIR"
-python 06_build_bulk_eigenmodes_dataset.py --run-dir "$RUN_DIR"
+# 4. Contratos físicos sobre la geometría
+python3 04_geometry_physics_contracts.py --run-dir "$RUN_DIR"
+
+# 5. Analizar estructura de las ecuaciones descubiertas
+python3 05_analyze_bulk_equations.py --run-dir "$RUN_DIR"
+
+# 6. Dataset de eigenmodos (Sturm-Liouville)
+python3 06_build_bulk_eigenmodes_dataset.py --run-dir "$RUN_DIR"
+
+# 7. Redescubrir λ_SL = Δ(Δ−d) emergentemente
+python3 07_emergent_lambda_sl_dictionary.py --run-dir "$RUN_DIR"
+
+# 8. Construir atlas holográfico completo
+python3 08_build_holographic_dictionary.py --run-dir "$RUN_DIR"
+
+# 9. Contratos finales sobre datos reales + diccionario
+python3 09_real_data_and_dictionary_contracts.py --run-dir "$RUN_DIR"
 ```
 
-Smoke verificado y notas de parametros:
-[docs/manual_pipeline_ads_gkpw.md](/home/ignac/RINGEST/docs/manual_pipeline_ads_gkpw.md).
+Smoke test documentado con parámetros verificados:
+[docs/manual_pipeline_ads_gkpw.md](docs/manual_pipeline_ads_gkpw.md)
 
-## Estado de familias
+---
 
-Leer `family_status` antes de interpretar una salida como fisica fuerte.
+## Ruta B — Datos reales GWOSC
 
-| `family_status` | significado |
-|---|---|
-| `canonical_strong` | carril fuerte; actualmente solo `ads` con `--ads-boundary-mode gkpw` |
-| `toy_sandbox` | familia sintetica/sandbox o observable fenomenologico |
-| `realdata_surrogate` | embedding derivado de ringdown real; no dual fuerte por si solo |
-| `non_holographic_surrogate` | carril especial no holografico, por ejemplo Kerr |
-
-Regla actual:
+Eventos canónicos (5 canarios recomendados):
 
 ```text
-ads + gkpw         -> canonical_strong
-ads toy           -> toy_sandbox
-lifshitz, etc.    -> toy_sandbox
-ringdown real     -> realdata_surrogate
-kerr              -> non_holographic_surrogate
+GW150914  GW151012  GW170104  GW190521_030229  GW191109_010717
 ```
 
-Stage 01 y el bridge real-data escriben este campo en manifests/HDF5.
+### B-1 · Descargar eventos
 
-## Ruta B: eventos reales GWOSC
-
-### 1. Descargar
+Todos los canarios:
 
 ```bash
-python 00_download_gwosc_events.py --out-dir data/gwosc_events
-```
-
-Para descargar solo canarios:
-
-```bash
-python 00_download_gwosc_events.py \
+python3 00_download_gwosc_events.py \
   --out-dir data/gwosc_events \
   --event GW150914 GW151012 GW170104 GW190521_030229 GW191109_010717
 ```
 
-### 2. Convertir NPZ a boundary HDF5
-
-Todos los eventos locales:
+### B-2 · Convertir NPZ → boundary HDF5
 
 ```bash
+# Todos los eventos locales en paralelo:
 bash run_batch_load.sh --jobs 4
-```
 
-Solo inspeccion de comandos:
-
-```bash
-bash run_batch_load.sh --dry-run
-```
-
-Un evento manual:
-
-```bash
-python 00_load_ligo_data.py \
+# Un evento manual:
+python3 00_load_ligo_data.py \
   --h1-npz data/gwosc_events/GW150914/raw/GW150914_H1_4096Hz_32s.npz \
   --l1-npz data/gwosc_events/GW150914/raw/GW150914_L1_4096Hz_32s.npz \
   --run-dir data/gwosc_events/GW150914/boundary \
-  --whiten \
-  --fft
+  --whiten --fft
 ```
 
-### 3. Extraer ringdown
+### B-3 · Extraer polos de ringdown (ESPRIT)
 
 ```bash
-python 01_extract_ringdown_poles.py \
+python3 01_extract_ringdown_poles.py \
   --run-dir data/gwosc_events/GW150914/boundary \
   --duration 0.25 \
   --require-decay \
   --max-modes 16
 ```
 
-### 4. Construir dataset para stage 02
+Salida: `data/gwosc_events/GW150914/boundary/ringdown/poles_joint.json`
+
+### B-4 · Convertir polos → formato stage-02
 
 ```bash
-python realdata_ringdown_to_stage02_boundary_dataset.py \
+python3 realdata_ringdown_to_stage02_boundary_dataset.py \
   --run-dir data/gwosc_events/GW150914/boundary \
   --ringdown-dirs ringdown \
   --out-dir data/gwosc_events/GW150914/boundary_dataset \
   --d 4
 ```
 
-Este script no es un segundo stage 02: solo convierte polos de ringdown real al
-formato que consume el motor.
-
-### 5. Inferencia con el motor
-
-Necesitas un checkpoint entrenado, normalmente generado por la Ruta A:
+### B-5 · Inferencia con el motor (checkpoint de Ruta A)
 
 ```bash
-python 02_emergent_geometry_engine.py \
+python3 02_emergent_geometry_engine.py \
   --mode inference \
   --data-dir data/gwosc_events/GW150914/boundary_dataset \
   --output-dir data/gwosc_events/GW150914/02_emergent_geometry_engine \
-  --checkpoint runs/<trained_run>/02_emergent_geometry_engine/emergent_geometry_model.pt
+  --checkpoint runs/<run_ruta_a>/02_emergent_geometry_engine/emergent_geometry_model.pt
 ```
 
-## Orden completo
+---
 
-El mapa corto esta en [PIPELINE_ROUTES.md](/home/ignac/RINGEST/PIPELINE_ROUTES.md).
-Si un script no aparece ahi, no es obligatorio para correr el pipeline principal.
+## Ruta C — Cadena QNM
 
-Config minimo que si pertenece al pipeline:
+Descubrimiento simbólico + clasificador KAN + validación Kerr sobre los polos
+de ringdown colectados por la Ruta B.
 
-- `configs/theory_dictionary/theory_dictionary_v1.json`: diccionario explicito
-  que consume `08_theory_dictionary_contrast.py`.
+Prerequisito: ejecutar los pasos B-1 a B-3 para todos los eventos deseados.
 
-## Tests utiles
+### C-1 · Construir dataset QNM
 
-Smoke obligatorio despues de tocar rutas, familias, ADS/GKPW o bridge real-data:
+```bash
+# Con parámetros M_final/chi_final desde el catálogo GWOSC:
+python3 02_poles_to_dataset.py \
+  --runs-dir data/gwosc_events \
+  --out-dir runs/qnm_dataset \
+  --fetch-params \
+  --max-modes 4
+
+# O con tabla propia (columnas: event,M_final_Msun,chi_final):
+python3 02_poles_to_dataset.py \
+  --runs-dir data/gwosc_events \
+  --out-dir runs/qnm_dataset \
+  --params-csv mi_catalogo.csv
+```
+
+Salida: `runs/qnm_dataset/qnm_dataset.csv`
+
+### C-2 · Descubrimiento simbólico (PySR)
+
+```bash
+# Solo perfilado del dataset + contrato KAN (sin Julia):
+python3 03_discover_qnm_equations.py \
+  --dataset-csv runs/qnm_dataset/qnm_dataset.csv \
+  --out-dir runs/qnm_symbolic \
+  --analysis-only
+
+# Regresión simbólica completa (requiere PySR/Julia):
+python3 03_discover_qnm_equations.py \
+  --dataset-csv runs/qnm_dataset/qnm_dataset.csv \
+  --out-dir runs/qnm_symbolic \
+  --include-normalized-targets \
+  --niterations 80 \
+  --maxsize 18
+```
+
+Salida: `runs/qnm_symbolic/qnm_symbolic_summary.json` (contiene `kan_contract`)
+
+### C-3 · Clasificador KAN
+
+```bash
+# Solo clustering k-means + contrato downstream (sin torch/KAN):
+python3 04_kan_qnm_classifier.py \
+  --summary runs/qnm_symbolic/qnm_symbolic_summary.json \
+  --out-dir runs/qnm_kan \
+  --analysis-only \
+  --n-clusters 3
+
+# Entrenamiento KAN completo (requiere torch + pykan):
+python3 04_kan_qnm_classifier.py \
+  --summary runs/qnm_symbolic/qnm_symbolic_summary.json \
+  --out-dir runs/qnm_kan \
+  --n-clusters 3 \
+  --kan-steps 100
+```
+
+Salida: `runs/qnm_kan/qnm_kan_summary.json`, `runs/qnm_kan/cluster_labels.csv`
+
+### C-4 · Validación Kerr (Berti et al. 2009, l=m=2, n=0,1,2)
+
+```bash
+python3 05_validate_qnm_kerr.py \
+  --summary runs/qnm_kan/qnm_kan_summary.json \
+  --out-dir runs/qnm_kerr_validation
+```
+
+Salida: `runs/qnm_kerr_validation/qnm_kerr_validation_summary.json`
+
+Veredictos posibles:
+
+| Veredicto | Significado |
+|---|---|
+| `ALL_CLUSTERS_KERR_CONSISTENT` | Todos los clusters encajan con modos Kerr (dist < 0.05) |
+| `CLUSTERS_BROADLY_KERR_CONSISTENT` | Encaje bueno o aceptable (dist < 0.15) |
+| `PARTIAL_KERR_CONSISTENCY` | Algunos clusters encajan, otros no |
+| `NO_KERR_CONSISTENCY` | Ningún cluster encaja — posible física no-Kerr |
+
+### C completa (un solo bloque)
+
+```bash
+python3 02_poles_to_dataset.py \
+  --runs-dir data/gwosc_events \
+  --out-dir runs/qnm_dataset \
+  --fetch-params --max-modes 4
+
+python3 03_discover_qnm_equations.py \
+  --dataset-csv runs/qnm_dataset/qnm_dataset.csv \
+  --out-dir runs/qnm_symbolic \
+  --analysis-only
+
+python3 04_kan_qnm_classifier.py \
+  --summary runs/qnm_symbolic/qnm_symbolic_summary.json \
+  --out-dir runs/qnm_kan \
+  --analysis-only --n-clusters 3
+
+python3 05_validate_qnm_kerr.py \
+  --summary runs/qnm_kan/qnm_kan_summary.json \
+  --out-dir runs/qnm_kerr_validation
+```
+
+---
+
+## Estado de familias
+
+Leer `family_status` antes de interpretar una salida como física fuerte.
+
+| `family_status` | Significado |
+|---|---|
+| `canonical_strong` | Carril fuerte; actualmente solo `ads` con `--ads-boundary-mode gkpw` |
+| `toy_sandbox` | Familia sintética/sandbox o observable fenomenológico |
+| `realdata_surrogate` | Embedding derivado de ringdown real; no dual fuerte por sí solo |
+| `non_holographic_surrogate` | Carril especial no holográfico, p. ej. Kerr |
+
+---
+
+## Tests
+
+Smoke obligatorio tras tocar rutas, familias, ADS/GKPW o bridge real-data:
 
 ```bash
 python3 -m pytest \
@@ -188,33 +270,22 @@ python3 -m pytest \
   tests/test_gkpw_ads_scalar_correlator.py \
   tests/test_realdata_bridge_saturation_detection.py \
   tests/test_realdata_bridge_g2_time_contracts.py \
-  tests/test_g2_representation_contract.py
+  tests/test_g2_representation_contract.py \
+  -v
 ```
 
-Smoke rapido solo para bridge real-data:
+Suite completa reducida:
 
 ```bash
-python3 -m unittest \
-  tests/test_realdata_bridge_saturation_detection.py \
-  tests/test_realdata_bridge_g2_time_contracts.py
+python3 -m pytest tests/ -q
 ```
 
-Suite reducida completa:
+Tests relevantes por ruta:
 
-```bash
-python3 -m pytest -q
-```
+| Ruta | Tests clave |
+|---|---|
+| A | `test_stage01_ads_gkpw_mode`, `test_agmoo_ads_contract`, `test_stage04_contract_runtime`, `test_stage08_contract_runtime` |
+| B | `test_realdata_bridge_saturation_detection`, `test_realdata_bridge_g2_time_contracts`, `test_g2_representation_contract` |
+| Común | `test_stage_utils_contract`, `test_common_contract_models`, `test_feature_support` |
 
-Reduccion del ruido:
-
-- `pytest` queda limitado al directorio `tests/`; no debe entrar en `data/` ni
-  `runs/`.
-- Los carriles laterales `repo_agent_*`, `estimator_*`,
-  `baseline_vs_premium_*`, experimentos laterales de sensibilidad
-  `softwall/gubser_rocha`, `decay_type_*`, `unified82_*` y `experiment_*`
-  fueron eliminados para mantener el repo gobernable.
-- Los tests imprescindibles para el pipeline actual son los de ADS/GKPW,
-  `family_status`, bridge real-data, G2 representation, contratos runtime de
-  stages y `stage_utils`.
-- Los tests que necesitan `torch` se saltan en entornos sin backend de
-  entrenamiento instalado; el pipeline stage 02 real sigue necesitando `torch`.
+Los tests que necesitan `torch` se saltan automáticamente en entornos sin GPU/backend instalado.
