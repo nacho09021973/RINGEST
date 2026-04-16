@@ -172,20 +172,31 @@ def find_poles_files(runs_dir: Path) -> List[Tuple[str, Path]]:
     """
     Scan runs_dir for poles files. Prefer poles_joint.json, fall back to poles_H1.json.
     Returns list of (event_name, poles_path).
+
+    Supports two layouts:
+      <runs_dir>/<event>/ringdown/           (sandbox / runs/ layout)
+      <runs_dir>/<event>/boundary/ringdown/  (GWOSC real-data layout)
     """
     found: List[Tuple[str, Path]] = []
     for event_dir in sorted(runs_dir.iterdir()):
         if not event_dir.is_dir():
             continue
-        ringdown_dir = event_dir / "ringdown"
-        if not ringdown_dir.exists():
-            continue
-        joint = ringdown_dir / "poles_joint.json"
-        h1 = ringdown_dir / "poles_H1.json"
-        if joint.exists():
-            found.append((event_dir.name, joint))
-        elif h1.exists():
-            found.append((event_dir.name, h1))
+        # Try both layouts; stop at the first that has a poles file.
+        candidates = [
+            event_dir / "ringdown",
+            event_dir / "boundary" / "ringdown",
+        ]
+        for ringdown_dir in candidates:
+            if not ringdown_dir.exists():
+                continue
+            joint = ringdown_dir / "poles_joint.json"
+            h1 = ringdown_dir / "poles_H1.json"
+            if joint.exists():
+                found.append((event_dir.name, joint))
+                break
+            elif h1.exists():
+                found.append((event_dir.name, h1))
+                break
     return found
 
 
