@@ -25,6 +25,7 @@ Output:
 CSV columns:
     event          – GW event name (e.g. GW150914)
     ifo            – interferometer(s): H1, L1, H1+L1
+    pole_source    – JSON file the pole was read from (e.g. poles_joint.json)
     mode_rank      – 0 = dominant mode (highest amplitude)
     freq_hz        – Re(omega)/(2*pi)  [Hz]
     damping_hz     – Damping rate -Im(omega) [1/s, positive for decay]. Suffix '_hz' is for legacy reasons.
@@ -235,6 +236,7 @@ def parse_poles_file(
         rows.append({
             "event":        event_name,
             "ifo":          ifo,
+            "pole_source":  path.name,
             "mode_rank":    rank,
             "freq_hz":      freq_hz,
             "damping_hz":   damping_hz,
@@ -310,7 +312,7 @@ def build_dataset(
 # ---------------------------------------------------------------------------
 
 COLUMNS = [
-    "event", "ifo", "mode_rank",
+    "event", "ifo", "pole_source", "mode_rank",
     "freq_hz", "damping_hz", "tau_ms",
     "omega_re", "omega_im",
     "amp_abs", "relative_rms",
