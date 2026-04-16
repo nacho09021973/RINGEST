@@ -287,7 +287,7 @@ def esprit_poles(y: np.ndarray, dt: float, L: int, rank: int, sv_thresh: float) 
     )
 
 
-def _sort_and_filter(pf: PoleFit, require_decay: bool, max_modes: int) -> PoleFit:
+def _sort_and_filter(pf: PoleFit, require_decay: bool, min_damping_rad_s: float, max_modes: int) -> PoleFit:
     z, q, w, a = pf.z, pf.q, pf.omega_qnm, pf.a
 
     finite = np.isfinite(np.real(w)) & np.isfinite(np.imag(w)) & np.isfinite(np.real(z)) & np.isfinite(np.imag(z))
@@ -295,7 +295,8 @@ def _sort_and_filter(pf: PoleFit, require_decay: bool, max_modes: int) -> PoleFi
 
     if require_decay:
         # Decay for exp(-i ω t) corresponds to Im(ω) < 0
-        keep = np.imag(w) < 0.0
+        # Filter out very long-lived instrumental noise (near-zero damping)
+        keep = np.imag(w) < -min_damping_rad_s
         z, q, w, a = z[keep], q[keep], w[keep], a[keep]
 
     # Always keep only positive-frequency poles (Re(ω) > 0).
@@ -575,6 +576,7 @@ def build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--rank", type=int, default=0, help="Fixed rank. 0 => auto from singular values.")
     p.add_argument("--sv-thresh", type=float, default=1e-3, help="Relative singular value threshold for auto rank (default: 1e-3).")
     p.add_argument("--require-decay", action="store_true", help="Filter to modes with Im(omega_qnm) < 0 (decaying).")
+    p.add_argument("--min-damping-rad-s", type=float, default=5.0, help="If --require-decay, filter out modes with damping rate < this [rad/s].")
     p.add_argument("--max-modes", type=int, default=16, help="Keep at most this many modes after sorting (default: 16).")
 
     # routing convenience
@@ -657,7 +659,12 @@ def main() -> int:
     pf_h1 = None
     if _channel_usable(h1p):
         pf_h1 = esprit_poles(h1p, dt=dt, L=L, rank=args.rank, sv_thresh=args.sv_thresh)
-        pf_h1 = _sort_and_filter(pf_h1, require_decay=bool(args.require_decay), max_modes=int(args.max_modes))
+        pf_h1 = _sort_and_filter(
+            pf_h1,
+            require_decay=bool(args.require_decay),
+            min_damping_rad_s=float(args.min_damping_rad_s),
+            max_modes=int(args.max_modes),
+        )
     else:
         print("[WARN] Skipping H1: invalid or degenerate channel after preprocessing")
 
@@ -665,7 +672,12 @@ def main() -> int:
     if l1p is not None:
         if _channel_usable(l1p):
             pf_l1 = esprit_poles(l1p, dt=dt, L=L, rank=args.rank, sv_thresh=args.sv_thresh)
-            pf_l1 = _sort_and_filter(pf_l1, require_decay=bool(args.require_decay), max_modes=int(args.max_modes))
+            pf_l1 = _sort_and_filter(
+                pf_l1,
+                require_decay=bool(args.require_decay),
+                min_damping_rad_s=float(args.min_damping_rad_s),
+                max_modes=int(args.max_modes),
+            )
         else:
             print("[WARN] Skipping L1: invalid or degenerate channel after preprocessing")
 
@@ -690,7 +702,12 @@ def main() -> int:
             residual_rms=float("nan"), relative_rms=float("nan"),
             singular_values=np.array([], dtype=np.float64), rank=int(idx.size), L=L
         )
-        pf_joint = _sort_and_filter(pf_joint, require_decay=bool(args.require_decay), max_modes=int(args.max_modes))
+        pf_joint = _sort_and_filter(
+            pf_joint,
+            require_decay=bool(args.require_decay),
+            min_damping_rad_s=float(args.min_damping_rad_s),
+            max_modes=int(args.max_modes),
+        )
 
     # output paths
     out_dir = run_dir / args.out_dir_name
@@ -729,6 +746,7 @@ def main() -> int:
             "rank": args.rank,
             "sv_thresh": args.sv_thresh,
             "require_decay": bool(args.require_decay),
+            "min_damping_rad_s": args.min_damping_rad_s,
             "max_modes": args.max_modes,
             "set_latest": args.set_latest,
         },
