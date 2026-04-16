@@ -48,9 +48,6 @@ Usage
     python3 02_poles_to_dataset.py --runs-dir runs/gwosc_all \
         --params-csv catalog_params.csv
 
-    # Try to fetch event parameters from GWOSC catalog automatically
-    python3 02_poles_to_dataset.py --runs-dir runs/gwosc_all --fetch-params
-
     # Limit to top N modes per event
     python3 02_poles_to_dataset.py --runs-dir runs/gwosc_all --max-modes 3
 
@@ -106,63 +103,6 @@ def load_params_csv(path: Path) -> Dict[str, Dict[str, float]]:
                 chi = float("nan")
             params[name] = {"M_final_Msun": m, "chi_final": chi}
     return params
-
-
-def fetch_params_gwosc() -> Dict[str, Dict[str, float]]:
-    """
-    Try to pull M_final and chi_final from the GWOSC catalog API.
-    Returns dict: event_name -> {M_final_Msun, chi_final}
-
-    Uses gwosc.catalog if available; otherwise returns empty dict.
-    """
-    try:
-        from gwosc import catalog as gwosc_catalog
-    except ImportError:
-        print("[WARN] gwosc not installed — cannot fetch parameters automatically.")
-        print("       Install with: pip install gwosc")
-        print("       Or supply --params-csv with columns: event,M_final_Msun,chi_final")
-        return {}
-
-    params: Dict[str, Dict[str, float]] = {}
-
-    catalog_names = ["GWTC-1-confident", "GWTC-2.1-confident", "GWTC-3-confident"]
-    for cat_name in catalog_names:
-        try:
-            cat = gwosc_catalog.Catalog(cat_name)
-            for ev_name in cat.events:
-                try:
-                    ev = cat.event(ev_name)
-                    # GWOSC parameter keys vary by catalog; try common names
-                    m = _first_float(ev.parameters, [
-                        "final_mass_source",
-                        "remnant_mass_msun",
-                        "M_final",
-                    ])
-                    chi = _first_float(ev.parameters, [
-                        "final_spin",
-                        "chi_f",
-                        "remnant_spin",
-                    ])
-                    params[ev_name] = {"M_final_Msun": m, "chi_final": chi}
-                except Exception:
-                    pass
-        except Exception as e:
-            print(f"[WARN] Could not load catalog {cat_name}: {e}")
-
-    return params
-
-
-def _first_float(d: Any, keys: List[str]) -> float:
-    if not isinstance(d, dict):
-        return float("nan")
-    for k in keys:
-        v = d.get(k)
-        if v is not None:
-            try:
-                return float(v)
-            except (ValueError, TypeError):
-                pass
-    return float("nan")
 
 
 # ---------------------------------------------------------------------------
@@ -345,7 +285,6 @@ def write_manifest(
         "script": SCRIPT_VERSION,
         "runs_dir": str(runs_dir),
         "params_csv": str(args.params_csv) if args.params_csv else None,
-        "fetch_params": args.fetch_params,
         "max_modes": args.max_modes,
         "max_rms": args.max_rms,
         "n_events": len(events),
@@ -378,10 +317,6 @@ def main() -> int:
     ap.add_argument(
         "--params-csv", default=None,
         help="Optional CSV with columns: event,M_final_Msun,chi_final"
-    )
-    ap.add_argument(
-        "--fetch-params", action="store_true",
-        help="Fetch M_final,chi_final from GWOSC catalog API (requires gwosc)"
     )
     ap.add_argument(
         "--max-modes", type=int, default=4,
@@ -420,10 +355,6 @@ def main() -> int:
             return 1
         params = load_params_csv(p)
         print(f"\nLoaded parameters for {len(params)} events from {p.name}")
-    elif args.fetch_params:
-        print("\nFetching event parameters from GWOSC catalog...")
-        params = fetch_params_gwosc()
-        print(f"Fetched parameters for {len(params)} events")
 
     if not params:
         print("\n[NOTE] No event parameters (M_final, chi_final) loaded.")
