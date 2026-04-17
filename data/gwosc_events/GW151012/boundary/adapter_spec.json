@@ -1,0 +1,48 @@
+{
+  "script": "00_load_ligo_data.py",
+  "script_version": "00_load_ligo_data.py/v4",
+  "created_at": "2026-04-08T15:08:28+00:00",
+  "params": {
+    "h1_npz": "/home/ignac/RINGEST/malda/runs/gwosc_all/GW151012/raw/GW151012_H1_4096Hz_32s.npz",
+    "l1_npz": "/home/ignac/RINGEST/malda/runs/gwosc_all/GW151012/raw/GW151012_L1_4096Hz_32s.npz",
+    "h1_meta": null,
+    "l1_meta": null,
+    "runs_root": "runs",
+    "run_dir": "/home/ignac/RINGEST/malda/runs/gwosc_all/GW151012/boundary",
+    "set_latest": null,
+    "data_dir_name": "data_boundary",
+    "fft": true,
+    "detrend": "mean",
+    "window": "hann",
+    "whiten": true,
+    "whiten_psd_trel_start": -28.0,
+    "whiten_psd_trel_end": -4.0,
+    "whiten_fmin_hz": 20.0,
+    "whiten_fmax_hz": 1800.0,
+    "whiten_nperseg": 0
+  },
+  "whitening_applied": {
+    "enabled": true,
+    "psd_trel_start": -28.0,
+    "psd_trel_end": -4.0,
+    "n_offband_samples": 49153,
+    "nperseg": 6144,
+    "fmin_hz": 20.0,
+    "fmax_hz": 1800.0,
+    "method": "welch_median_asd_divide"
+  },
+  "inputs": {
+    "h1_npz_sha256": "b1c8b8f167b6a9b4f9a042dc475db4ca254f33ec7b3eb85bd75af9abe05fe31f",
+    "h1_npz_path": "/home/ignac/RINGEST/malda/runs/gwosc_all/GW151012/raw/GW151012_H1_4096Hz_32s.npz",
+    "l1_npz_sha256": "55c9ec43007dc60fcc581e2c6ef8ef34193f7e8b4bcb604ebc7ea102be11fc76",
+    "l1_npz_path": "/home/ignac/RINGEST/malda/runs/gwosc_all/GW151012/raw/GW151012_L1_4096Hz_32s.npz",
+    "h1_meta_sha256": null,
+    "h1_meta_path": null,
+    "l1_meta_sha256": null,
+    "l1_meta_path": null
+  },
+  "outputs": {
+    "boundary_h5": "data_boundary/GW151012_boundary.h5",
+    "boundary_meta_json": "data_boundary/GW151012_boundary_meta.json"
+  }
+}

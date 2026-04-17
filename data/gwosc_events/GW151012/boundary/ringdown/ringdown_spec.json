@@ -1,0 +1,38 @@
+{
+  "script": "01_extract_ringdown_poles.py",
+  "script_version": "01_extract_ringdown_poles.py/v1.1",
+  "created_at": "2026-04-15T11:50:58+00:00",
+  "params": {
+    "run_dir": "/home/ignac/RINGEST/runs/gwosc_all/GW151012/boundary",
+    "boundary_h5": null,
+    "out_dir_name": "ringdown",
+    "t0_rel": null,
+    "duration": 0.25,
+    "peak_search_start": -0.5,
+    "peak_search_end": 0.5,
+    "start_offset": 0.0,
+    "detrend": "mean",
+    "hp_hz": null,
+    "lp_hz": null,
+    "L": 512,
+    "rank": 0,
+    "sv_thresh": 0.001,
+    "require_decay": true,
+    "max_modes": 8,
+    "set_latest": null
+  },
+  "inputs": {
+    "run_dir": "/home/ignac/RINGEST/runs/gwosc_all/GW151012/boundary",
+    "boundary_h5_abs": "/home/ignac/RINGEST/runs/gwosc_all/GW151012/boundary/data_boundary/GW151012_boundary.h5",
+    "boundary_h5_sha256": "40b87e1f51cebf17ca74f12b7437edd1f05cb225f6eb206e9850519eb9a2719e"
+  },
+  "window": {
+    "t0_rel": 0.18374013900756836,
+    "duration_s": 0.25,
+    "i0": 66289,
+    "i1": 67314,
+    "n_samples": 1025,
+    "t_rel_start": 0.18374013900756836,
+    "t_rel_end": 0.43374013900756836
+  }
+}

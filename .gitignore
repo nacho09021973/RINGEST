@@ -59,3 +59,37 @@ credentials*
 service-account*
 
 .claude/
+
+# Mantener data ignorado por defecto
+data/
+
+# Reabrir solo la jerarquía necesaria para canary GWOSC
+!data/
+data/*
+!data/gwosc_events/
+data/gwosc_events/*
+
+# Canary events
+!data/gwosc_events/GW150914/
+!data/gwosc_events/GW150914/**
+
+!data/gwosc_events/GW151012/
+!data/gwosc_events/GW151012/**
+
+!data/gwosc_events/GW170104/
+!data/gwosc_events/GW170104/**
+
+!data/gwosc_events/GW190521_030229/
+!data/gwosc_events/GW190521_030229/**
+
+!data/gwosc_events/GW191109_010717/
+!data/gwosc_events/GW191109_010717/**
+
+# Canary GWOSC permitidos, pero no derivados pesados/no canónicos
+data/gwosc_events/*/02_emergent_geometry_engine*/
+data/gwosc_events/*/03_discover_bulk_equations/
+data/gwosc_events/*/experiment_g2_representation_stability/
+data/gwosc_events/*/g2_contract_validation/
+data/gwosc_events/*/boundary/ringdown_audit_*/
+data/gwosc_events/*/boundary_dataset*/
+data/gwosc_events/*/raw/*.hdf5
