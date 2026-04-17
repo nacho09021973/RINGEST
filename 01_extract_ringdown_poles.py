@@ -575,7 +575,9 @@ def build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--L", type=int, default=0, help="Hankel rows. 0 => auto (min(Nw//2, 4096)).")
     p.add_argument("--rank", type=int, default=4, help="Fixed rank (number of complex exponentials). 0 => auto from singular values. Default: 4 (restrictive baseline).")
     p.add_argument("--sv-thresh", type=float, default=1e-3, help="Relative singular value threshold for auto rank (only used when --rank 0). Default: 1e-3.")
+    p.add_argument("--require-decay", action="store_true", dest="require_decay", help="(Legacy alias, no-op) Decay filter is ON by default.")
     p.add_argument("--no-require-decay", action="store_false", dest="require_decay", help="Disable decay filter (keep modes with Im(omega_qnm) >= 0). Default: decay filter ON.")
+    p.set_defaults(require_decay=True)
     p.add_argument("--min-damping-rad-s", type=float, default=5.0, help="Minimum damping rate [rad/s] for decay filter (default: 5.0).")
     p.add_argument("--max-modes", type=int, default=8, help="Keep at most this many modes after sorting (default: 8).")
 
