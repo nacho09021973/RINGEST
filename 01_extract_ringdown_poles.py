@@ -191,13 +191,37 @@ def smooth_peak_reference(y: np.ndarray, window_samples: int) -> np.ndarray:
     return np.convolve(y.astype(np.float64), kernel, mode="same")
 
 
+def analytic_envelope(y: np.ndarray) -> np.ndarray:
+    """Hilbert-based analytic envelope (numpy-only).
+
+    Returns |y + i * H{y}|, which removes the carrier while preserving the
+    instantaneous amplitude. Used only to build the peak-picking reference
+    y_ref; never touches the ESPRIT input signals.
+    """
+    x = np.asarray(y, dtype=np.float64)
+    n = x.size
+    if n == 0:
+        return x
+    Y = np.fft.fft(x)
+    H = np.zeros(n, dtype=np.float64)
+    if n % 2 == 0:
+        H[0] = 1.0
+        H[n // 2] = 1.0
+        H[1:n // 2] = 2.0
+    else:
+        H[0] = 1.0
+        H[1:(n + 1) // 2] = 2.0
+    ya = np.fft.ifft(Y * H)
+    return np.abs(ya).astype(np.float64)
+
+
 def combine_peak_references(parts: List[np.ndarray], mode: str) -> np.ndarray:
     """Combine detector-local peak references without altering the ESPRIT input signals."""
     if not parts:
         raise ValueError("Need at least one peak reference part")
     if len(parts) == 1:
         return parts[0].astype(np.float64, copy=True)
-    if mode == "sumabs":
+    if mode in ("sumabs", "envsum"):
         return np.sum(np.stack(parts, axis=0), axis=0, dtype=np.float64)
     if mode == "maxabs":
         return np.max(np.stack(parts, axis=0), axis=0)
@@ -591,10 +615,11 @@ def build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--start-offset", type=float, default=0.0, help="If auto peak used, t0 = t_peak + start_offset (seconds).")
     p.add_argument(
         "--peak-ref-mode",
-        choices=["sumabs", "maxabs", "h1only"],
+        choices=["sumabs", "maxabs", "h1only", "envsum"],
         default="sumabs",
         help="How to build the reference signal for automatic peak picking. "
-             "'sumabs'/'maxabs' combine |H1| and |L1|; 'h1only' uses only |H1|.",
+             "'sumabs'/'maxabs' combine |H1| and |L1|; 'h1only' uses only |H1|; "
+             "'envsum' uses the per-detector analytic envelope (Hilbert), then sums.",
     )
     p.add_argument(
         "--peak-ref-smooth-samples",
@@ -650,12 +675,18 @@ def main() -> int:
     def _channel_valid_for_peak(y):
         return y is not None and np.isfinite(y).any() and float(np.nanstd(y)) > 0.0
 
+    def _per_ifo_peak_signal(y: np.ndarray) -> np.ndarray:
+        y_clean = np.nan_to_num(y, nan=0.0, posinf=0.0, neginf=0.0)
+        if args.peak_ref_mode == "envsum":
+            return analytic_envelope(y_clean)
+        return np.abs(y_clean)
+
     # reference signal for peak picking (ignore corrupt detector channels)
     y_ref_parts = []
     if _channel_valid_for_peak(h1):
-        y_ref_parts.append(np.nan_to_num(np.abs(h1), nan=0.0, posinf=0.0, neginf=0.0))
+        y_ref_parts.append(_per_ifo_peak_signal(h1))
     if args.peak_ref_mode != "h1only" and _channel_valid_for_peak(l1):
-        y_ref_parts.append(np.nan_to_num(np.abs(l1), nan=0.0, posinf=0.0, neginf=0.0))
+        y_ref_parts.append(_per_ifo_peak_signal(l1))
     if not y_ref_parts:
         raise RuntimeError("No valid input strain channels available for peak picking")
     y_ref = combine_peak_references(y_ref_parts, args.peak_ref_mode)
