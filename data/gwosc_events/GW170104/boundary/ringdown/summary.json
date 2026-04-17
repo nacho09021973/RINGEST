@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-04-17T06:47:48+00:00",
+  "created_at": "2026-04-17T07:35:32+00:00",
   "script": "01_extract_ringdown_poles.py",
-  "script_version": "01_extract_ringdown_poles.py/v1.1",
+  "script_version": "01_extract_ringdown_poles.py/v1.2",
   "event": "GW170104",
   "closure_criterion": "ringdown_poles_extracted",
   "inputs": {
@@ -9,8 +9,8 @@
     "boundary_h5_rel": "data_boundary/GW170104_boundary.h5",
     "boundary_h5_sha256": "cf1d4e10c2fef4fea14ba536542f502e972cb707bda0b50dc1efef04a3fdeed7"
   },
-  "spec_sha256_canonical": "fef437fb25b06bb0c46a53c0339cd7201ca815885cff1ab996815c0d714858c5",
-  "spec_sha256_file": "39f28e2f96654c194bb6010416fd01a18b1f3a8b90c8c0a6c689325e181bb2c6",
+  "spec_sha256_canonical": "7606343f1761fc9d2977f9799c97e94e5c5dc12cc2cca863f0f3855d131b9237",
+  "spec_sha256_file": "7a5b773f2af1202838fe843ad3c2af7a0af087c8e963efce9848f2ad7a13ca53",
   "outputs": {
     "ringdown_dir_rel": "ringdown",
     "ringdown_spec_rel": "ringdown/ringdown_spec.json",
@@ -22,8 +22,8 @@
     "poles_joint_csv_rel": "ringdown/poles_joint.csv"
   },
   "fit_quality": {
-    "H1_relative_rms": 0.7135499558948474,
-    "L1_relative_rms": 0.692524904257749
+    "H1_relative_rms": 0.9941782546553298,
+    "L1_relative_rms": 0.9881989577192362
   },
   "input_strain_whitened": true
 }

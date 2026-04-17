@@ -1,9 +1,9 @@
 {
   "script": "01_extract_ringdown_poles.py",
-  "script_version": "01_extract_ringdown_poles.py/v1.1",
-  "created_at": "2026-04-15T11:50:58+00:00",
+  "script_version": "01_extract_ringdown_poles.py/v1.2",
+  "created_at": "2026-04-17T07:50:52+00:00",
   "params": {
-    "run_dir": "/home/ignac/RINGEST/runs/gwosc_all/GW151012/boundary",
+    "run_dir": "data/gwosc_events/GW151012/boundary",
     "boundary_h5": null,
     "out_dir_name": "ringdown",
     "t0_rel": null,
@@ -12,18 +12,19 @@
     "peak_search_end": 0.5,
     "start_offset": 0.0,
     "detrend": "mean",
-    "hp_hz": null,
+    "hp_hz": 30.0,
     "lp_hz": null,
     "L": 512,
-    "rank": 0,
+    "rank": 4,
     "sv_thresh": 0.001,
     "require_decay": true,
+    "min_damping_rad_s": 5.0,
     "max_modes": 8,
     "set_latest": null
   },
   "inputs": {
-    "run_dir": "/home/ignac/RINGEST/runs/gwosc_all/GW151012/boundary",
-    "boundary_h5_abs": "/home/ignac/RINGEST/runs/gwosc_all/GW151012/boundary/data_boundary/GW151012_boundary.h5",
+    "run_dir": "/home/ignac/RINGEST/data/gwosc_events/GW151012/boundary",
+    "boundary_h5_abs": "/home/ignac/RINGEST/data/gwosc_events/GW151012/boundary/data_boundary/GW151012_boundary.h5",
     "boundary_h5_sha256": "40b87e1f51cebf17ca74f12b7437edd1f05cb225f6eb206e9850519eb9a2719e"
   },
   "window": {
