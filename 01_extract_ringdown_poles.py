@@ -191,6 +191,19 @@ def smooth_peak_reference(y: np.ndarray, window_samples: int) -> np.ndarray:
     return np.convolve(y.astype(np.float64), kernel, mode="same")
 
 
+def combine_peak_references(parts: List[np.ndarray], mode: str) -> np.ndarray:
+    """Combine detector-local peak references without altering the ESPRIT input signals."""
+    if not parts:
+        raise ValueError("Need at least one peak reference part")
+    if len(parts) == 1:
+        return parts[0].astype(np.float64, copy=True)
+    if mode == "sumabs":
+        return np.sum(np.stack(parts, axis=0), axis=0, dtype=np.float64)
+    if mode == "maxabs":
+        return np.max(np.stack(parts, axis=0), axis=0)
+    raise ValueError(f"Unsupported peak reference mode: {mode}")
+
+
 # ----------------------------
 # ESPRIT / matrix-pencil core
 # ----------------------------
@@ -577,6 +590,12 @@ def build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--peak-search-end", type=float, default=0.5, help="Auto-peak search end (t_rel) if --t0-rel omitted.")
     p.add_argument("--start-offset", type=float, default=0.0, help="If auto peak used, t0 = t_peak + start_offset (seconds).")
     p.add_argument(
+        "--peak-ref-mode",
+        choices=["sumabs", "maxabs"],
+        default="sumabs",
+        help="How to combine per-detector absolute amplitudes for automatic peak picking.",
+    )
+    p.add_argument(
         "--peak-ref-smooth-samples",
         type=int,
         default=1,
@@ -638,7 +657,7 @@ def main() -> int:
         y_ref_parts.append(np.nan_to_num(np.abs(l1), nan=0.0, posinf=0.0, neginf=0.0))
     if not y_ref_parts:
         raise RuntimeError("No valid input strain channels available for peak picking")
-    y_ref = y_ref_parts[0] if len(y_ref_parts) == 1 else (y_ref_parts[0] + y_ref_parts[1])
+    y_ref = combine_peak_references(y_ref_parts, args.peak_ref_mode)
     y_ref = smooth_peak_reference(y_ref, args.peak_ref_smooth_samples)
 
     i0, i1, t0_used = pick_window(
