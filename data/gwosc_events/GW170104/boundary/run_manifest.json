@@ -37,8 +37,8 @@
     "spec_sha256_canonical": "39a2438b0fa8a75685435a807adadc67b27ddfab6bdb77895cca3879d922dba1",
     "spec_sha256_file": "dd876126fb745b46c0d5c9ff6cc42cc80723a66370d3f65c3b370c0e37997eab",
     "inputs_sha256": "fce03dea6282edd504457c2b0487d31fd59eb4ff322f7b9a7dd4cbd3cd01b080",
-    "ringdown_stage_created_at": "2026-04-16T17:09:19+00:00",
-    "ringdown_spec_sha256_canonical": "68a47dd35de46fd5405ae1cb01b58a2521fe1806dcae11b553d0dfa21bfec14a",
-    "ringdown_spec_sha256_file": "5066ff580ef3260b047d7beeab71ac7202dcad3aff19e6ca94ffbdc20e080e3a"
+    "ringdown_stage_created_at": "2026-04-17T06:47:48+00:00",
+    "ringdown_spec_sha256_canonical": "fef437fb25b06bb0c46a53c0339cd7201ca815885cff1ab996815c0d714858c5",
+    "ringdown_spec_sha256_file": "39f28e2f96654c194bb6010416fd01a18b1f3a8b90c8c0a6c689325e181bb2c6"
   }
 }
