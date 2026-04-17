@@ -1,0 +1,44 @@
+{
+  "manifest_version": "2.0",
+  "created_at": "2026-04-08T15:08:31+00:00",
+  "run_dir": "/home/ignac/RINGEST/malda/runs/gwosc_all/GW170814/boundary",
+  "artifacts": {
+    "data_dir": "data_boundary",
+    "ligo_boundary_h5": "data_boundary/GW170814_boundary.h5",
+    "ligo_boundary_meta_json": "data_boundary/GW170814_boundary_meta.json",
+    "adapter_spec": "adapter_spec.json",
+    "ringdown_dir": "ringdown",
+    "ringdown_spec": "ringdown/ringdown_spec.json",
+    "ringdown_poles_h1_json": "ringdown/poles_H1.json",
+    "ringdown_poles_h1_csv": "ringdown/poles_H1.csv",
+    "ringdown_summary": "ringdown/summary.json",
+    "ringdown_poles_l1_json": "ringdown/poles_L1.json",
+    "ringdown_poles_l1_csv": "ringdown/poles_L1.csv",
+    "ringdown_poles_joint_json": "ringdown/poles_joint.json",
+    "ringdown_poles_joint_csv": "ringdown/poles_joint.csv"
+  },
+  "metadata": {
+    "script": "00_load_ligo_data.py",
+    "script_version": "00_load_ligo_data.py/v4",
+    "event": "GW170814",
+    "gps": 1186741861.5,
+    "ifo_count": 2,
+    "whitened": true,
+    "whitening": {
+      "enabled": true,
+      "psd_trel_start": -28.0,
+      "psd_trel_end": -4.0,
+      "n_offband_samples": 49153,
+      "nperseg": 6144,
+      "fmin_hz": 20.0,
+      "fmax_hz": 1800.0,
+      "method": "welch_median_asd_divide"
+    },
+    "spec_sha256_canonical": "756c0c29ed5fb23f8e71e5b7b4d173eb883c95a47a3a995e70cc80b086a11d53",
+    "spec_sha256_file": "a0708c564319f150fb8bf746253349177cad91d7265aa91da9f298bce5dd13f7",
+    "inputs_sha256": "8d9746aa98a06de521b0c05ffba42423103f59dff8cb9fc48d298e1d31cddc99",
+    "ringdown_stage_created_at": "2026-04-08T15:12:26+00:00",
+    "ringdown_spec_sha256_canonical": "724bf6d65a8e8efd4029d4c2a54790c3c8d54775f3d934da66998622e5dadd64",
+    "ringdown_spec_sha256_file": "e39d716063013bf575f918d27472cb12b2f85fe7e9855a9778182bf470bab642"
+  }
+}
