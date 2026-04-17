@@ -1,20 +1,23 @@
-# ── Datos de eventos (volumen elevado) ────────────────────────────────────────
-/data/
+# ── Datos voluminosos / salidas de pipeline ───────────────────────────────────
 /runs/
 /malda/runs/
+/outputs/
 
-# Archivos de strain y geometría
+# Ignorar data por defecto; reabriremos solo canary concretos más abajo
+/data/
+
+# Archivos pesados por defecto
 *.npz
 *.hdf5
 *.h5
 
-# ── Entornos virtuales ─────────────────────────────────────────────────────────
-.venv-pysr/
-malda/.venv-pysr/
+# ── Entornos virtuales ────────────────────────────────────────────────────────
 .venv/
 venv/
+.venv-pysr/
+malda/.venv-pysr/
 
-# ── Python cache ───────────────────────────────────────────────────────────────
+# ── Python cache / build ──────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
@@ -22,54 +25,50 @@ __pycache__/
 .Python
 ringest.egg-info/
 
-# ── Jupyter ────────────────────────────────────────────────────────────────────
+# ── Jupyter ───────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
 *.ipynb
 
-# ── Salidas temporales ─────────────────────────────────────────────────────────
-/outputs/
+# ── Logs / temporales ─────────────────────────────────────────────────────────
 *.log
 
 # ── PySR ──────────────────────────────────────────────────────────────────────
 hall_of_fame_*.csv
 hall_of_fame_*.pkl
 
-# ── Sistema ───────────────────────────────────────────────────────────────────
+# ── Sistema / editor ──────────────────────────────────────────────────────────
 .DS_Store
 *.Zone.Identifier
 /.codex
 .aider*
-.env
+.claude/
 
-# Local frozen external repositories
-repo/
-
-# Secrets / providers
-*google*
-*gemini*
+# ── Secrets / credenciales ────────────────────────────────────────────────────
 .env
 .env.*
 *.key
 *.pem
-*.json
+credentials*
+service-account*
+*google*
+*gemini*
+
+# Repos congelados externos
+repo/
+
+# ── Configs permitidos (JSON útil del proyecto) ───────────────────────────────
+# NO ignoramos todos los .json: aquí son trazabilidad/física real
 !/configs/
 !/configs/theory_dictionary/
 !/configs/theory_dictionary/theory_dictionary_v1.json
-credentials*
-service-account*
 
-.claude/
-
-# Mantener data ignorado por defecto
-data/
-
-# Reabrir solo la jerarquía necesaria para canary GWOSC
+# ── Reabrir solo la jerarquía necesaria para canary GWOSC ────────────────────
 !data/
 data/*
 !data/gwosc_events/
 data/gwosc_events/*
 
-# Canary events
+# ── Canary events permitidos en GitHub ────────────────────────────────────────
 !data/gwosc_events/GW150914/
 !data/gwosc_events/GW150914/**
 
@@ -79,18 +78,23 @@ data/gwosc_events/*
 !data/gwosc_events/GW170104/
 !data/gwosc_events/GW170104/**
 
+!data/gwosc_events/GW170814/
+!data/gwosc_events/GW170814/**
+
+!data/gwosc_events/GW170818/
+!data/gwosc_events/GW170818/**
+
 !data/gwosc_events/GW190521_030229/
 !data/gwosc_events/GW190521_030229/**
 
 !data/gwosc_events/GW191109_010717/
 !data/gwosc_events/GW191109_010717/**
 
-# Canary GWOSC permitidos, pero no derivados pesados/no canónicos
+# ── Dentro de los canary, excluir derivados pesados / no canónicos ───────────
 data/gwosc_events/*/02_emergent_geometry_engine*/
 data/gwosc_events/*/03_discover_bulk_equations/
 data/gwosc_events/*/experiment_g2_representation_stability/
 data/gwosc_events/*/g2_contract_validation/
 data/gwosc_events/*/boundary/ringdown_audit_*/
-data/gwosc_events/*/boundary/ringdown_*_audit/
 data/gwosc_events/*/boundary_dataset*/
 data/gwosc_events/*/raw/*.hdf5
