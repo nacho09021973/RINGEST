@@ -91,5 +91,6 @@ data/gwosc_events/*/03_discover_bulk_equations/
 data/gwosc_events/*/experiment_g2_representation_stability/
 data/gwosc_events/*/g2_contract_validation/
 data/gwosc_events/*/boundary/ringdown_audit_*/
+data/gwosc_events/*/boundary/ringdown_*_audit/
 data/gwosc_events/*/boundary_dataset*/
 data/gwosc_events/*/raw/*.hdf5
