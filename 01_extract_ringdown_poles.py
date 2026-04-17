@@ -68,7 +68,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 
-SCRIPT_VERSION = "01_extract_ringdown_poles.py/v1.1"
+SCRIPT_VERSION = "01_extract_ringdown_poles.py/v1.2"
 
 
 # ----------------------------
@@ -178,6 +178,17 @@ def apply_rfft_bandpass(y: np.ndarray, fs: float, hp: Optional[float], lp: Optio
         mask &= (f <= float(lp))
     Yf = np.where(mask, Y, 0.0 + 0.0j)
     return np.fft.irfft(Yf, n=y.size).astype(np.float64)
+
+
+def smooth_peak_reference(y: np.ndarray, window_samples: int) -> np.ndarray:
+    """Short moving-average smoother used only by the peak picker."""
+    n = int(window_samples)
+    if n <= 1:
+        return y.astype(np.float64, copy=True)
+    if n % 2 == 0:
+        n += 1
+    kernel = np.ones(n, dtype=np.float64) / float(n)
+    return np.convolve(y.astype(np.float64), kernel, mode="same")
 
 
 # ----------------------------
@@ -565,6 +576,12 @@ def build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--peak-search-start", type=float, default=-0.5, help="Auto-peak search start (t_rel) if --t0-rel omitted.")
     p.add_argument("--peak-search-end", type=float, default=0.5, help="Auto-peak search end (t_rel) if --t0-rel omitted.")
     p.add_argument("--start-offset", type=float, default=0.0, help="If auto peak used, t0 = t_peak + start_offset (seconds).")
+    p.add_argument(
+        "--peak-ref-smooth-samples",
+        type=int,
+        default=1,
+        help="Optional moving-average smoothing window applied only to y_ref for peak picking. 1 disables smoothing.",
+    )
 
     # preprocessing
     p.add_argument("--detrend", choices=["none", "mean", "linear"], default="mean", help="Detrend mode applied to window before fit.")
@@ -573,11 +590,11 @@ def build_argparser() -> argparse.ArgumentParser:
 
     # ESPRIT params
     p.add_argument("--L", type=int, default=0, help="Hankel rows. 0 => auto (min(Nw//2, 4096)).")
-    p.add_argument("--rank", type=int, default=0, help="Fixed rank. 0 => auto from singular values.")
+    p.add_argument("--rank", type=int, default=4, help="Fixed rank (v1.2 default: 4). 0 => auto from singular values.")
     p.add_argument("--sv-thresh", type=float, default=1e-3, help="Relative singular value threshold for auto rank (default: 1e-3).")
-    p.add_argument("--require-decay", action="store_true", help="Filter to modes with Im(omega_qnm) < 0 (decaying).")
+    p.add_argument("--require-decay", action=argparse.BooleanOptionalAction, default=True, help="Filter to modes with Im(omega_qnm) < 0 (decaying). v1.2 default: ON. Disable with --no-require-decay.")
     p.add_argument("--min-damping-rad-s", type=float, default=5.0, help="If --require-decay, filter out modes with damping rate < this [rad/s].")
-    p.add_argument("--max-modes", type=int, default=16, help="Keep at most this many modes after sorting (default: 16).")
+    p.add_argument("--max-modes", type=int, default=8, help="Keep at most this many modes after sorting (v1.2 default: 8).")
 
     # routing convenience
     p.add_argument("--set-latest", default=None, help="Optional stable symlink (root-relative allowed) to point to run_dir.")
@@ -622,6 +639,7 @@ def main() -> int:
     if not y_ref_parts:
         raise RuntimeError("No valid input strain channels available for peak picking")
     y_ref = y_ref_parts[0] if len(y_ref_parts) == 1 else (y_ref_parts[0] + y_ref_parts[1])
+    y_ref = smooth_peak_reference(y_ref, args.peak_ref_smooth_samples)
 
     i0, i1, t0_used = pick_window(
         t_rel=t_rel,

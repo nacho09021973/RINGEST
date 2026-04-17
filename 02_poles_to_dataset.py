@@ -167,10 +167,19 @@ def parse_poles_file(
             break
 
         omega_re = float(pole["omega_qnm"][0])
-        omega_im = float(pole["omega_qnm"][1])
+
+        # Convención física canónica para el dataset:
+        # modos amortiguados => omega_im < 0
+        # En JSONs v1.2 (require_decay ON), damping_1_over_s = -Im(omega) > 0 para decay,
+        # por lo que omega_im físico = -damping_1_over_s.
+        if "damping_1_over_s" in pole:
+            omega_im = -abs(float(pole["damping_1_over_s"]))
+        else:
+            # Fallback conservador si solo existe omega_qnm[1]
+            omega_im = -abs(float(pole["omega_qnm"][1]))
 
         freq_hz = float(pole.get("freq_hz", omega_re / (2.0 * np.pi)))
-        damping_hz = float(pole.get("damping_1_over_s", -omega_im))
+        damping_hz = abs(omega_im)
         tau_ms = 1000.0 / damping_hz if damping_hz > 1e-10 else float("nan")
 
         rows.append({
