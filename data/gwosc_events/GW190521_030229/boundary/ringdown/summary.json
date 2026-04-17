@@ -1,0 +1,29 @@
+{
+  "created_at": "2026-04-15T11:51:07+00:00",
+  "script": "01_extract_ringdown_poles.py",
+  "script_version": "01_extract_ringdown_poles.py/v1.1",
+  "event": "GW190521_030229",
+  "closure_criterion": "ringdown_poles_extracted",
+  "inputs": {
+    "run_dir": "/home/ignac/RINGEST/runs/gwosc_all/GW190521_030229/boundary",
+    "boundary_h5_rel": "data_boundary/GW190521_030229_boundary.h5",
+    "boundary_h5_sha256": "cb89539d8d6493719bc085196829c6edd3bb6d96ee61863e97fedd9b6d32d4d9"
+  },
+  "spec_sha256_canonical": "3afab0116b3d358bb5964cd4544ee8c49b9f9f167c880031bed61621bc2ddc23",
+  "spec_sha256_file": "994d5a54064c60ff9d959e4bfd1b692b7a6184d7c0814c67e981168bfedfccba",
+  "outputs": {
+    "ringdown_dir_rel": "ringdown",
+    "ringdown_spec_rel": "ringdown/ringdown_spec.json",
+    "poles_h1_json_rel": "ringdown/poles_H1.json",
+    "poles_h1_csv_rel": "ringdown/poles_H1.csv",
+    "poles_l1_json_rel": "ringdown/poles_L1.json",
+    "poles_l1_csv_rel": "ringdown/poles_L1.csv",
+    "poles_joint_json_rel": "ringdown/poles_joint.json",
+    "poles_joint_csv_rel": "ringdown/poles_joint.csv"
+  },
+  "fit_quality": {
+    "H1_relative_rms": 0.713826688814469,
+    "L1_relative_rms": 0.7174089186194006
+  },
+  "input_strain_whitened": true
+}

@@ -1,0 +1,44 @@
+{
+  "event": "GW170104",
+  "gps": 1167559936.6,
+  "fs_hz": 4096.0,
+  "time": {
+    "t_gps_start": 1167559920.5998535,
+    "t_gps_end": 1167559952.5996094,
+    "n_samples": 131072,
+    "dt": 0.000244140625
+  },
+  "inputs": {
+    "h1_npz_sha256": "0b197c397385f68dbdf76fb6339430d7ce3b9906fa3126328b9ac4533c8d6683",
+    "h1_npz_path": "/home/ignac/RINGEST/malda/runs/gwosc_all/GW170104/raw/GW170104_H1_4096Hz_32s.npz",
+    "l1_npz_sha256": "3ad5826a39737e24d976deff5378ac919c3c517817b9fe46c4c6974f8436dc05",
+    "l1_npz_path": "/home/ignac/RINGEST/malda/runs/gwosc_all/GW170104/raw/GW170104_L1_4096Hz_32s.npz",
+    "h1_meta_sha256": null,
+    "h1_meta_path": null,
+    "l1_meta_sha256": null,
+    "l1_meta_path": null
+  },
+  "inputs_meta_h1": {},
+  "inputs_meta_l1": {},
+  "preprocess": {
+    "detrend": "mean",
+    "window": "hann",
+    "fft": true,
+    "whitening": {
+      "enabled": true,
+      "psd_trel_start": -28.0,
+      "psd_trel_end": -4.0,
+      "n_offband_samples": 49153,
+      "nperseg": 6144,
+      "fmin_hz": 20.0,
+      "fmax_hz": 1800.0,
+      "method": "welch_median_asd_divide"
+    }
+  },
+  "artifacts": {
+    "boundary_h5_rel": "data_boundary/GW170104_boundary.h5",
+    "boundary_meta_rel": "data_boundary/GW170104_boundary_meta.json"
+  },
+  "created_at": "2026-04-08T15:08:29+00:00",
+  "script_version": "00_load_ligo_data.py/v4"
+}

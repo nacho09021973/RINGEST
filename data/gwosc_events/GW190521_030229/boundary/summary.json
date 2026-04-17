@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-04-08T15:08:41+00:00",
+  "script": "00_load_ligo_data.py",
+  "script_version": "00_load_ligo_data.py/v4",
+  "event": "GW190521_030229",
+  "gps": 1242442967.4,
+  "closure_criterion": "adapter_completed",
+  "boundary_h5_rel": "data_boundary/GW190521_030229_boundary.h5",
+  "boundary_h5": "/home/ignac/RINGEST/malda/runs/gwosc_all/GW190521_030229/boundary/data_boundary/GW190521_030229_boundary.h5",
+  "spec_sha256_canonical": "c128f90da882d8bf5553ddc4fe5bafbf676b7e66e8810348b690a564570f0a1c",
+  "spec_sha256_file": "aeb4f35cc8bbd4dd13713b8126969bacdf5fbbeafe3f626a54c09de32e973444",
+  "inputs_sha256": "6c22d24133443444daa04d7f35cffe36796d589db54533e14770c7f3535da25d"
+}
