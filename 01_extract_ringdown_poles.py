@@ -591,9 +591,10 @@ def build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--start-offset", type=float, default=0.0, help="If auto peak used, t0 = t_peak + start_offset (seconds).")
     p.add_argument(
         "--peak-ref-mode",
-        choices=["sumabs", "maxabs"],
+        choices=["sumabs", "maxabs", "h1only"],
         default="sumabs",
-        help="How to combine per-detector absolute amplitudes for automatic peak picking.",
+        help="How to build the reference signal for automatic peak picking. "
+             "'sumabs'/'maxabs' combine |H1| and |L1|; 'h1only' uses only |H1|.",
     )
     p.add_argument(
         "--peak-ref-smooth-samples",
@@ -653,7 +654,7 @@ def main() -> int:
     y_ref_parts = []
     if _channel_valid_for_peak(h1):
         y_ref_parts.append(np.nan_to_num(np.abs(h1), nan=0.0, posinf=0.0, neginf=0.0))
-    if _channel_valid_for_peak(l1):
+    if args.peak_ref_mode != "h1only" and _channel_valid_for_peak(l1):
         y_ref_parts.append(np.nan_to_num(np.abs(l1), nan=0.0, posinf=0.0, neginf=0.0))
     if not y_ref_parts:
         raise RuntimeError("No valid input strain channels available for peak picking")
