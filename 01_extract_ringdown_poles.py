@@ -68,7 +68,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 
-SCRIPT_VERSION = "01_extract_ringdown_poles.py/v1.1"
+SCRIPT_VERSION = "01_extract_ringdown_poles.py/v1.2"
 
 
 # ----------------------------
@@ -573,11 +573,11 @@ def build_argparser() -> argparse.ArgumentParser:
 
     # ESPRIT params
     p.add_argument("--L", type=int, default=0, help="Hankel rows. 0 => auto (min(Nw//2, 4096)).")
-    p.add_argument("--rank", type=int, default=0, help="Fixed rank. 0 => auto from singular values.")
-    p.add_argument("--sv-thresh", type=float, default=1e-3, help="Relative singular value threshold for auto rank (default: 1e-3).")
-    p.add_argument("--require-decay", action="store_true", help="Filter to modes with Im(omega_qnm) < 0 (decaying).")
-    p.add_argument("--min-damping-rad-s", type=float, default=5.0, help="If --require-decay, filter out modes with damping rate < this [rad/s].")
-    p.add_argument("--max-modes", type=int, default=16, help="Keep at most this many modes after sorting (default: 16).")
+    p.add_argument("--rank", type=int, default=4, help="Fixed rank (number of complex exponentials). 0 => auto from singular values. Default: 4 (restrictive baseline).")
+    p.add_argument("--sv-thresh", type=float, default=1e-3, help="Relative singular value threshold for auto rank (only used when --rank 0). Default: 1e-3.")
+    p.add_argument("--no-require-decay", action="store_false", dest="require_decay", help="Disable decay filter (keep modes with Im(omega_qnm) >= 0). Default: decay filter ON.")
+    p.add_argument("--min-damping-rad-s", type=float, default=5.0, help="Minimum damping rate [rad/s] for decay filter (default: 5.0).")
+    p.add_argument("--max-modes", type=int, default=8, help="Keep at most this many modes after sorting (default: 8).")
 
     # routing convenience
     p.add_argument("--set-latest", default=None, help="Optional stable symlink (root-relative allowed) to point to run_dir.")
