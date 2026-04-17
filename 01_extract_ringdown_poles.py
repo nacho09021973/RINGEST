@@ -68,7 +68,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 
-SCRIPT_VERSION = "01_extract_ringdown_poles.py/v1.2"
+SCRIPT_VERSION = "01_extract_ringdown_poles.py/v1.3"
 
 
 # ----------------------------
@@ -569,7 +569,7 @@ def build_argparser() -> argparse.ArgumentParser:
     # preprocessing
     p.add_argument("--detrend", choices=["none", "mean", "linear"], default="mean", help="Detrend mode applied to window before fit.")
     p.add_argument("--hp-hz", type=float, default=30.0, help="Optional high-pass cutoff in Hz (FFT-domain).")
-    p.add_argument("--lp-hz", type=float, default=None, help="Optional low-pass cutoff in Hz (FFT-domain).")
+    p.add_argument("--lp-hz", type=float, default=1500.0, help="Optional low-pass cutoff in Hz (FFT-domain). Default: 1500 Hz (covers l=m=2 Kerr QNM range for M≥10 Msun).")
 
     # ESPRIT params
     p.add_argument("--L", type=int, default=0, help="Hankel rows. 0 => auto (min(Nw//2, 4096)).")

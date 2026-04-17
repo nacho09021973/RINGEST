@@ -155,7 +155,9 @@ def parse_poles_file(
     ifo = payload.get("ifo", "UNKNOWN")
     relative_rms = float(payload.get("fit", {}).get("relative_rms", float("nan")))
 
-    # Quality gate
+    # Quality gate: joint files have relative_rms=NaN (merged, not directly fit).
+    # When relative_rms is NaN the gate silently passes — this is intentional;
+    # per-IFO quality filtering should happen in 01_extract_ringdown_poles.py.
     if max_rms is not None and not np.isnan(relative_rms) and relative_rms > max_rms:
         return []
 
