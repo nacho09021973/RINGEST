@@ -254,14 +254,28 @@ def train_kan(
         seed=seed,
     )
 
-    results = model.train(
-        dataset,
-        opt="LBFGS",
-        steps=steps,
-        lamb=0.01,
-        lamb_entropy=2.0,
-        loss_fn=torch.nn.MSELoss(),
-    )
+    # pykan exposes the optimization entrypoint as `fit`, while some older
+    # variants wrapped a custom `train`. Prefer `fit` when present and fall
+    # back to `train` for compatibility with legacy installs.
+    fit_fn = getattr(model, "fit", None)
+    if callable(fit_fn):
+        results = fit_fn(
+            dataset,
+            opt="LBFGS",
+            steps=steps,
+            lamb=0.01,
+            lamb_entropy=2.0,
+            loss_fn=torch.nn.MSELoss(),
+        )
+    else:
+        results = model.train(
+            dataset,
+            opt="LBFGS",
+            steps=steps,
+            lamb=0.01,
+            lamb_entropy=2.0,
+            loss_fn=torch.nn.MSELoss(),
+        )
 
     # Training accuracy on full dataset
     with torch.no_grad():
@@ -275,6 +289,7 @@ def train_kan(
 
     # Save model
     model_dir = out_dir / "kan_model"
+    model_dir.mkdir(parents=True, exist_ok=True)
     try:
         torch.save(model.state_dict(), model_dir / "model_state.pt")
         model_path = str(model_dir / "model_state.pt")

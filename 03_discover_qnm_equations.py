@@ -188,12 +188,16 @@ def run_pysr_target(
         }
 
     needed = [target_col] + feature_cols
+    def _finite_value(row: Dict[str, Any], col: str) -> bool:
+        raw = row.get(col, float("nan"))
+        try:
+            return np.isfinite(float(raw))
+        except (TypeError, ValueError):
+            return False
+
     valid_rows = [
         r for r in rows
-        if all(
-            np.isfinite(float(r.get(c, float("nan")) or float("nan")))
-            for c in needed
-        )
+        if all(_finite_value(r, c) for c in needed)
     ]
 
     if len(valid_rows) < min_rows:
