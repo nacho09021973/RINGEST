@@ -357,6 +357,50 @@ def build_cluster_audit_summary(
 
         # Strip cluster_id and n_rows from match dict to avoid redundancy
         match_payload = {k: v for k, v in cluster_match.items() if k not in ("cluster_id", "n_rows")}
+        ref_chi = cluster_match.get("ref_chi")
+        centroid_omega_re = cluster_match.get("centroid_omega_re")
+        centroid_omega_im = cluster_match.get("centroid_omega_im")
+
+        delta_chi_vs_external: Optional[float] = None
+        if (
+            ref_chi is not None and chi_mean is not None
+            and np.isfinite(float(ref_chi)) and np.isfinite(float(chi_mean))
+        ):
+            delta_chi_vs_external = abs(float(ref_chi) - float(chi_mean))
+
+        kerr_distance_at_external_chi: Optional[float] = None
+        kerr_ref_n_at_external_chi: Optional[int] = None
+        kerr_ref_chi_at_external_chi: Optional[float] = None
+        if (
+            chi_mean is not None
+            and centroid_omega_re is not None and centroid_omega_im is not None
+            and np.isfinite(float(chi_mean))
+            and np.isfinite(float(centroid_omega_re))
+            and np.isfinite(float(centroid_omega_im))
+        ):
+            chi_mean_f = float(chi_mean)
+            centroid_re_f = float(centroid_omega_re)
+            centroid_im_f = float(centroid_omega_im)
+
+            chi_dist = np.abs(_REF_CHI - chi_mean_f)
+            min_chi_dist = float(np.min(chi_dist))
+            chi_mask = chi_dist == min_chi_dist
+
+            dre = _REF_RE[chi_mask] - centroid_re_f
+            dim = _REF_IM[chi_mask] - centroid_im_f
+            dist = np.sqrt(dre ** 2 + dim ** 2)
+            idx_local = int(np.argmin(dist))
+            candidate_indices = np.flatnonzero(chi_mask)
+            idx = int(candidate_indices[idx_local])
+
+            kerr_distance_at_external_chi = float(dist[idx_local])
+            kerr_ref_n_at_external_chi = int(_REF_N[idx])
+            kerr_ref_chi_at_external_chi = float(_REF_CHI[idx])
+
+        match_payload["delta_chi_vs_external"] = delta_chi_vs_external
+        match_payload["kerr_distance_at_external_chi"] = kerr_distance_at_external_chi
+        match_payload["kerr_ref_n_at_external_chi"] = kerr_ref_n_at_external_chi
+        match_payload["kerr_ref_chi_at_external_chi"] = kerr_ref_chi_at_external_chi
 
         audit_summary[str(cid)] = {
             "n_rows": cluster_match["n_rows"],
@@ -666,6 +710,12 @@ def main() -> int:
             print(f"  pole_source distribution: {pop.get('pole_source_distribution', {})}")
             if chi_mean is not None and chi_median is not None:
                 print(f"  chi_final: mean={chi_mean:.3f}, median={chi_median:.3f}")
+                print(
+                    "  delta_chi_vs_external="
+                    f"{c0.get('kerr_match', {}).get('delta_chi_vs_external')}  "
+                    "kerr_distance_at_external_chi="
+                    f"{c0.get('kerr_match', {}).get('kerr_distance_at_external_chi')}"
+                )
             print(f"  row quality: {pop.get('row_quality_counts', {})}")
         else:
             print("  Cluster 0 not found in audit.")
