@@ -11,6 +11,10 @@ Chain:
     01_extract_ringdown_poles.py →  poles_joint.json per event
     THIS SCRIPT                  →  qnm_dataset.csv
 
+If a merged poles_joint.json carries a missing/NaN fit.relative_rms (historical
+simple-merge outputs), this script reuses the sibling H1/L1 quality metric so
+existing runs still produce a finite dataset-level quality indicator.
+
 Input layout expected (default):
     <runs-dir>/
         <EVENT_NAME>/
@@ -67,7 +71,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-SCRIPT_VERSION = "02_poles_to_dataset.py v1.0"
+SCRIPT_VERSION = "02_poles_to_dataset.py v1.1"
 
 # G/c^3 in seconds per solar mass — for dimensionless QNM normalization
 G_OVER_C3_PER_MSUN = 4.925491025543576e-6  # s / M_sun
@@ -75,6 +79,68 @@ G_OVER_C3_PER_MSUN = 4.925491025543576e-6  # s / M_sun
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _safe_load_json(path: Path) -> Optional[Dict[str, Any]]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _finite_float(value: Any) -> float:
+    try:
+        scalar = float(value)
+    except (TypeError, ValueError):
+        return float("nan")
+    return scalar if np.isfinite(scalar) else float("nan")
+
+
+def _extract_relative_rms(payload: Dict[str, Any]) -> float:
+    return _finite_float(payload.get("fit", {}).get("relative_rms", float("nan")))
+
+
+def _resolve_relative_rms(path: Path, payload: Dict[str, Any]) -> Tuple[float, str]:
+    relative_rms = _extract_relative_rms(payload)
+    if np.isfinite(relative_rms):
+        return relative_rms, path.name
+
+    sibling_candidates: List[Tuple[str, Path]] = []
+    if path.name == "poles_joint.json":
+        sibling_candidates = [
+            ("poles_H1.json", path.with_name("poles_H1.json")),
+            ("poles_L1.json", path.with_name("poles_L1.json")),
+        ]
+    elif path.name == "poles_H1.json":
+        sibling_candidates = [("poles_L1.json", path.with_name("poles_L1.json"))]
+    elif path.name == "poles_L1.json":
+        sibling_candidates = [("poles_H1.json", path.with_name("poles_H1.json"))]
+
+    for label, sibling in sibling_candidates:
+        if not sibling.exists():
+            continue
+        sibling_payload = _safe_load_json(sibling)
+        if sibling_payload is None:
+            continue
+        sibling_rms = _extract_relative_rms(sibling_payload)
+        if np.isfinite(sibling_rms):
+            return sibling_rms, label
+
+    summary_path = path.with_name("summary.json")
+    summary_payload = _safe_load_json(summary_path) if summary_path.exists() else None
+    fit_quality = summary_payload.get("fit_quality", {}) if summary_payload else {}
+    if isinstance(fit_quality, dict):
+        for key, label in [
+            ("joint_relative_rms_proxy", "summary.json:joint_relative_rms_proxy"),
+            ("H1_relative_rms", "summary.json:H1_relative_rms"),
+            ("L1_relative_rms", "summary.json:L1_relative_rms"),
+        ]:
+            summary_rms = _finite_float(fit_quality.get(key))
+            if np.isfinite(summary_rms):
+                return summary_rms, label
+
+    return float("nan"), "missing"
 
 
 # ---------------------------------------------------------------------------
@@ -153,7 +219,7 @@ def parse_poles_file(
     """
     payload = json.loads(path.read_text(encoding="utf-8"))
     ifo = payload.get("ifo", "UNKNOWN")
-    relative_rms = float(payload.get("fit", {}).get("relative_rms", float("nan")))
+    relative_rms, relative_rms_source = _resolve_relative_rms(path, payload)
 
     # Quality gate
     if max_rms is not None and not np.isnan(relative_rms) and relative_rms > max_rms:
@@ -194,6 +260,7 @@ def parse_poles_file(
             "omega_im":     omega_im,
             "amp_abs":      float(pole.get("amp_abs", float("nan"))),
             "relative_rms": relative_rms,
+            "_relative_rms_source": relative_rms_source,
         })
 
     return rows
@@ -247,8 +314,12 @@ def build_dataset(
                 row["omega_im_norm"] = float("nan")
 
         rows.extend(event_rows)
+        rms_value = event_rows[0]["relative_rms"]
+        rms_text = f"{rms_value:.3f}" if np.isfinite(rms_value) else "nan"
+        rms_source = event_rows[0].get("_relative_rms_source", poles_path.name)
+        rms_suffix = "" if rms_source == poles_path.name else f" via {rms_source}"
         print(f"    {event_name}: {len(event_rows)} modes  "
-              f"(rms={event_rows[0]['relative_rms']:.3f})")
+              f"(rms={rms_text}{rms_suffix})")
 
     if n_skipped:
         print(f"  Skipped {n_skipped} events (rms > {max_rms or 'n/a'} or no modes)")

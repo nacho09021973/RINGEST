@@ -68,7 +68,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 
-SCRIPT_VERSION = "01_extract_ringdown_poles.py/v1.2"
+SCRIPT_VERSION = "01_extract_ringdown_poles.py/v1.3"
 
 
 # ----------------------------
@@ -373,6 +373,19 @@ def _sort_and_filter(pf: PoleFit, require_decay: bool, min_damping_rad_s: float,
         residual_rms=pf.residual_rms, relative_rms=pf.relative_rms,
         singular_values=pf.singular_values, rank=int(z.size), L=pf.L
     )
+
+
+def _first_finite(*values: Optional[float]) -> float:
+    for value in values:
+        if value is None:
+            continue
+        try:
+            scalar = float(value)
+        except (TypeError, ValueError):
+            continue
+        if np.isfinite(scalar):
+            return scalar
+    return float("nan")
 
 
 # ----------------------------
@@ -766,9 +779,21 @@ def main() -> int:
         _, idx = np.unique(key, axis=0, return_index=True)
         idx = np.sort(idx)
 
+        # The "joint" product is only a merged pole list, not a fresh ESPRIT fit.
+        # Reuse the first finite per-IFO quality metric so downstream consumers do
+        # not inherit NaN-only metadata for the merged artifact.
+        joint_residual_rms = _first_finite(
+            pf_h1.residual_rms if pf_h1 is not None else None,
+            pf_l1.residual_rms if pf_l1 is not None else None,
+        )
+        joint_relative_rms = _first_finite(
+            pf_h1.relative_rms if pf_h1 is not None else None,
+            pf_l1.relative_rms if pf_l1 is not None else None,
+        )
+
         pf_joint = PoleFit(
             z=z_all[idx], q=q_all[idx], omega_qnm=w_all[idx], a=a_all[idx],
-            residual_rms=float("nan"), relative_rms=float("nan"),
+            residual_rms=joint_residual_rms, relative_rms=joint_relative_rms,
             singular_values=np.array([], dtype=np.float64), rank=int(idx.size), L=L
         )
         pf_joint = _sort_and_filter(
