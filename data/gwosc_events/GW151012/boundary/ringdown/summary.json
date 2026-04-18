@@ -1,16 +1,16 @@
 {
-  "created_at": "2026-04-17T07:50:52+00:00",
+  "created_at": "2026-04-18T06:28:00+00:00",
   "script": "01_extract_ringdown_poles.py",
-  "script_version": "01_extract_ringdown_poles.py/v1.2",
+  "script_version": "01_extract_ringdown_poles.py/v1.3",
   "event": "GW151012",
   "closure_criterion": "ringdown_poles_extracted",
   "inputs": {
-    "run_dir": "/home/ignac/RINGEST/data/gwosc_events/GW151012/boundary",
+    "run_dir": "/home/adnac/ringest/data/gwosc_events/GW151012/boundary",
     "boundary_h5_rel": "data_boundary/GW151012_boundary.h5",
     "boundary_h5_sha256": "40b87e1f51cebf17ca74f12b7437edd1f05cb225f6eb206e9850519eb9a2719e"
   },
-  "spec_sha256_canonical": "4180bd610e54d6ebb9ebbd191464de4e956bda8a889071bdf9b30a90ec770b5d",
-  "spec_sha256_file": "ebf8e816f693eb2bf87ea1afa68dfbe6c12b85d816b1c4bb3d1c9f5c7317f287",
+  "spec_sha256_canonical": "c2a7994f5eead6bcdcdd43dd8ae88df533a3546606463e9cea247877894fbdca",
+  "spec_sha256_file": "af2627658cc83725ddcb4811de4324c760558571b1cb619d052b46697fd0fe85",
   "outputs": {
     "ringdown_dir_rel": "ringdown",
     "ringdown_spec_rel": "ringdown/ringdown_spec.json",
@@ -18,12 +18,12 @@
     "poles_h1_csv_rel": "ringdown/poles_H1.csv",
     "poles_l1_json_rel": "ringdown/poles_L1.json",
     "poles_l1_csv_rel": "ringdown/poles_L1.csv",
-    "poles_joint_json_rel": null,
-    "poles_joint_csv_rel": null
+    "poles_joint_json_rel": "ringdown/poles_joint.json",
+    "poles_joint_csv_rel": "ringdown/poles_joint.csv"
   },
   "fit_quality": {
-    "H1_relative_rms": 0.9886125980110941,
-    "L1_relative_rms": 0.9895168594355809
+    "H1_relative_rms": 0.9668411045619687,
+    "L1_relative_rms": 0.9667138905914894
   },
   "input_strain_whitened": true
 }
