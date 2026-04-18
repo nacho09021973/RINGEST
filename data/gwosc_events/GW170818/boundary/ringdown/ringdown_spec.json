@@ -1,38 +1,39 @@
 {
   "script": "01_extract_ringdown_poles.py",
-  "script_version": "01_extract_ringdown_poles.py/v1.1",
-  "created_at": "2026-04-08T15:12:27+00:00",
+  "script_version": "01_extract_ringdown_poles.py/v1.3",
+  "created_at": "2026-04-18T06:28:00+00:00",
   "params": {
-    "run_dir": "malda/runs/gwosc_all/GW170818/boundary",
+    "run_dir": "data/gwosc_events/GW170818/boundary",
     "boundary_h5": null,
     "out_dir_name": "ringdown",
     "t0_rel": null,
-    "duration": 0.25,
+    "duration": 0.05,
     "peak_search_start": -0.5,
     "peak_search_end": 0.5,
     "start_offset": 0.0,
     "detrend": "mean",
-    "hp_hz": null,
+    "hp_hz": 30.0,
     "lp_hz": null,
-    "L": 512,
-    "rank": 0,
+    "L": 102,
+    "rank": 4,
     "sv_thresh": 0.001,
     "require_decay": true,
+    "min_damping_rad_s": 5.0,
     "max_modes": 16,
     "set_latest": null
   },
   "inputs": {
-    "run_dir": "/home/ignac/RINGEST/malda/runs/gwosc_all/GW170818/boundary",
-    "boundary_h5_abs": "/home/ignac/RINGEST/malda/runs/gwosc_all/GW170818/boundary/data_boundary/GW170818_boundary.h5",
+    "run_dir": "/home/adnac/ringest/data/gwosc_events/GW170818/boundary",
+    "boundary_h5_abs": "/home/adnac/ringest/data/gwosc_events/GW170818/boundary/data_boundary/GW170818_boundary.h5",
     "boundary_h5_sha256": "0be6a45ba205fe6c242069232fe4d14d659895be59840bd85f5bb11c93e61485"
   },
   "window": {
-    "t0_rel": 0.35068368911743164,
-    "duration_s": 0.25,
-    "i0": 66973,
-    "i1": 67998,
-    "n_samples": 1025,
-    "t_rel_start": 0.35068368911743164,
-    "t_rel_end": 0.6006836891174316
+    "t0_rel": -0.24453115463256836,
+    "duration_s": 0.05,
+    "i0": 64535,
+    "i1": 64740,
+    "n_samples": 205,
+    "t_rel_start": -0.24453115463256836,
+    "t_rel_end": -0.19472646713256836
   }
 }

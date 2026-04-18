@@ -1,16 +1,16 @@
 {
-  "created_at": "2026-04-08T15:12:26+00:00",
+  "created_at": "2026-04-18T06:28:00+00:00",
   "script": "01_extract_ringdown_poles.py",
-  "script_version": "01_extract_ringdown_poles.py/v1.1",
+  "script_version": "01_extract_ringdown_poles.py/v1.3",
   "event": "GW170814",
   "closure_criterion": "ringdown_poles_extracted",
   "inputs": {
-    "run_dir": "/home/ignac/RINGEST/malda/runs/gwosc_all/GW170814/boundary",
+    "run_dir": "/home/adnac/ringest/data/gwosc_events/GW170814/boundary",
     "boundary_h5_rel": "data_boundary/GW170814_boundary.h5",
     "boundary_h5_sha256": "72ef618d10613c6e4f755823420fc9713623c9e9bee239755127d301d97ff801"
   },
-  "spec_sha256_canonical": "724bf6d65a8e8efd4029d4c2a54790c3c8d54775f3d934da66998622e5dadd64",
-  "spec_sha256_file": "e39d716063013bf575f918d27472cb12b2f85fe7e9855a9778182bf470bab642",
+  "spec_sha256_canonical": "ad64190615c785a1bfc6d11d8bd63775ba05a335cd0112139c5aa38278ab8bf4",
+  "spec_sha256_file": "a4390f4a2629e12bdfea9b1df2d18412b2f443678a293192c0eef1dc5b8c2192",
   "outputs": {
     "ringdown_dir_rel": "ringdown",
     "ringdown_spec_rel": "ringdown/ringdown_spec.json",
@@ -22,8 +22,8 @@
     "poles_joint_csv_rel": "ringdown/poles_joint.csv"
   },
   "fit_quality": {
-    "H1_relative_rms": 0.9967178699117216,
-    "L1_relative_rms": 0.9989991263401984
+    "H1_relative_rms": 0.9774303581074439,
+    "L1_relative_rms": 0.9732115204493172
   },
   "input_strain_whitened": true
 }
