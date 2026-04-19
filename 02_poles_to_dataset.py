@@ -30,7 +30,9 @@ CSV columns:
     event          – GW event name (e.g. GW150914)
     ifo            – interferometer(s): H1, L1, H1+L1
     pole_source    – JSON file the pole was read from (e.g. poles_joint.json)
-    mode_rank      – 0 = dominant mode (highest amplitude)
+    mode_rank      – 0 = least-damped pole retained by extractor (sorted by
+                     ascending |Im(omega)|, amplitude secondary); NOT necessarily
+                     the highest-amplitude or fundamental Kerr mode
     freq_hz        – Re(omega)/(2*pi)  [Hz]
     damping_hz     – Damping rate -Im(omega) [1/s, positive for decay]. Suffix '_hz' is for legacy reasons.
     tau_ms         – damping time = 1000/damping_hz  [ms]
