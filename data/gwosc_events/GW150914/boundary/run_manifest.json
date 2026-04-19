@@ -7,15 +7,15 @@
     "ligo_boundary_h5": "data_boundary/GW150914_boundary.h5",
     "ligo_boundary_meta_json": "data_boundary/GW150914_boundary_meta.json",
     "adapter_spec": "adapter_spec.json",
-    "ringdown_dir": "ringdown",
-    "ringdown_spec": "ringdown/ringdown_spec.json",
-    "ringdown_poles_h1_json": "ringdown/poles_H1.json",
-    "ringdown_poles_h1_csv": "ringdown/poles_H1.csv",
-    "ringdown_summary": "ringdown/summary.json",
-    "ringdown_poles_l1_json": "ringdown/poles_L1.json",
-    "ringdown_poles_l1_csv": "ringdown/poles_L1.csv",
-    "ringdown_poles_joint_json": "ringdown/poles_joint.json",
-    "ringdown_poles_joint_csv": "ringdown/poles_joint.csv"
+    "ringdown_dir": "ringdown_calibrated_v1",
+    "ringdown_spec": "ringdown_calibrated_v1/ringdown_spec.json",
+    "ringdown_poles_h1_json": "ringdown_calibrated_v1/poles_H1.json",
+    "ringdown_poles_h1_csv": "ringdown_calibrated_v1/poles_H1.csv",
+    "ringdown_summary": "ringdown_calibrated_v1/summary.json",
+    "ringdown_poles_l1_json": "ringdown_calibrated_v1/poles_L1.json",
+    "ringdown_poles_l1_csv": "ringdown_calibrated_v1/poles_L1.csv",
+    "ringdown_poles_joint_json": "ringdown_calibrated_v1/poles_joint.json",
+    "ringdown_poles_joint_csv": "ringdown_calibrated_v1/poles_joint.csv"
   },
   "metadata": {
     "script": "00_load_ligo_data.py",
@@ -37,8 +37,8 @@
     "spec_sha256_canonical": "c081d3f42b00a6116e0b1f9e2c6909152f9ff2fcbcab64046a5701e54935f82a",
     "spec_sha256_file": "7071a3ffb373d47b9c5635786a1ee8fb8a35744fa6ef5c4901b8a5b299536740",
     "inputs_sha256": "7a00f7755b1a1404a30ec92efacc13b66c77ab6b032028927353d5f8e32517ea",
-    "ringdown_stage_created_at": "2026-04-18T06:28:00+00:00",
-    "ringdown_spec_sha256_canonical": "8eca8e47e86fe26b480b6fafef0d0c0b0cb1852ac991caea4afb8ce4fa04c043",
-    "ringdown_spec_sha256_file": "be599fa47d1330ac38cec1a8b369cb2bbe3cdb73a84e8d7ad19eafeda7275699"
+    "ringdown_stage_created_at": "2026-04-19T20:03:07+00:00",
+    "ringdown_spec_sha256_canonical": "a910f5da86dc8cadcaf05f788097fe8d00060a6203beab821a42148ba902038e",
+    "ringdown_spec_sha256_file": "f68e7fce42319852ed42314015d37822dbc2f038e5a62df3698695f95e57575c"
   }
 }
