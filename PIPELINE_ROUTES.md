@@ -5,13 +5,19 @@ Para comandos completos con flags consultar [instrucciones_pipeline.md](instrucc
 
 ---
 
-## Ruta A — Sandbox ADS/GKPW
+## Ruta A — Sandbox ADS/GKPW (checkpoint-only, 2026-04-20)
 
-Geometría emergente sobre datos sintéticos. Única ruta con `family_status = canonical_strong`.
+Geometría emergente sobre datos sintéticos. Única configuración con
+`family_status = canonical_strong`. El generador sandbox
+(`01_generate_sandbox_geometries.py`) fue eliminado el 2026-04-20; Ruta A
+sigue operativa solo sobre el checkpoint ya entrenado
+(`runs/ads_gkpw_20260416_091407/02_emergent_geometry_engine/emergent_geometry_model.pt`)
+y sobre los H5 de bulk/boundary ya existentes en disco. No se puede
+regenerar training data desde cero.
 
 ```text
-01_generate_sandbox_geometries.py   (--ads-boundary-mode gkpw)
- └→ 02_emergent_geometry_engine.py  (--mode train)
+runs/ads_gkpw_20260416_091407/01_generate_sandbox_geometries/   (congelado)
+ └→ 02_emergent_geometry_engine.py      (--mode train | inference)
      └→ 03_discover_bulk_equations.py
          └→ 04_geometry_physics_contracts.py
              └→ 05_analyze_bulk_equations.py
@@ -38,14 +44,10 @@ data/qnm_events_literature.yml
                  └→ 04_geometry_physics_contracts.py
 ```
 
-Rama ESPRIT alternativa (conservada, no activa):
-
-```text
-00_download_gwosc_events.py
- └→ 00_load_ligo_data.py             (NPZ → boundary HDF5)
-     └→ 01_extract_ringdown_poles.py (ESPRIT, poles_joint.json)
-         └→ realdata_ringdown_to_stage02_boundary_dataset.py --ringdown-dirs …
-```
+Rama ESPRIT alternativa: eliminada el 2026-04-20. Scripts borrados:
+`00_download_gwosc_events.py`, `00_load_ligo_data.py`,
+`01_extract_ringdown_poles.py`, `run_batch_load.sh`. Ya no hay ingesta
+NPZ→HDF5 propia ni extractor ESPRIT en el repo.
 
 ---
 
@@ -63,7 +65,7 @@ QNM ahora viene de literatura (ver Ruta B).
 
 | `family_status` | Significado |
 |---|---|
-| `canonical_strong` | Ruta A con `--ads-boundary-mode gkpw` |
+| `canonical_strong` | Ruta A con `--ads-boundary-mode gkpw` (checkpoint congelado) |
 | `toy_sandbox` | Familia sintética/fenomenológica |
 | `realdata_surrogate` | Embedding de ringdown real |
 | `non_holographic_surrogate` | Carril Kerr (no holográfico) |

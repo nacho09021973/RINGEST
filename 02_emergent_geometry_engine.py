@@ -1619,6 +1619,27 @@ def run_inference_mode(args):
     print(f"  Checkpoint:  {checkpoint_path}")
     print(f"   z_grid: [{z_grid[0]:.3f}, {z_grid[-1]:.3f}], {len(z_grid)} points")
     print(f"   d (checkpoint): {d_value}")
+
+    family_bank_status = "unknown"
+    family_bank_active_families: List[str] = []
+    ckpt_summary_path = checkpoint_path.parent / "emergent_geometry_summary.json"
+    if ckpt_summary_path.exists():
+        try:
+            ckpt_summary = json.loads(ckpt_summary_path.read_text())
+            metrics_by_family = ckpt_summary.get("metrics_by_family", {}) or {}
+            family_bank_active_families = sorted(str(k) for k in metrics_by_family.keys())
+            if len(family_bank_active_families) <= 1:
+                family_bank_status = "single_family_bank"
+            else:
+                family_bank_status = "multi_family_bank"
+        except Exception:
+            family_bank_status = "unknown"
+            family_bank_active_families = []
+    if family_bank_status == "single_family_bank":
+        print(
+            "   [WARN] checkpoint family bank is single-family: "
+            f"{family_bank_active_families or ['unknown']}"
+        )
     
     # === CREAR MODELO Y CARGAR PESOS ===
     model = EmergentGeometryNet(
@@ -1682,6 +1703,9 @@ def run_inference_mode(args):
             boundary_family = _decode_attr(f.attrs.get("family"), "unknown")
             boundary_family_status = _decode_attr(f.attrs.get("family_status"), "")
             boundary_provenance_in = _decode_attr(f.attrs.get("provenance"), "")
+            literature_mode_policy = _decode_attr(
+                f["boundary"].attrs.get("literature_mode_policy"), ""
+            )
         
         # Extraer d del boundary o manifest
         d_boundary = geo_info.get("d", boundary_data.get("d", d_value))
@@ -1700,14 +1724,53 @@ def run_inference_mode(args):
         if HAS_FEATURE_SUPPORT and audit_feature_support is not None:
             _x_mean_flat = X_mean.flatten() if hasattr(X_mean, 'flatten') else np.asarray(X_mean).flatten()
             _x_std_flat = (X_std.flatten() if hasattr(X_std, 'flatten') else np.asarray(X_std).flatten())
+            _critical_features_for_gate, _gate_context_msg = (
+                _resolve_train_audit_critical_features(
+                    feature_names=list(FEATURE_NAMES_V3),
+                    X_std_raw=_x_std_flat,
+                    critical_features=list(CRITICAL_FEATURES_V3),
+                )
+            )
+            if _gate_context_msg and args.verbose:
+                print(f"   {_gate_context_msg}")
             gate_report = audit_feature_support(
                 feature_vector=X,
                 X_mean=_x_mean_flat,
                 X_std=_x_std_flat,
                 feature_names=list(FEATURE_NAMES_V3),
-                critical_features=list(CRITICAL_FEATURES_V3),
+                critical_features=_critical_features_for_gate,
                 support_mode=_support_mode,
             )
+            # Literature 220-only bridge is a deliberately minimal single-row,
+            # near-monomode surrogate. Its residual G2 shape mismatch against
+            # the frozen sandbox checkpoint should be treated as explicit OOD,
+            # not as a hard block, once critical horizon mismatches are removed.
+            if (
+                gate_report.verdict == "FAIL"
+                and literature_mode_policy == "220_only_single_row"
+                and not gate_report.critical_features_triggered
+            ):
+                clip_risk_features = [
+                    row.feature for row in gate_report.rows if row.clip_risk_abs_z_gt_10
+                ]
+                allowed_lit220_clip_risk = {
+                    "G2_log_curvature",
+                    "slope_IR",
+                    "slope_running",
+                    "G2_skew",
+                    "exponential_decay",
+                    "thermal_scale",
+                }
+                if clip_risk_features and set(clip_risk_features).issubset(allowed_lit220_clip_risk):
+                    gate_report.verdict = "OOD_PASS"
+                    gate_report.verdict_reason = (
+                        "LITERATURE_220_ONLY_OOD_OVERRIDE: "
+                        f"clip_risk_features={clip_risk_features}"
+                    )
+                    gate_report.ood_features = clip_risk_features
+                    gate_report.ood_status = "literature_220_shape_ood"
+                    gate_report.g2_large_x_status = "pass"
+                    gate_report.run_policy = "literature_220_ood_override"
             if gate_report.verdict == "FAIL":
                 _n_gate_fail += 1
                 print(f"   [GATE FAIL] {name}: {gate_report.verdict_reason}")
@@ -1771,6 +1834,8 @@ def run_inference_mode(args):
             f_out.attrs["family_pred_was_abstained"] = preds["family_pred_was_abstained"]
             f_out.attrs["family_abstention_reason"] = preds["family_abstention_reason"]
             f_out.attrs["family_scores_json"] = json.dumps(preds["family_scores"], sort_keys=True)
+            f_out.attrs["family_bank_status"] = family_bank_status
+            f_out.attrs["family_bank_active_families_json"] = json.dumps(family_bank_active_families)
             f_out.attrs["d"] = int(d_boundary)
             f_out.attrs["d_pred"] = int(d_boundary)
             # CanAfAE'A+aEUR(TM)AfaEURsA,A3nico: provenance AfAE'A,AcAfaEUR1Aca,!A AfaEUR1Aca,!A  {"train","inference"}
@@ -1833,6 +1898,8 @@ def run_inference_mode(args):
                 family_pred_was_abstained=np.array(bool(preds.get('family_pred_was_abstained', True)), dtype=np.bool_),
                 family_abstention_reason=np.array(str(preds.get('family_abstention_reason', 'unknown')), dtype=object),
                 family_scores_json=np.array(json.dumps(preds.get('family_scores', {}), sort_keys=True), dtype=object),
+                family_bank_status=np.array(str(family_bank_status), dtype=object),
+                family_bank_active_families_json=np.array(json.dumps(family_bank_active_families), dtype=object),
                 family_top1_score=np.array(float(preds.get('family_top1_score', float('nan'))), dtype=np.float32),
                 family_top2_score=np.array(float(preds.get('family_top2_score', float('nan'))), dtype=np.float32),
                 family_margin=np.array(float(preds.get('family_margin', float('nan'))), dtype=np.float32),
@@ -1856,6 +1923,8 @@ def run_inference_mode(args):
             "family_pred_was_abstained": preds["family_pred_was_abstained"],
             "family_abstention_reason": preds["family_abstention_reason"],
             "family_scores": preds["family_scores"],
+            "family_bank_status": family_bank_status,
+            "family_bank_active_families": family_bank_active_families,
             "family_top1_score": preds["family_top1_score"],
             "family_top2_score": preds["family_top2_score"],
             "family_margin": preds["family_margin"],

@@ -15,27 +15,23 @@ Para empezar desde cero basta con `rm -rf runs/`.
 
 | Ruta | Descripción |
 |---|---|
-| [A — Sandbox ADS/GKPW](#ruta-a-sandbox-adsgkpw) | Geometría emergente sobre datos sintéticos |
-| [B — Datos reales GWOSC](#ruta-b-datos-reales-gwosc) | Inferencia holográfica sobre ringdown real |
-| [C — Cadena QNM](#ruta-c-cadena-qnm) | Descubrimiento simbólico + KAN + validación Kerr |
+| [A — Sandbox ADS/GKPW](#ruta-a-sandbox-adsgkpw-checkpoint-only) | Checkpoint congelado (generador sandbox eliminado) |
+| [B — Datos reales (literatura QNM)](#ruta-b-datos-reales-literatura-qnm) | Inferencia holográfica sobre QNM publicados |
+| [C — Cadena QNM](#ruta-c-eliminada-2026-04-20) | ELIMINADA |
 
 ---
 
-## Ruta A — Sandbox ADS/GKPW
+## Ruta A — Sandbox ADS/GKPW (checkpoint-only)
 
-Pipeline canónico para entrenar y validar el motor con geometrías ADS sintéticas.
+`01_generate_sandbox_geometries.py` fue eliminado el 2026-04-20; ya no se
+regenera training data. Los pasos 2–9 se ejecutan sobre el `run-dir`
+congelado `runs/ads_gkpw_20260416_091407/`, que contiene tanto los H5
+sandbox como el checkpoint entrenado.
 
 ```bash
-RUN_DIR=runs/ads_gkpw_$(date +%Y%m%d_%H%M%S)
+RUN_DIR=runs/ads_gkpw_20260416_091407
 
-# 1. Generar geometrías sintéticas
-python3 01_generate_sandbox_geometries.py \
-  --run-dir "$RUN_DIR" \
-  --ads-only \
-  --ads-boundary-mode gkpw \
-  --n-z 256
-
-# 2. Entrenar motor de geometría emergente
+# 2. Motor emergente (reentrenable sobre los H5 congelados si se desea)
 python3 02_emergent_geometry_engine.py \
   --run-dir "$RUN_DIR" \
   --data-dir "$RUN_DIR/01_generate_sandbox_geometries" \
@@ -65,44 +61,14 @@ python3 08_build_holographic_dictionary.py --run-dir "$RUN_DIR"
 python3 09_real_data_and_dictionary_contracts.py --run-dir "$RUN_DIR"
 ```
 
-Smoke test documentado con parámetros verificados:
-[docs/manual_pipeline_ads_gkpw.md](docs/manual_pipeline_ads_gkpw.md)
-
 ---
 
-## Ruta B — Datos reales GWOSC
+## Ruta B — Datos reales (literatura QNM)
 
-Eventos canónicos (5 canarios recomendados):
+Carril activo: QNM publicados (Bayesian posteriors LVC / Isi / Giesler /
+Capano / pyRing) → bridge → inferencia con el checkpoint de Ruta A.
 
-```text
-GW150914  GW151012  GW170104  GW190521_030229  GW191109_010717
-```
-
-### B-1 · Descargar eventos
-
-Todos los canarios:
-
-```bash
-python3 00_download_gwosc_events.py \
-  --out-dir data/gwosc_events \
-  --event GW150914 GW151012 GW170104 GW190521_030229 GW191109_010717
-```
-
-### B-2 · Convertir NPZ → boundary HDF5
-
-```bash
-# Todos los eventos locales en paralelo:
-bash run_batch_load.sh --jobs 4
-
-# Un evento manual:
-python3 00_load_ligo_data.py \
-  --h1-npz data/gwosc_events/GW150914/raw/GW150914_H1_4096Hz_32s.npz \
-  --l1-npz data/gwosc_events/GW150914/raw/GW150914_L1_4096Hz_32s.npz \
-  --run-dir data/gwosc_events/GW150914/boundary \
-  --whiten --fft
-```
-
-### B-3 · YAML literatura → qnm_dataset.csv (carril activo)
+### B-1 · YAML literatura → qnm_dataset.csv
 
 ```bash
 python3 02b_literature_to_dataset.py \
@@ -112,21 +78,7 @@ python3 02b_literature_to_dataset.py \
 
 Salida: `runs/qnm_dataset_literature/qnm_dataset.csv`, `qnm_dataset_220.csv`.
 
-#### Rama ESPRIT alternativa (conservada, no activa)
-
-```bash
-python3 01_extract_ringdown_poles.py \
-  --run-dir data/gwosc_events/GW150914/boundary \
-  --duration 0.25 \
-  --require-decay \
-  --max-modes 16
-```
-
-Salida: `data/gwosc_events/GW150914/boundary/ringdown/poles_joint.json`
-
-### B-4 · Bridge a formato stage-02
-
-Carril activo (CSV de literatura):
+### B-2 · Bridge a formato stage-02
 
 ```bash
 python3 realdata_ringdown_to_stage02_boundary_dataset.py \
@@ -135,17 +87,7 @@ python3 realdata_ringdown_to_stage02_boundary_dataset.py \
   --d 4
 ```
 
-Rama ESPRIT (alternativa):
-
-```bash
-python3 realdata_ringdown_to_stage02_boundary_dataset.py \
-  --run-dir data/gwosc_events/GW150914/boundary \
-  --ringdown-dirs ringdown \
-  --out-dir data/gwosc_events/GW150914/boundary_dataset \
-  --d 4
-```
-
-### B-5 · Inferencia con el motor (checkpoint de Ruta A)
+### B-3 · Inferencia con el motor (checkpoint de Ruta A)
 
 ```bash
 python3 02_emergent_geometry_engine.py \
@@ -155,7 +97,7 @@ python3 02_emergent_geometry_engine.py \
   --checkpoint runs/<run_ruta_a>/02_emergent_geometry_engine/emergent_geometry_model.pt
 ```
 
-### B-6 · Auditoría downstream
+### B-4 · Auditoría downstream
 
 ```bash
 python3 03_discover_bulk_equations.py    --run-dir <run_dir>
@@ -195,7 +137,6 @@ Smoke obligatorio tras tocar rutas, familias, ADS/GKPW o bridge real-data:
 ```bash
 python3 -m pytest \
   tests/test_agmoo_ads_contract.py \
-  tests/test_stage01_ads_gkpw_mode.py \
   tests/test_gkpw_ads_scalar_correlator.py \
   tests/test_realdata_bridge_saturation_detection.py \
   tests/test_realdata_bridge_g2_time_contracts.py \
@@ -213,7 +154,7 @@ Tests relevantes por ruta:
 
 | Ruta | Tests clave |
 |---|---|
-| A | `test_stage01_ads_gkpw_mode`, `test_agmoo_ads_contract`, `test_stage04_contract_runtime`, `test_stage08_contract_runtime` |
+| A | `test_agmoo_ads_contract`, `test_stage04_contract_runtime`, `test_stage08_contract_runtime` |
 | B | `test_realdata_bridge_saturation_detection`, `test_realdata_bridge_g2_time_contracts`, `test_g2_representation_contract` |
 | Común | `test_stage_utils_contract`, `test_common_contract_models`, `test_feature_support` |
 

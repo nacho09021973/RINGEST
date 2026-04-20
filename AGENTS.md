@@ -29,7 +29,14 @@ Si la respuesta es no, no lo priorices.
   `02b_literature_to_dataset.py` -> `realdata_ringdown_to_stage02_boundary_dataset.py`
   -> `02_emergent_geometry_engine.py --mode inference` -> `03_discover_bulk_equations.py`
   / `04_geometry_physics_contracts.py`.
-- Ruta A es sandbox/canonica ADS-GKPW. Usala como baseline o referencia metodologica, no como prioridad por defecto cuando la pregunta sea sobre observables reales de ringdown.
+- Ruta A (sandbox/canonica ADS-GKPW) pasa a modo checkpoint-only desde
+  2026-04-20: `01_generate_sandbox_geometries.py` fue eliminado, no se
+  regenera training data. Queda el run congelado
+  `runs/ads_gkpw_20260416_091407/` con H5 sandbox + checkpoint entrenado.
+  La rama ESPRIT alternativa de Ruta B tambien fue eliminada: scripts
+  borrados `00_download_gwosc_events.py`, `00_load_ligo_data.py`,
+  `01_extract_ringdown_poles.py`, `run_batch_load.sh`. No reintroduzcas
+  ninguno.
 - Recuerda el significado de `family_status`:
   - `canonical_strong`: solo el carril ADS/GKPW fuerte
   - `realdata_surrogate`: embedding derivado de ringdown real, no dual fuerte por si solo
