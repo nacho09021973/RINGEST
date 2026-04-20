@@ -145,22 +145,37 @@ def _resolve_train_audit_critical_features(
     X_std_raw,
     critical_features,
     tiny_std_threshold: float = 1e-6,
+    literature_mode_policy: str = "",
 ):
     """Contextualize critical train-audit features for cohorts with uniform horizons."""
     critical_features_for_audit = list(critical_features)
     names = list(feature_names)
     sigma = np.asarray(X_std_raw, dtype=float).flatten()
-    info_message = None
+    messages = []
 
     if "has_horizon" in critical_features_for_audit and "has_horizon" in names:
         idx_has_horizon = names.index("has_horizon")
         if sigma[idx_has_horizon] < tiny_std_threshold:
             critical_features_for_audit.remove("has_horizon")
-            info_message = (
+            messages.append(
                 "[INFO] TRAIN_FEATURE_SUPPORT_CONTEXT: has_horizon is constant in this "
                 "cohort; downgraded from critical to contextual warning"
             )
 
+    # Per V4 governance (2026-04-12), G2_large_x is an OOD signal, not a hard blocker.
+    # Apply this demotion for literature_220_only inputs, which have known G2 shape OOD
+    # relative to the frozen sandbox checkpoint.
+    if (
+        literature_mode_policy == "220_only_single_row"
+        and "G2_large_x" in critical_features_for_audit
+    ):
+        critical_features_for_audit.remove("G2_large_x")
+        messages.append(
+            "[INFO] TRAIN_FEATURE_SUPPORT_CONTEXT: G2_large_x downgraded to OOD signal "
+            "for literature_220_only input (V4 governance, 2026-04-12)"
+        )
+
+    info_message = "; ".join(messages) if messages else None
     return critical_features_for_audit, info_message
 
 
@@ -1729,6 +1744,7 @@ def run_inference_mode(args):
                     feature_names=list(FEATURE_NAMES_V3),
                     X_std_raw=_x_std_flat,
                     critical_features=list(CRITICAL_FEATURES_V3),
+                    literature_mode_policy=literature_mode_policy,
                 )
             )
             if _gate_context_msg and args.verbose:
@@ -1760,6 +1776,9 @@ def run_inference_mode(args):
                     "G2_skew",
                     "exponential_decay",
                     "thermal_scale",
+                    # G2_large_x demoted from critical to OOD signal above (V4 governance);
+                    # can still appear as clip_risk for the frozen single-family checkpoint.
+                    "G2_large_x",
                 }
                 if clip_risk_features and set(clip_risk_features).issubset(allowed_lit220_clip_risk):
                     gate_report.verdict = "OOD_PASS"
