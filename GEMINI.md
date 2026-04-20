@@ -30,7 +30,12 @@ Prioriza esta cadena (Ruta B activa):
 - `02_emergent_geometry_engine.py --mode inference`
 - `03_discover_bulk_equations.py` / `04_geometry_physics_contracts.py`
 
-Usa Ruta A solo como baseline fuerte ADS/GKPW.
+Ruta A queda en modo checkpoint-only desde 2026-04-20: el generador
+sandbox `01_generate_sandbox_geometries.py` fue eliminado; sigue operativa
+solo sobre el run congelado `runs/ads_gkpw_20260416_091407/`. La ingesta
+NPZ + ESPRIT alternativa de Ruta B tambien fue eliminada
+(`00_download_gwosc_events.py`, `00_load_ligo_data.py`,
+`01_extract_ringdown_poles.py`, `run_batch_load.sh`). No los reintroduzcas.
 No confundas:
 - `canonical_strong`
 - `realdata_surrogate`

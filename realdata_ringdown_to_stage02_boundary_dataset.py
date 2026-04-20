@@ -15,6 +15,8 @@ Contract / Epistemic honesty
 - This script DOES NOT inject theoretical targets (no GR templates, no bulk truth).
 - It builds deterministic *surrogate embeddings* (G_R_real/imag, G2_ringdown) purely from
   extracted poles as feature-engineering, and stores full provenance in the output HDF5.
+- G_R_real/imag are stored as a retarded-correlator surrogate in dimensionless dominant-pole
+  units; they are not a first-principles GKPW reconstruction.
 
 Path rules (aligned with readme_rutas.md spirit)
 ------------------------------------------------
@@ -60,6 +62,9 @@ G2_TIME_CONTRACT_GAMMA_DOM_V2 = "gamma_dom_v2"
 DEFAULT_G2_TIME_CONTRACT = G2_TIME_CONTRACT_OMEGA_DOM_V1
 G2_REPR_CONTRACT_OMEGA_DOM_V1 = "xmax_10_omega_dom_v1"
 G2_REPR_CONTRACT_GAMMA_DOM_V2 = "xgamma_6_v2"
+G2_SURROGATE_COHERENT_POLES_V1 = "coherent_poles_v1"
+G2_SURROGATE_GR_WIDTH_HYBRID_V1 = "gr_width_hybrid_v1"
+DEFAULT_G2_SURROGATE_CONSTRUCTION = G2_SURROGATE_COHERENT_POLES_V1
 
 SANDBOX_OMEGA_MIN = 0.1
 SANDBOX_OMEGA_MAX = 3.0
@@ -267,8 +272,10 @@ def poles_from_literature_rows(rows: List[Dict[str, Any]]) -> List[Pole]:
 
     Only the selected row will be used in the current bridge because multiple
     literature rows for the same event are usually alternative analyses of the
-    same 220 mode, not distinct physical poles. This helper stays list-based to
-    keep parity with the ringdown-artifact branch.
+    same 220 mode, not distinct physical poles. In other words, literature mode
+    is intentionally 220-only / single-row, not a synthetic multi-pole mixture.
+    This helper stays list-based to keep parity with the ringdown-artifact
+    branch.
     """
     poles: List[Pole] = []
     for row in rows:
@@ -347,6 +354,32 @@ def get_normalization_scales(poles: List[Pole]) -> Tuple[float, float]:
     omega_dom = 2.0 * math.pi * float(dom.freq_hz)
     gamma_dom = max(float(dom.damping_1_over_s), 1e-6)  # guard zero-damping
     return omega_dom, gamma_dom
+
+
+_GM_SUN_OVER_C3_S = 4.925490947e-6
+
+
+def kerr_hawking_omega_T_rads(M_final_Msun: float, chi_final: float) -> Optional[float]:
+    """
+    Kerr remnant Hawking angular frequency omega_T = k_B T_H / hbar, in rad/s.
+
+    Uses:
+      omega_T = (1 / 8π) * (c^3 / GM) * [2 sqrt(1 - chi^2) / (1 + sqrt(1 - chi^2))]
+
+    Returns None when (M, chi) are absent or unphysical.
+    """
+    if M_final_Msun is None or chi_final is None:
+        return None
+
+    M = float(M_final_Msun)
+    chi = float(chi_final)
+    if not (np.isfinite(M) and np.isfinite(chi)) or M <= 0.0 or abs(chi) >= 1.0:
+        return None
+
+    s = math.sqrt(1.0 - chi * chi)
+    c3_over_GM = 1.0 / (_GM_SUN_OVER_C3_S * M)
+    kerr_factor = (2.0 * s) / (1.0 + s)
+    return (c3_over_GM / (8.0 * math.pi)) * kerr_factor
 
 
 def build_omega_grid_dimless(
@@ -499,6 +532,51 @@ def poles_to_g2(
     return G2
 
 
+def gr_to_g2_hybrid_width(
+    x_grid_dimless: np.ndarray,
+    omega_grid_dimless: np.ndarray,
+    GR_real: np.ndarray,
+    GR_imag: np.ndarray,
+) -> np.ndarray:
+    """
+    Experimental local surrogate for G2 using only boundary G_R.
+
+    Construction:
+      G2(x) ∝ exp(-x) * ∫ |Im G_R(ω)| exp(-|ω-ω_bar| x) dω
+
+    This preserves some event-to-event spectral-width information that the
+    single-pole coherent construction loses in literature mode.
+    """
+    x = np.asarray(x_grid_dimless, dtype=np.float64).reshape(-1)
+    omega = np.asarray(omega_grid_dimless, dtype=np.float64).reshape(-1)
+    gr_im = np.asarray(GR_imag, dtype=np.float64).reshape(-1)
+
+    Nx = int(x.size)
+    if Nx <= 0 or omega.size <= 1:
+        return np.zeros((Nx,), dtype=np.float64)
+
+    rho = np.abs(gr_im)
+    norm = float(np.trapz(rho, omega))
+    if not np.isfinite(norm) or norm <= 0.0:
+        return np.zeros((Nx,), dtype=np.float64)
+
+    omega_bar = float(np.trapz(omega * rho, omega) / norm)
+    width_curve = np.array(
+        [
+            np.trapz(rho * np.exp(-np.abs(omega - omega_bar) * xi), omega)
+            for xi in x
+        ],
+        dtype=np.float64,
+    )
+    G2 = np.exp(-x) * width_curve
+    G2 = np.maximum(G2, 0.0)
+
+    peak = float(np.max(G2)) if G2.size else 0.0
+    if peak > 0.0:
+        G2 = G2 / peak
+    return G2.astype(np.float64)
+
+
 def make_sandbox_compatible_gr(gr_column: np.ndarray, n_k: int = SANDBOX_N_K) -> np.ndarray:
     """
     Broadcast a single-k response onto the sandbox k-grid expected by Stage 02.
@@ -581,6 +659,17 @@ def main() -> int:
         help="Automatically switch to gamma_dom_v2 if observed G2 is saturated (all points >= 0.99).",
     )
     ap.add_argument(
+        "--g2-surrogate-construction",
+        type=str,
+        default=DEFAULT_G2_SURROGATE_CONSTRUCTION,
+        choices=[G2_SURROGATE_COHERENT_POLES_V1, G2_SURROGATE_GR_WIDTH_HYBRID_V1],
+        help=(
+            "Local surrogate recipe for G2. "
+            "'coherent_poles_v1' keeps the legacy coherent pole sum. "
+            "'gr_width_hybrid_v1' uses a G_R width-sensitive hybrid."
+        ),
+    )
+    ap.add_argument(
         "--saturation-tail-threshold",
         type=float,
         default=SATURATION_TAIL_THRESHOLD,
@@ -659,6 +748,7 @@ def main() -> int:
             "g2_normalization": args.g2_normalization,
             "g2_time_contract": args.g2_time_contract,
             "g2_contract_autoselect": args.g2_contract_autoselect,
+            "g2_surrogate_construction": args.g2_surrogate_construction,
             "saturation_tail_threshold": args.saturation_tail_threshold,
             "compat_mode": args.compat_mode,
             "k_grid": [0.0],
@@ -710,12 +800,15 @@ def main() -> int:
                         "source_analysis_method": str(selected.get("pole_source", "")),
                         "source_ifo": str(selected.get("ifo", "")),
                         "source_mode_rank": int(float(selected.get("mode_rank", 0) or 0)),
+                        "literature_mode_policy": "220_only_single_row",
                         "literature_rows_for_event": int(len(rows)),
                         "literature_kerr_220_distance": float(selected["kerr_220_distance"])
                         if _safe_float(selected.get("kerr_220_distance")) is not None else np.nan,
                         "literature_is_220_candidate": bool(_parse_bool(selected.get("is_220_candidate"))),
                         "literature_selection_policy": "best_220_candidate_then_min_kerr_distance",
                     },
+                    "M_final_Msun": _safe_float(selected.get("M_final_Msun")),
+                    "chi_final": _safe_float(selected.get("chi_final")),
                 }
             )
     else:
@@ -792,6 +885,8 @@ def main() -> int:
                     "source_coincident_pairs_file": str(cp_path) if cp_path.exists() else "",
                     "source_null_test_file": str(null_path) if null_path.exists() else "",
                     "metadata_attrs": {},
+                    "M_final_Msun": None,
+                    "chi_final": None,
                 }
             )
 
@@ -840,14 +935,22 @@ def main() -> int:
             args.x_max_dimless,
             g2_time_contract=args.g2_time_contract,
         )
-        G2_ringdown_raw = poles_to_g2(
-            x_grid_raw,
-            poles,
-            omega_dom_rads,
-            gamma_dom_inv_s,
-            normalization=args.g2_normalization,
-            g2_time_contract=args.g2_time_contract,
-        )
+        if args.g2_surrogate_construction == G2_SURROGATE_GR_WIDTH_HYBRID_V1:
+            G2_ringdown_raw = gr_to_g2_hybrid_width(
+                x_grid_raw,
+                omega_grid_dimless_raw,
+                GR_real_raw,
+                GR_imag_raw,
+            )
+        else:
+            G2_ringdown_raw = poles_to_g2(
+                x_grid_raw,
+                poles,
+                omega_dom_rads,
+                gamma_dom_inv_s,
+                normalization=args.g2_normalization,
+                g2_time_contract=args.g2_time_contract,
+            )
 
         # Step 2: Detect observed saturation and autoselect if needed
         effective_g2_time_contract = args.g2_time_contract
@@ -876,14 +979,22 @@ def main() -> int:
                     args.x_max_dimless,
                     g2_time_contract=effective_g2_time_contract,
                 )
-                G2_ringdown_raw = poles_to_g2(
-                    x_grid_raw,
-                    poles,
-                    omega_dom_rads,
-                    gamma_dom_inv_s,
-                    normalization=args.g2_normalization,
-                    g2_time_contract=effective_g2_time_contract,
-                )
+                if args.g2_surrogate_construction == G2_SURROGATE_GR_WIDTH_HYBRID_V1:
+                    G2_ringdown_raw = gr_to_g2_hybrid_width(
+                        x_grid_raw,
+                        omega_grid_dimless_raw,
+                        GR_real_raw,
+                        GR_imag_raw,
+                    )
+                else:
+                    G2_ringdown_raw = poles_to_g2(
+                        x_grid_raw,
+                        poles,
+                        omega_dom_rads,
+                        gamma_dom_inv_s,
+                        normalization=args.g2_normalization,
+                        g2_time_contract=effective_g2_time_contract,
+                    )
 
         g2_repr_contract, g2_canonical_x_max = resolve_g2_repr_contract(effective_g2_time_contract)
 
@@ -970,9 +1081,16 @@ def main() -> int:
             b.attrs["omega_dom_rads"] = float(omega_dom_rads)
             b.attrs["gamma_dom_inv_s"] = float(gamma_dom_inv_s)
             b.attrs["embedding_space"] = "dimensionless_omega_dom"
+            b.attrs["GR_role"] = "retarded_correlator_surrogate"
+            b.attrs["GR_construction"] = "sum_over_poles_lorentzian"
+            b.attrs["GR_boundary_condition_horizon"] = "incoming_wave_surrogate"
+            b.attrs["GR_boundary_condition_uv"] = "dirichlet_surrogate"
+            b.attrs["GR_units"] = "dimensionless_omega_over_omega_dom"
+            b.attrs["GR_is_gkpw_exact"] = 0
             b.attrs["g2_time_contract"] = effective_g2_time_contract
             b.attrs["g2_time_contract_requested"] = args.g2_time_contract
             b.attrs["g2_contract_autoselected"] = g2_contract_autoselected
+            b.attrs["g2_surrogate_construction"] = args.g2_surrogate_construction
             b.attrs["observed_saturation_detected"] = observed_saturation_detected
             if saturation_meta:
                 b.attrs["saturation_g2_last"] = float(saturation_meta.get("g2_last", 0.0))
@@ -1009,8 +1127,21 @@ def main() -> int:
             b.attrs["family"] = "unknown"
             b.attrs["family_status"] = family_status
             b.attrs["family_status_description"] = get_family_status_description(family_status)
-            b.attrs["temperature"] = float(args.temperature)
-            b.attrs["T"] = float(args.temperature)
+            omega_T_rads = kerr_hawking_omega_T_rads(item.get("M_final_Msun"), item.get("chi_final"))
+            if omega_T_rads is not None and omega_dom_rads > 0.0:
+                T_dimless = float(omega_T_rads / omega_dom_rads)
+                has_horizon = 1
+                b.attrs["M_final_Msun"] = float(item["M_final_Msun"])
+                b.attrs["chi_final"] = float(item["chi_final"])
+                b.attrs["T_H_rads"] = float(omega_T_rads)
+                b.attrs["T_source"] = "kerr_remnant_M_chi"
+            else:
+                T_dimless = float(args.temperature)
+                has_horizon = 1 if T_dimless > 1e-10 else 0
+                b.attrs["T_source"] = "cli_arg_temperature"
+            b.attrs["temperature"] = T_dimless
+            b.attrs["T"] = T_dimless
+            b.attrs["has_horizon"] = int(has_horizon)
 
             # QNM-derived features (parallel to sandbox qnm_numerical.json attrs).
             # Primary discriminators between geometry families; replace Δ operator

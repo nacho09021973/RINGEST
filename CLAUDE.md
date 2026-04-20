@@ -38,12 +38,15 @@ Puente desde datos reales (literatura QNM) a embedding/inferencia:
 - `02_emergent_geometry_engine.py --mode inference` — geometria emergente
 - `03_discover_bulk_equations.py`, `04_geometry_physics_contracts.py` — auditoria downstream
 
-`01_extract_ringdown_poles.py` y `00_*` quedan conservados como rama ESPRIT
-alternativa (`--ringdown-dirs`), pero NO son el carril activo.
+La rama ESPRIT alternativa fue eliminada el 2026-04-20 junto con la ingesta
+NPZ. Scripts borrados: `00_download_gwosc_events.py`, `00_load_ligo_data.py`,
+`01_extract_ringdown_poles.py`, `run_batch_load.sh`. No los reintroduzcas.
 
-### Ruta A
-Sandbox ADS/GKPW. Usala como baseline metodologico o para checkpoints de inference,
-no como prioridad por defecto cuando el objetivo sea fisica observacional real.
+### Ruta A — checkpoint-only (2026-04-20)
+`01_generate_sandbox_geometries.py` fue eliminado. Ruta A sigue operativa
+solo sobre el run congelado `runs/ads_gkpw_20260416_091407/`, que conserva
+los H5 sandbox y el checkpoint entrenado. Ese checkpoint es el que alimenta
+`--mode inference` en Ruta B. No intentes reintroducir el generador sandbox.
 
 ## Estado conceptual que Claude debe respetar
 

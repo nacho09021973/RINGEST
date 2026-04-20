@@ -36,11 +36,7 @@ GKPW (`--ads-boundary-mode gkpw`). El resto son `toy_sandbox` o `realdata_surrog
 
 ```
 RINGEST/
-  # Scripts de pipeline (15 activos; Ruta C eliminada 2026-04-20)
-  00_download_gwosc_events.py          Ruta B — descarga NPZ de GWOSC
-  00_load_ligo_data.py                 Ruta B — NPZ → HDF5 whitened
-  01_generate_sandbox_geometries.py    Ruta A — geometrías ADS sintéticas
-  01_extract_ringdown_poles.py         Ruta B — ESPRIT (rama alternativa, conservada)
+  # Scripts de pipeline (Ruta C eliminada 2026-04-20; ingesta NPZ + stage01 eliminados 2026-04-20)
   02_emergent_geometry_engine.py       Rutas A, B — motor neural (train/inference)
   02b_literature_to_dataset.py         Ruta B — YAML literatura → qnm_dataset.csv
   03_discover_bulk_equations.py        Ruta A — PySR sobre geometría de bulk
@@ -80,7 +76,6 @@ Dependencias opcionales por ruta:
 |---|---|---|
 | PyTorch | A (entrenamiento), B (inferencia) | `pip install -e ".[gpu]"` |
 | PySR + Julia | A (`03_discover_bulk_equations`) | `pip install -e ".[pysr]"` |
-| gwosc | B (descarga de eventos, rama ESPRIT) | `pip install gwosc` |
 | pyyaml | B (lectura de YAML literatura) | `pip install pyyaml` |
 
 Los scripts con dependencias opcionales aceptan `--analysis-only` para ejecutarse
@@ -90,13 +85,17 @@ sin ellas y escribir igualmente su contrato de salida JSON.
 
 ## Uso rápido
 
-### Ruta A — sandbox ADS/GKPW
+### Ruta A — sandbox ADS/GKPW (checkpoint-only, 2026-04-20)
+
+`01_generate_sandbox_geometries.py` fue eliminado el 2026-04-20. Ruta A
+sólo opera sobre el run congelado `runs/ads_gkpw_20260416_091407/`, que
+conserva tanto los H5 sandbox como el checkpoint entrenado.
 
 ```bash
-RUN=runs/ads_$(date +%Y%m%d)
+RUN=runs/ads_gkpw_20260416_091407
 
-python3 01_generate_sandbox_geometries.py --run-dir $RUN --ads-only --ads-boundary-mode gkpw
-python3 02_emergent_geometry_engine.py    --run-dir $RUN --mode train
+python3 02_emergent_geometry_engine.py    --run-dir $RUN --mode train \
+  --data-dir $RUN/01_generate_sandbox_geometries
 python3 03_discover_bulk_equations.py     --run-dir $RUN
 python3 04_geometry_physics_contracts.py  --run-dir $RUN
 python3 05_analyze_bulk_equations.py      --run-dir $RUN
@@ -118,24 +117,14 @@ python3 realdata_ringdown_to_stage02_boundary_dataset.py \
   --d 4
 python3 02_emergent_geometry_engine.py --mode inference \
   --data-dir data/gwosc_events/qnm_literature_boundary \
-  --checkpoint runs/<run_ruta_a>/02_emergent_geometry_engine/emergent_geometry_model.pt
+  --checkpoint runs/ads_gkpw_20260416_091407/02_emergent_geometry_engine/emergent_geometry_model.pt
 python3 03_discover_bulk_equations.py    --run-dir <run_dir>
 python3 04_geometry_physics_contracts.py --run-dir <run_dir> --data-dir data/gwosc_events/qnm_literature_boundary
 ```
 
-Rama ESPRIT alternativa (conservada, no activa):
-
-```bash
-python3 00_download_gwosc_events.py --out-dir data/gwosc_events \
-  --event GW150914 GW151012 GW170104
-bash run_batch_load.sh --jobs 4
-python3 01_extract_ringdown_poles.py --run-dir data/gwosc_events/GW150914/boundary
-python3 realdata_ringdown_to_stage02_boundary_dataset.py \
-  --run-dir data/gwosc_events/GW150914/boundary \
-  --ringdown-dirs ringdown \
-  --out-dir data/gwosc_events/GW150914/boundary_dataset \
-  --d 4
-```
+La rama ESPRIT alternativa (ingesta NPZ + `01_extract_ringdown_poles.py`)
+fue eliminada el 2026-04-20. Los H5 boundary ya existentes en
+`data/gwosc_events/*/boundary/` quedan disponibles para reutilización.
 
 ---
 
@@ -143,10 +132,9 @@ python3 realdata_ringdown_to_stage02_boundary_dataset.py \
 
 | Archivo | Contenido |
 |---|---|
-| [PIPELINE_ROUTES.md](PIPELINE_ROUTES.md) | Mapa de las tres rutas |
+| [PIPELINE_ROUTES.md](PIPELINE_ROUTES.md) | Mapa de las rutas |
 | [instrucciones_pipeline.md](instrucciones_pipeline.md) | Comandos completos con todos los flags |
 | [docs/canonical_events.md](docs/canonical_events.md) | Eventos canónicos de prueba |
-| [docs/manual_pipeline_ads_gkpw.md](docs/manual_pipeline_ads_gkpw.md) | Smoke test ADS/GKPW verificado |
 
 ---
 
@@ -161,7 +149,6 @@ Smoke obligatorio tras cambios en rutas, familias o bridge real-data:
 ```bash
 python3 -m pytest \
   tests/test_agmoo_ads_contract.py \
-  tests/test_stage01_ads_gkpw_mode.py \
   tests/test_gkpw_ads_scalar_correlator.py \
   tests/test_realdata_bridge_saturation_detection.py \
   tests/test_g2_representation_contract.py -v

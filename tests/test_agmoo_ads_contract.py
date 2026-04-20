@@ -425,48 +425,6 @@ class TestCorrelatorTypeInStage01Metadata:
         assert get_family_status("kerr") == "non_holographic_surrogate"
         assert get_family_status("unknown", source="realdata") == "realdata_surrogate"
 
-    def test_stage01_metadata_function_present(self):
-        """
-        La función get_ads_metadata_for_geometry debe existir en Stage 01.
-        Se verifica con AST para no requerir importación completa del módulo
-        (el módulo depende de numpy/h5py en entornos sin esas dependencias).
-        """
-        import ast
-        source = (_REPO_ROOT / "01_generate_sandbox_geometries.py").read_text()
-        tree = ast.parse(source)
-        func_names = {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
-        assert "get_ads_metadata_for_geometry" in func_names, (
-            "La función get_ads_metadata_for_geometry no existe en Stage 01"
-        )
-
-    def test_stage01_writes_correlator_type_attr(self):
-        """
-        Stage 01 debe contener la escritura de correlator_type en los attrs HDF5.
-        Verificado con búsqueda de texto para no requerir ejecución completa.
-        """
-        source = (_REPO_ROOT / "01_generate_sandbox_geometries.py").read_text()
-        assert '"correlator_type"' in source and "f.attrs[key] = value" in source, (
-            "Stage 01 no escribe correlator_type en attrs HDF5"
-        )
-
-    def test_stage01_writes_ads_classification_attr(self):
-        """
-        Stage 01 debe contener la escritura de ads_classification en los attrs HDF5
-        para geometrías ads.
-        """
-        source = (_REPO_ROOT / "01_generate_sandbox_geometries.py").read_text()
-        assert '"ads_classification"' in source and "f.attrs[key] = value" in source, (
-            "Stage 01 no escribe ads_classification en attrs HDF5"
-        )
-
-    def test_stage01_manifest_includes_correlator_type(self):
-        """
-        Stage 01 debe incluir correlator_type en las entradas del manifest.
-        """
-        source = (_REPO_ROOT / "01_generate_sandbox_geometries.py").read_text()
-        assert '"correlator_type"' in source, (
-            "Stage 01 no incluye correlator_type en el manifest"
-        )
 
 
 # ---------------------------------------------------------------------------

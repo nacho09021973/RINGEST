@@ -339,7 +339,7 @@ class PhaseXIContractV2:
     family: str
     category: str
     d: int
-    
+
     # generic contracts (TODOS deben pasar)
     regularity: GenericRegularityContract
     causality: GenericCausalityContract
@@ -361,6 +361,14 @@ class PhaseXIContractV2:
     mode: str = "sandbox"  # "sandbox" o "inference"
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
+    family_candidate_top1: str = "unknown"
+    family_candidate_top2: str = "unknown"
+    family_candidate_top1_score: Optional[float] = None
+    family_candidate_top2_score: Optional[float] = None
+    family_candidate_margin: Optional[float] = None
+    family_candidate_entropy: Optional[float] = None
+    family_candidate_status: str = "not_available"
+    family_output_semantics: str = "unknown"
     
     @property
     def generic_passed_strict(self) -> bool:
@@ -904,6 +912,18 @@ def load_geometry_data(
         - mode: "sandbox" o "inference"
         - warnings: lista de advertencias
     """
+    def _decode_scalar_str(value, default="unknown"):
+        if value is None:
+            return default
+        try:
+            if isinstance(value, np.ndarray) and value.shape == ():
+                value = value.item()
+            if isinstance(value, bytes):
+                value = value.decode("utf-8")
+            return str(value)
+        except Exception:
+            return default
+
     data = {}
     warnings = []
     mode = "sandbox"
@@ -922,13 +942,44 @@ def load_geometry_data(
             data["f_pred"] = geo_data["f_pred"] if "f_pred" in geo_data else geo_data.get("f_of_z")
             data["R_pred"] = geo_data.get("R_pred", geo_data.get("R_of_z"))
             data["z_grid"] = geo_data.get("z", geo_data.get("z_grid"))
+            data["family_pred"] = _decode_scalar_str(
+                geo_data.get(
+                    "family_pred",
+                    geo_data.get("family_best_compatibility_label", geo_data.get("family_raw_pred")),
+                )
+            )
+            data["family_candidate_top1"] = _decode_scalar_str(
+                geo_data.get("family_best_compatibility_label", geo_data.get("family_pred"))
+            )
+            data["family_candidate_top2"] = _decode_scalar_str(
+                geo_data.get("family_top2_name"),
+                default="unknown",
+            )
+            if "family_top1_score" in geo_data:
+                data["family_candidate_top1_score"] = float(geo_data["family_top1_score"])
+            if "family_top2_score" in geo_data:
+                data["family_candidate_top2_score"] = float(geo_data["family_top2_score"])
+            if "family_margin" in geo_data:
+                data["family_candidate_margin"] = float(geo_data["family_margin"])
+            if "family_entropy" in geo_data:
+                data["family_candidate_entropy"] = float(geo_data["family_entropy"])
+            data["family_output_semantics"] = _decode_scalar_str(
+                geo_data.get("family_output_semantics"),
+                default="unknown",
+            )
+            data["family_bank_status"] = _decode_scalar_str(
+                geo_data.get("family_bank_status"),
+                default="unknown",
+            )
+            data["family_pred_confident"] = bool(
+                geo_data["family_pred_confident"]
+            ) if "family_pred_confident" in geo_data else False
             
             # Cargar truth si existe
             if "A_truth" in geo_data:
                 data["A_truth"] = geo_data["A_truth"]
                 data["f_truth"] = geo_data["f_truth"]
                 data["R_truth"] = geo_data.get("R_truth")
-                data["family_pred"] = geo_data.get("family_pred")
                 data["family_truth"] = geo_data.get("family_truth")
             else:
                 mode = "inference"
@@ -949,7 +1000,10 @@ def load_geometry_data(
                     data["R_pred"] = f["R_of_z"][:] if "R_of_z" in f else f.get("R_pred", np.zeros_like(data["A_pred"]))[:]
                     
                     # Metadatos del H5
-                    data["family_from_h5"] = str(f.attrs.get("family", f.attrs.get("family_pred", "unknown")))
+                    data["family_from_h5"] = str(f.attrs.get("family", "unknown"))
+                    data["family_candidate_from_h5"] = str(
+                        f.attrs.get("family_best_compatibility_label", f.attrs.get("family_pred", "unknown"))
+                    )
                     data["d_from_h5"] = int(f.attrs.get("d", f.attrs.get("d_pred", 4)))
                 
                 mode = "inference"
@@ -1009,6 +1063,7 @@ def load_geometry_data(
                     if mode != "inference":
                         mode = "inference"
                         warnings.append("No bulk_truth en H5: inference mode")
+
         except Exception as e:
             warnings.append(f"Error loading boundary H5: {e}")
     else:
@@ -1023,6 +1078,26 @@ def load_geometry_data(
             warnings.append(f"Does not exist boundary H5: {boundary_h5_path}")
         else:
             warnings.append("Sin data_dir especificado: inference mode")
+
+    if mode == "inference":
+        data["family_candidate_top1"] = data.get(
+            "family_candidate_top1",
+            data.get("family_candidate_from_h5", data.get("family_pred", "unknown")),
+        )
+        family_bank_status = str(data.get("family_bank_status", "unknown"))
+        candidate_confident = bool(data.get("family_pred_confident", False))
+        candidate_top1 = str(data.get("family_candidate_top1", "unknown"))
+        family_contractual = str(data.get("family", "unknown"))
+        if family_bank_status == "single_family_bank":
+            data["family_candidate_status"] = "invalid_single_family_bank"
+        elif candidate_top1 == "unknown":
+            data["family_candidate_status"] = "not_available"
+        elif family_contractual == candidate_top1 and family_contractual != "unknown":
+            data["family_candidate_status"] = "contractual_match"
+        elif candidate_confident:
+            data["family_candidate_status"] = "compatible_candidate_unverified"
+        else:
+            data["family_candidate_status"] = "weak_candidate_unverified"
     
     return data, mode, warnings
 
@@ -1090,6 +1165,14 @@ def process_geometry(
     category = data.get("category", "unknown")
     T = data.get("T")
     z_h = data.get("z_h")
+    family_candidate_top1 = data.get("family_candidate_top1", "unknown")
+    family_candidate_top2 = data.get("family_candidate_top2", "unknown")
+    family_candidate_top1_score = data.get("family_candidate_top1_score")
+    family_candidate_top2_score = data.get("family_candidate_top2_score")
+    family_candidate_margin = data.get("family_candidate_margin")
+    family_candidate_entropy = data.get("family_candidate_entropy")
+    family_candidate_status = data.get("family_candidate_status", "not_available")
+    family_output_semantics = data.get("family_output_semantics", "unknown")
     
     # Validar datos minimos
     if z_grid is None or A_pred is None or f_pred is None:
@@ -1210,7 +1293,15 @@ def process_geometry(
         family_accuracy=family_match,
         mode=mode,
         errors=errors,
-        warnings=warnings
+        warnings=warnings,
+        family_candidate_top1=family_candidate_top1,
+        family_candidate_top2=family_candidate_top2,
+        family_candidate_top1_score=family_candidate_top1_score,
+        family_candidate_top2_score=family_candidate_top2_score,
+        family_candidate_margin=family_candidate_margin,
+        family_candidate_entropy=family_candidate_entropy,
+        family_candidate_status=family_candidate_status,
+        family_output_semantics=family_output_semantics,
     )
 
 
@@ -1391,6 +1482,15 @@ def main():
             print(f"   Pass mode:     {contract.pass_mode} "
                   f"(generic_status={contract.generic_contract_status}, "
                   f"correlator_status={contract.correlator_contract_status})")
+            if contract.mode == "inference":
+                candidate_parts = [f"status={contract.family_candidate_status}"]
+                if contract.family_candidate_top1_score is not None:
+                    candidate_parts.append(f"score={contract.family_candidate_top1_score:.4f}")
+                if contract.family_candidate_top2 not in ("", "unknown"):
+                    candidate_parts.append(f"top2={contract.family_candidate_top2}")
+                if contract.family_candidate_margin is not None:
+                    candidate_parts.append(f"margin={contract.family_candidate_margin:.4f}")
+                print(f"   Family cand.:  {contract.family_candidate_top1} ({', '.join(candidate_parts)})")
             
             # V2.3: Mostrar detalles de unitariedad si fallo
             if not contract.unitarity.passed and not contract.unitarity.skipped:
@@ -1430,7 +1530,7 @@ def main():
         print("=" * 100)
         
         # Tabla
-        print(f"\n{'Name':<25} {'Family':<12} {'Mode':<10} {'Generic':^8} {'AdS':^8} {'Score':^8} {'Pass':^6}")
+        print(f"\n{'Name':<25} {'Family':<12} {'Cand.':<12} {'Mode':<10} {'Generic':^8} {'AdS':^8} {'Score':^8} {'Pass':^6}")
         print("-" * 100)
         
         for c in all_contracts:
@@ -1438,7 +1538,7 @@ def main():
             mode_short = "sandbox" if c.mode == "sandbox" else "infer"
             gen_status = 'OK' if c.generic_passed_strict else ('RELAX' if c.generic_passed_relaxed else 'FAIL')
             pass_status = 'OK' if c.overall_passed_strict else ('RELAX' if c.overall_passed_relaxed else 'FAIL')
-            print(f"{c.name:<25} {c.family:<12} {mode_short:<10} "
+            print(f"{c.name:<25} {c.family:<12} {c.family_candidate_top1:<12} {mode_short:<10} "
                   f"{gen_status:^8} "
                   f"{ads_col:^8} "
                   f"{c.contract_score:.2f} "
