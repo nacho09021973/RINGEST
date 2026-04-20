@@ -1241,8 +1241,17 @@ def main():
     if HAS_STAGE_UTILS:
         add_standard_arguments(parser)
         args = parse_stage_args(parser)
-        ctx = StageContext.from_args(args, stage_number="04", stage_slug="geometry_physics_contracts")
-        run_dir = ctx.run_root
+        try:
+            ctx = StageContext.from_args(args, stage_number="04", stage_slug="geometry_physics_contracts")
+            run_dir = ctx.run_root
+        except ValueError:
+            # Fallback legacy: permitir auditorías locales con rutas explícitas aunque no
+            # se haya pasado una identidad contractual completa del run.
+            if args.geometry_dir or args.data_dir or args.einstein_dir or args.dictionary_file:
+                ctx = None
+                run_dir = Path(args.run_dir).resolve() if getattr(args, "run_dir", None) else None
+            else:
+                raise
     else:
         parser.add_argument("--experiment", type=str, default=None,
                             help="Nombre del experimento")
@@ -1278,6 +1287,29 @@ def main():
             data_dir = cuerdas_resolve_data(run_dir=run_dir, data_dir=args.data_dir)
             dictionary_path = cuerdas_resolve_dictionary(run_dir=run_dir, dictionary_file=args.dictionary_file)
         
+        # Prioridad 1.5: run_dir contractual/legacy sin cuerdas_io disponible.
+        # Permite que el smoke documentado funcione aunque falte ese módulo auxiliar.
+        if predictions_dir is None and run_dir is not None:
+            geometry_dir = run_dir / "02_emergent_geometry_engine"
+            if geometry_dir.exists():
+                predictions_dir = resolve_predictions_dir(geometry_dir)
+                emergent_h5_dir = resolve_emergent_h5_dir(geometry_dir)
+
+        if data_dir is None and run_dir is not None:
+            candidate_data_dir = run_dir / "01_generate_sandbox_geometries"
+            if candidate_data_dir.exists():
+                data_dir = candidate_data_dir
+
+        if einstein_dir is None and run_dir is not None:
+            candidate_einstein_dir = run_dir / "03_discover_bulk_equations"
+            if candidate_einstein_dir.exists():
+                einstein_dir = resolve_bulk_equations_dir(candidate_einstein_dir)
+
+        if dictionary_path is None and run_dir is not None:
+            candidate_dictionary = run_dir / "08_build_holographic_dictionary" / "holographic_dictionary_v3_summary.json"
+            if candidate_dictionary.exists():
+                dictionary_path = candidate_dictionary
+
         # Prioridad 2: argumentos explicitos (legacy)
         if predictions_dir is None and args.geometry_dir:
             geometry_dir = Path(args.geometry_dir)
@@ -1457,8 +1489,16 @@ def main():
         # Veredicto final
         print("\n" + "=" * 90)
         
-        phase_passed_strict = (n_with_errors == 0) and (n_generic_strict == n_total) and (avg_score > 0.5 or n_total == 0)
-        phase_passed_relaxed = (n_with_errors == 0) and (n_generic_relaxed == n_total) and (avg_score > 0.5 or n_total == 0)
+        phase_passed_strict = (
+            (n_with_errors == 0)
+            and (n_overall_strict == n_total)
+            and (avg_score > 0.5 or n_total == 0)
+        )
+        phase_passed_relaxed = (
+            (n_with_errors == 0)
+            and (n_overall_relaxed == n_total)
+            and (avg_score > 0.5 or n_total == 0)
+        )
         phase_passed = phase_passed_relaxed
         
         if n_total == 0:
@@ -1477,6 +1517,8 @@ def main():
             print("=" * 90)
             if n_with_errors > 0:
                 print(f"\n  {n_with_errors} geometries with errors")
+            if n_overall_relaxed < n_total:
+                print(f"\n  {n_total - n_overall_relaxed} geometries do not pass overall contracts")
             if n_generic_relaxed < n_total:
                 print(f"\n  {n_total - n_generic_relaxed} geometries do not pass generic contracts")
             if avg_score <= 0.5:
@@ -1591,9 +1633,12 @@ def main():
         
         print("=" * 90)
     except Exception as exc:
+        import traceback
         status = STATUS_ERROR
         exit_code = EXIT_ERROR
         error_message = str(exc)
+        print(f"[ERROR] stage 04 aborted: {exc}", file=sys.stderr)
+        traceback.print_exc()
     finally:
         if ctx is not None:
             ctx.write_summary(

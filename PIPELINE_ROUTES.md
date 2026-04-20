@@ -23,35 +23,39 @@ Geometría emergente sobre datos sintéticos. Única ruta con `family_status = c
 
 ---
 
-## Ruta B — Datos reales GWOSC
+## Ruta B — Datos reales (literatura QNM)
 
-Inferencia holográfica sobre ringdown real.
+Inferencia holográfica sobre ringdown real. El carril activo usa QNM
+publicados (Bayesian posteriors de LVC / Isi / Giesler / Capano / pyRing),
+no extracción ESPRIT propia.
+
+```text
+data/qnm_events_literature.yml
+ └→ 02b_literature_to_dataset.py                (YAML → qnm_dataset.csv)
+     └→ realdata_ringdown_to_stage02_boundary_dataset.py --dataset-csv …
+         └→ 02_emergent_geometry_engine.py      (--mode inference, checkpoint de Ruta A)
+             └→ 03_discover_bulk_equations.py
+                 └→ 04_geometry_physics_contracts.py
+```
+
+Rama ESPRIT alternativa (conservada, no activa):
 
 ```text
 00_download_gwosc_events.py
- └→ 00_load_ligo_data.py            (NPZ → boundary HDF5)
+ └→ 00_load_ligo_data.py             (NPZ → boundary HDF5)
      └→ 01_extract_ringdown_poles.py (ESPRIT, poles_joint.json)
-         └→ realdata_ringdown_to_stage02_boundary_dataset.py
-             └→ 02_emergent_geometry_engine.py  (--mode inference, checkpoint de Ruta A)
+         └→ realdata_ringdown_to_stage02_boundary_dataset.py --ringdown-dirs …
 ```
 
 ---
 
-## Ruta C — Cadena QNM
+## Ruta C — ELIMINADA (2026-04-20)
 
-Descubrimiento simbólico + KAN + validación Kerr sobre polos de ringdown.
-Prerequisito: completar B-1 a B-3 para todos los eventos deseados.
-
-```text
-02_poles_to_dataset.py              (rings → qnm_dataset.csv)
- └→ 03_discover_qnm_equations.py    (PySR / --analysis-only; escribe kan_contract)
-     └→ 04_kan_qnm_classifier.py    (k-means + KAN; escribe downstream_contract)
-         └→ 05_validate_qnm_kerr.py (Berti 2009, l=m=2 n=0,1,2)
-             └─> (injects into 08_build_holographic_dictionary.py)
-
-`05_validate_qnm_kerr.py` ahora escribe `cluster_audit.csv` y `cluster_audit_summary.json`
-para auditar la composición física de cada clúster.
-```
+El carril de extracción ESPRIT + PySR/KAN + validación Kerr fue cerrado:
+la extracción propia no identificaba limpiamente el modo (2,2,0) del strain
+real. Scripts borrados: `02_poles_to_dataset.py`, `03_discover_qnm_equations.py`,
+`04_kan_qnm_classifier.py`, `05_validate_qnm_kerr.py`. El input canónico de
+QNM ahora viene de literatura (ver Ruta B).
 
 ---
 

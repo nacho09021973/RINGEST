@@ -12,19 +12,23 @@ Si no, no lo priorices.
 
 - Datos GW reales antes que sandbox.
 - Polos QNM antes que marcos teoricos abstractos.
-- `qnm_dataset.csv` -> PySR/KAN -> validacion Kerr antes que arquitectura nueva.
+- YAML literatura QNM -> `qnm_dataset.csv` -> bridge -> inferencia geometrica antes que arquitectura nueva.
 - Consistencia fisica antes que metricas de ajuste.
 - Cambios minimos antes que redisenos.
 
 ## Carril preferente del repo
 
-Prioriza esta cadena:
+Ruta C (ESPRIT + PySR/KAN + validacion Kerr) fue ELIMINADA el 2026-04-20. No
+reintroduzcas `02_poles_to_dataset.py`, `03_discover_qnm_equations.py`,
+`04_kan_qnm_classifier.py` ni `05_validate_qnm_kerr.py`.
 
-- `01_extract_ringdown_poles.py`
-- `02_poles_to_dataset.py`
-- `03_discover_qnm_equations.py`
-- `04_kan_qnm_classifier.py`
-- `05_validate_qnm_kerr.py`
+Prioriza esta cadena (Ruta B activa):
+
+- `data/qnm_events_literature.yml`
+- `02b_literature_to_dataset.py`
+- `realdata_ringdown_to_stage02_boundary_dataset.py --dataset-csv ...`
+- `02_emergent_geometry_engine.py --mode inference`
+- `03_discover_bulk_equations.py` / `04_geometry_physics_contracts.py`
 
 Usa Ruta A solo como baseline fuerte ADS/GKPW.
 No confundas:

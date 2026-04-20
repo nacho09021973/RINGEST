@@ -1,0 +1,143 @@
+@font-face {
+  font-family: "Brand Sans";
+  src: url("./fonts/SourceSans3-wght.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Brand Sans";
+  src: url("./fonts/SourceSans3-Italic-wght.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+}
+
+:root {
+  --font-sans: "Brand Sans", "Source Sans 3", Inter, "IBM Plex Sans", system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans-alt: "Brand Sans", "Source Sans 3", "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono",
+    Menlo, monospace;
+
+  --font-size-caption: 13px;
+  --font-size-body-sm: 14px;
+  --font-size-body: 16px;
+  --font-size-lead: 20px;
+  --font-size-h2: 32px;
+  --font-size-h1: 48px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.1;
+  --line-height-heading: 1.2;
+  --line-height-body: 1.6;
+  --line-height-caption: 1.45;
+
+  --tracking-tight: -0.02em;
+  --tracking-heading: -0.01em;
+  --tracking-normal: 0;
+  --tracking-caption: 0.01em;
+
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  --color-canvas: #f7f7f5;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f2ef;
+  --color-text: #14171a;
+  --color-text-muted: #586069;
+  --color-border: #d7dbd4;
+  --color-accent: #2f4758;
+  --color-accent-strong: #1f3341;
+}
+
+body,
+.type-body {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-body);
+  letter-spacing: var(--tracking-normal);
+  color: var(--color-text);
+}
+
+.type-h1 {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.type-h2 {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-heading);
+  letter-spacing: var(--tracking-heading);
+}
+
+.type-lead {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-lead);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.5;
+  letter-spacing: var(--tracking-normal);
+}
+
+.type-body-sm {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.55;
+  letter-spacing: var(--tracking-normal);
+}
+
+.type-caption {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-caption);
+  letter-spacing: var(--tracking-caption);
+  color: var(--color-text-muted);
+}
+
+.type-mono {
+  font-family: var(--font-mono);
+}
+
+.surface-canvas {
+  background: var(--color-canvas);
+  color: var(--color-text);
+}
+
+.surface-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.layout-reading {
+  width: min(100% - calc(var(--space-4) * 2), 720px);
+}
+
+.layout-wide {
+  width: min(100% - calc(var(--space-8) * 2), 1200px);
+}

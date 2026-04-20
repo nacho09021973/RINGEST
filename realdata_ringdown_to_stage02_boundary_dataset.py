@@ -26,6 +26,7 @@ Path rules (aligned with readme_rutas.md spirit)
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 from dataclasses import dataclass
@@ -201,6 +202,89 @@ def parse_poles_json(poles_payload: Dict[str, Any]) -> List[Pole]:
         except Exception:
             continue
     return out
+
+
+def _parse_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "y"}
+
+
+def _safe_float(value: Any) -> Optional[float]:
+    try:
+        x = float(value)
+    except Exception:
+        return None
+    return x if np.isfinite(x) else None
+
+
+def load_literature_dataset(csv_path: Path) -> Dict[str, List[Dict[str, Any]]]:
+    with csv_path.open("r", encoding="utf-8", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    by_event: Dict[str, List[Dict[str, Any]]] = {}
+    for row in rows:
+        event = str(row.get("event", "")).strip()
+        if not event:
+            continue
+        by_event.setdefault(event, []).append(row)
+    return by_event
+
+
+def select_literature_row(rows: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """
+    Choose one literature row per event.
+
+    Policy:
+      1. Prefer rows already flagged is_220_candidate=True.
+      2. Within that subset, choose the smallest finite kerr_220_distance.
+      3. If no candidate exists, choose the row with the smallest finite distance.
+      4. If no row has finite distance, fall back to the first row.
+    """
+    if not rows:
+        return None
+
+    def score(row: Dict[str, Any]) -> Tuple[int, float]:
+        is_220 = _parse_bool(row.get("is_220_candidate"))
+        dist = _safe_float(row.get("kerr_220_distance"))
+        if dist is None:
+            dist = float("inf")
+        return (0 if is_220 else 1, dist)
+
+    finite_rows = [r for r in rows if _safe_float(r.get("kerr_220_distance")) is not None]
+    candidate_rows = [r for r in rows if _parse_bool(r.get("is_220_candidate"))]
+    if candidate_rows:
+        return min(candidate_rows, key=score)
+    if finite_rows:
+        return min(finite_rows, key=score)
+    return rows[0]
+
+
+def poles_from_literature_rows(rows: List[Dict[str, Any]]) -> List[Pole]:
+    """
+    Build surrogate poles from literature rows.
+
+    Only the selected row will be used in the current bridge because multiple
+    literature rows for the same event are usually alternative analyses of the
+    same 220 mode, not distinct physical poles. This helper stays list-based to
+    keep parity with the ringdown-artifact branch.
+    """
+    poles: List[Pole] = []
+    for row in rows:
+        freq_hz = _safe_float(row.get("freq_hz"))
+        damping = _safe_float(row.get("damping_hz"))
+        if freq_hz is None or damping is None or freq_hz <= 0 or damping <= 0:
+            continue
+        amp_abs = _safe_float(row.get("amp_abs"))
+        poles.append(
+            Pole(
+                freq_hz=float(freq_hz),
+                damping_1_over_s=float(damping),
+                amp_abs=float(amp_abs) if amp_abs is not None and amp_abs > 0 else 1.0,
+            )
+        )
+    return poles
 
 
 def pick_best_pair(cp_payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -453,11 +537,20 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description=(
             "Real-data bridge: build a stage-02 boundary dataset from "
-            "ringdown artifacts (poles -> surrogate boundary embeddings)."
+            "ringdown artifacts or literature QNM datasets "
+            "(poles -> surrogate boundary embeddings)."
         )
     )
-    ap.add_argument("--run-dir", required=True, type=str, help="Run directory containing ringdown_* and data_boundary/")
-    ap.add_argument("--ringdown-dirs", required=True, nargs="+", help="One or more ringdown_* subdirectories inside --run-dir")
+    ap.add_argument("--run-dir", type=str, help="Run directory containing ringdown_* and data_boundary/")
+    ap.add_argument("--ringdown-dirs", nargs="+", help="One or more ringdown_* subdirectories inside --run-dir")
+    ap.add_argument(
+        "--dataset-csv",
+        type=str,
+        help=(
+            "Alternative input: qnm_dataset.csv-style literature dataset. "
+            "One representative row is selected per event."
+        ),
+    )
     ap.add_argument("--out-dir", required=True, type=str, help="Output directory to create (will contain manifest.json and *.h5)")
 
     ap.add_argument("--d", type=int, default=4, help="Boundary dimension d to store (default: 4)")
@@ -502,25 +595,42 @@ def main() -> int:
     )
 
     args = ap.parse_args()
-
-    run_dir = resolve_root_relative(args.run_dir)
     out_dir = resolve_root_relative(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Try to infer event_id from data_boundary/<EVENT>_boundary.h5
+    using_ringdown_dirs = bool(args.run_dir or args.ringdown_dirs)
+    using_dataset_csv = bool(args.dataset_csv)
+    if using_ringdown_dirs == using_dataset_csv:
+        raise SystemExit(
+            "[ERROR] Debes pasar exactamente una fuente de entrada: "
+            "(--run-dir + --ringdown-dirs) o --dataset-csv"
+        )
+
+    run_dir: Optional[Path] = None
     event_id = None
-    db_dir = run_dir / "data_boundary"
-    if db_dir.exists() and db_dir.is_dir():
-        candidates = sorted(db_dir.glob("*_boundary.h5"))
-        if candidates:
-            event_id = candidates[0].name.replace("_boundary.h5", "")
-    if event_id is None:
-        event_id = run_dir.name  # fallback
+    dataset_csv_path: Optional[Path] = None
+    if using_ringdown_dirs:
+        if not args.run_dir or not args.ringdown_dirs:
+            raise SystemExit("[ERROR] Para la ruta de ringdown debes pasar --run-dir y --ringdown-dirs")
+        run_dir = resolve_root_relative(args.run_dir)
+        db_dir = run_dir / "data_boundary"
+        if db_dir.exists() and db_dir.is_dir():
+            candidates = sorted(db_dir.glob("*_boundary.h5"))
+            if candidates:
+                event_id = candidates[0].name.replace("_boundary.h5", "")
+        if event_id is None:
+            event_id = run_dir.name
+    else:
+        dataset_csv_path = resolve_root_relative(args.dataset_csv)
+        event_id = dataset_csv_path.stem
 
     print("=" * 70)
-    print("REAL-DATA BRIDGE — Ringdown -> stage-02 boundary dataset")
+    print("REAL-DATA BRIDGE — Ringdown/Literature -> stage-02 boundary dataset")
     print(f"Script:    {SCRIPT_VERSION}")
-    print(f"Run dir:   {run_dir}")
+    if run_dir is not None:
+        print(f"Run dir:   {run_dir}")
+    if dataset_csv_path is not None:
+        print(f"Dataset:   {dataset_csv_path}")
     print(f"Out dir:   {out_dir}")
     print(f"Event id:  {event_id}")
     print("=" * 70)
@@ -533,7 +643,8 @@ def main() -> int:
         "family_status_description": get_family_status_description(
             get_family_status("unknown", source="realdata")
         ),
-        "source_run_dir": str(run_dir),
+        "source_run_dir": "" if run_dir is None else str(run_dir),
+        "source_dataset_csv": "" if dataset_csv_path is None else str(dataset_csv_path),
         "event_id": event_id,
         "config": {
             "d": int(args.d),
@@ -558,61 +669,146 @@ def main() -> int:
 
     omega_grid_hz = None  # build per-system if auto bounds depend on poles
 
-    for rd in args.ringdown_dirs:
-        rd_rel = Path(rd)
-        _reject_dotdot(rd_rel)
-        rd_dir = (run_dir / rd_rel).resolve(strict=False)
-        try:
-            rd_dir.relative_to(run_dir)
-        except Exception:
-            raise ValueError(f"ringdown-dir escapes run_dir: {rd} -> {rd_dir}")
-
-        if not rd_dir.exists() or not rd_dir.is_dir():
-            raise FileNotFoundError(f"Ringdown dir not found: {rd_dir}")
-
-        # Input files
-        poles_path = rd_dir / "poles_joint.json"
-        if not poles_path.exists():
-            # fallback: first poles_*.json if present
-            alt = sorted(rd_dir.glob("poles_*.json"))
-            poles_path = alt[0] if alt else poles_path
-
-        cp_path = rd_dir / "coincident_pairs.json"
-        null_path = rd_dir / "null_test.json"
-
-        poles_payload = read_json(poles_path) if poles_path.exists() else {}
-        cp_payload = read_json(cp_path) if cp_path.exists() else {}
-        null_payload = read_json(null_path) if null_path.exists() else {}
-
-        poles = parse_poles_json(poles_payload)
-
-        # best coincident pair / score
-        best_pair = pick_best_pair(cp_payload)
-        best_score = None
-        best_p_value_stage01 = None
-        if best_pair is not None:
+    if using_dataset_csv:
+        by_event = load_literature_dataset(dataset_csv_path)
+        sorted_items = sorted(by_event.items(), key=lambda kv: kv[0])
+        input_items = []
+        for ev_name, rows in sorted_items:
+            selected = select_literature_row(rows)
+            if selected is None:
+                continue
+            poles = poles_from_literature_rows([selected])
+            if not poles:
+                print(f"  [SKIP] {ev_name}: no freq/damping finite after literature selection")
+                continue
+            input_items.append(
+                {
+                    "kind": "literature",
+                    "event_name": ev_name,
+                    "system_name": ev_name,
+                    "poles": poles,
+                    "poles_payload": {
+                        "selected_row": selected,
+                        "all_rows_for_event": rows,
+                        "selection_policy": "best_220_candidate_then_min_kerr_distance",
+                    },
+                    "cp_payload": {},
+                    "null_payload": {},
+                    "best_pair": None,
+                    "best_score": None,
+                    "best_p_value_stage01": None,
+                    "null_scores": None,
+                    "null_stats": {},
+                    "n_invalid": None,
+                    "n_trials": None,
+                    "source_ringdown_dir": f"literature://{ev_name}",
+                    "source_poles_file": str(dataset_csv_path),
+                    "source_coincident_pairs_file": "",
+                    "source_null_test_file": "",
+                    "metadata_attrs": {
+                        "source_dataset_csv": str(dataset_csv_path),
+                        "source_analysis_method": str(selected.get("pole_source", "")),
+                        "source_ifo": str(selected.get("ifo", "")),
+                        "source_mode_rank": int(float(selected.get("mode_rank", 0) or 0)),
+                        "literature_rows_for_event": int(len(rows)),
+                        "literature_kerr_220_distance": float(selected["kerr_220_distance"])
+                        if _safe_float(selected.get("kerr_220_distance")) is not None else np.nan,
+                        "literature_is_220_candidate": bool(_parse_bool(selected.get("is_220_candidate"))),
+                        "literature_selection_policy": "best_220_candidate_then_min_kerr_distance",
+                    },
+                }
+            )
+    else:
+        input_items = []
+        for rd in args.ringdown_dirs:
+            rd_rel = Path(rd)
+            _reject_dotdot(rd_rel)
+            rd_dir = (run_dir / rd_rel).resolve(strict=False)
             try:
-                best_score = float(best_pair.get("score_2d"))
+                rd_dir.relative_to(run_dir)
             except Exception:
-                best_score = None
-            try:
-                pv = best_pair.get("p_value", None)
-                best_p_value_stage01 = None if pv is None else float(pv)
-            except Exception:
-                best_p_value_stage01 = None
+                raise ValueError(f"ringdown-dir escapes run_dir: {rd} -> {rd_dir}")
 
-        # null test stats
-        null_scores = _safe_get(null_payload, ["null_test", "scores_per_trial"], default=None)
-        null_stats = _safe_get(null_payload, ["null_test", "statistics"], default={}) or {}
-        n_invalid = None
-        n_trials = None
-        if isinstance(null_stats, dict):
-            try:
-                n_invalid = int(null_stats.get("n_invalid_trials")) if "n_invalid_trials" in null_stats else None
-            except Exception:
-                n_invalid = None
-        if isinstance(null_scores, list):
-            n_trials = int(len(null_scores))
+            if not rd_dir.exists() or not rd_dir.is_dir():
+                raise FileNotFoundError(f"Ringdown dir not found: {rd_dir}")
+
+            poles_path = rd_dir / "poles_joint.json"
+            if not poles_path.exists():
+                alt = sorted(rd_dir.glob("poles_*.json"))
+                poles_path = alt[0] if alt else poles_path
+
+            cp_path = rd_dir / "coincident_pairs.json"
+            null_path = rd_dir / "null_test.json"
+
+            poles_payload = read_json(poles_path) if poles_path.exists() else {}
+            cp_payload = read_json(cp_path) if cp_path.exists() else {}
+            null_payload = read_json(null_path) if null_path.exists() else {}
+
+            poles = parse_poles_json(poles_payload)
+            best_pair = pick_best_pair(cp_payload)
+            best_score = None
+            best_p_value_stage01 = None
+            if best_pair is not None:
+                try:
+                    best_score = float(best_pair.get("score_2d"))
+                except Exception:
+                    best_score = None
+                try:
+                    pv = best_pair.get("p_value", None)
+                    best_p_value_stage01 = None if pv is None else float(pv)
+                except Exception:
+                    best_p_value_stage01 = None
+
+            null_scores = _safe_get(null_payload, ["null_test", "scores_per_trial"], default=None)
+            null_stats = _safe_get(null_payload, ["null_test", "statistics"], default={}) or {}
+            n_invalid = None
+            n_trials = None
+            if isinstance(null_stats, dict):
+                try:
+                    n_invalid = int(null_stats.get("n_invalid_trials")) if "n_invalid_trials" in null_stats else None
+                except Exception:
+                    n_invalid = None
+            if isinstance(null_scores, list):
+                n_trials = int(len(null_scores))
+
+            input_items.append(
+                {
+                    "kind": "ringdown",
+                    "event_name": event_id,
+                    "system_name": f"{event_id}__{rd_rel.name}",
+                    "poles": poles,
+                    "poles_payload": poles_payload,
+                    "cp_payload": cp_payload,
+                    "null_payload": null_payload,
+                    "best_pair": best_pair,
+                    "best_score": best_score,
+                    "best_p_value_stage01": best_p_value_stage01,
+                    "null_scores": null_scores,
+                    "null_stats": null_stats,
+                    "n_invalid": n_invalid,
+                    "n_trials": n_trials,
+                    "source_ringdown_dir": str(rd_rel.as_posix()),
+                    "source_poles_file": str(poles_path),
+                    "source_coincident_pairs_file": str(cp_path) if cp_path.exists() else "",
+                    "source_null_test_file": str(null_path) if null_path.exists() else "",
+                    "metadata_attrs": {},
+                }
+            )
+
+    for item in input_items:
+        poles = item["poles"]
+        poles_payload = item["poles_payload"]
+        cp_payload = item["cp_payload"]
+        null_payload = item["null_payload"]
+        best_pair = item["best_pair"]
+        best_score = item["best_score"]
+        best_p_value_stage01 = item["best_p_value_stage01"]
+        null_scores = item["null_scores"]
+        null_stats = item["null_stats"]
+        n_invalid = item["n_invalid"]
+        n_trials = item["n_trials"]
+        system_name = item["system_name"]
+        item_event_id = item["event_name"]
 
         # compute p-values (explicit unconditional + conditional)
         p_unc = p_cond = None
@@ -669,7 +865,7 @@ def main() -> int:
                 observed_saturation_detected = True
                 effective_g2_time_contract = G2_TIME_CONTRACT_GAMMA_DOM_V2
                 g2_contract_autoselected = True
-                print(f"  [AUTOSELECT] Observed saturation for {event_id}: "
+                print(f"  [AUTOSELECT] Observed saturation for {item_event_id}: "
                       f"g2_last={saturation_meta['g2_last']:.6f}, "
                       f"n_ge_threshold={saturation_meta['n_ge_threshold']}/{saturation_meta['n_points']}. "
                       f"Rebuilding with {G2_TIME_CONTRACT_GAMMA_DOM_V2}.")
@@ -744,7 +940,6 @@ def main() -> int:
             contract_attrs = {}
 
         # Output HDF5
-        system_name = f"{event_id}__{rd_rel.name}"
         out_h5 = out_dir / f"{system_name}.h5"
 
         with h5py.File(out_h5, "w") as f:
@@ -842,11 +1037,13 @@ def main() -> int:
                 b.attrs["qnm_n_modes"] = 0
 
             # provenance / quality metadata (attrs for quick audit)
-            b.attrs["source_run_dir"] = str(run_dir)
-            b.attrs["source_ringdown_dir"] = str(rd_dir)
-            b.attrs["source_poles_file"] = str(poles_path)
-            b.attrs["source_coincident_pairs_file"] = str(cp_path) if cp_path.exists() else ""
-            b.attrs["source_null_test_file"] = str(null_path) if null_path.exists() else ""
+            b.attrs["source_run_dir"] = "" if run_dir is None else str(run_dir)
+            b.attrs["source_ringdown_dir"] = item["source_ringdown_dir"]
+            b.attrs["source_poles_file"] = item["source_poles_file"]
+            b.attrs["source_coincident_pairs_file"] = item["source_coincident_pairs_file"]
+            b.attrs["source_null_test_file"] = item["source_null_test_file"]
+            for meta_key, meta_value in item["metadata_attrs"].items():
+                b.attrs[meta_key] = meta_value
 
             if best_score is not None and np.isfinite(best_score):
                 b.attrs["best_score_2d"] = float(best_score)
@@ -882,10 +1079,11 @@ def main() -> int:
                 "category": "ringdown",
                 "d": int(args.d),
                 "file": str(out_h5.name),
-                "source_ringdown_dir": str(rd_rel.as_posix()),
-                "poles_file": poles_path.name if poles_path.exists() else "",
-                "has_null_test": bool(null_path.exists()),
-                "has_coincident_pairs": bool(cp_path.exists()),
+                "source_kind": item["kind"],
+                "source_ringdown_dir": item["source_ringdown_dir"],
+                "poles_file": Path(item["source_poles_file"]).name if item["source_poles_file"] else "",
+                "has_null_test": bool(item["source_null_test_file"]),
+                "has_coincident_pairs": bool(item["source_coincident_pairs_file"]),
             }
         )
 

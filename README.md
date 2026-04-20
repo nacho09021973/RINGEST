@@ -1,31 +1,30 @@
 # RINGEST
 
 Pipeline local para el análisis holográfico de señales de ringdown gravitacional.
-Extrae polos QNM de eventos GWOSC, los mapea a geometrías AdS emergentes mediante
-redes neuronales y regresión simbólica, y valida la estructura del espectro contra
-las frecuencias Kerr tabuladas.
+Toma QNM de eventos GWOSC (desde posteriors Bayesianos publicados en literatura)
+y los mapea a geometrías AdS emergentes mediante redes neuronales y regresión
+simbólica.
 
 ---
 
 ## Qué hace el pipeline
 
 ```
-Señal de ringdown (LIGO/Virgo)
+QNM de literatura (posteriors Bayesianos LVC/Isi/Giesler/Capano/pyRing)
         │
         ▼
-Extracción de polos QNM (ESPRIT)          ← 01_extract_ringdown_poles
+data/qnm_events_literature.yml → 02b_literature_to_dataset.py → qnm_dataset.csv
         │
         ├─▶  Ruta A — Geometría emergente
         │    Geometría AdS sintética → motor neural → redescubrimiento de
         │    ecuaciones de Einstein y relación λ_SL = Δ(Δ−d)
         │
-        ├─▶  Ruta B — Inferencia holográfica sobre eventos reales
-        │    Embedding de ringdown real en el espacio de familias holográficas
-        │
-        └─▶  Ruta C — Cadena QNM simbólica
-             Dataset QNM → regresión simbólica (PySR) → clasificador KAN
-             → validación contra tabla Kerr (Berti 2009), que audita la
-             composición de clústeres y se inyecta en el diccionario holográfico.
+        └─▶  Ruta B — Inferencia holográfica sobre eventos reales
+             Bridge a stage02 → 02_emergent_geometry_engine --mode inference
+             → 03_discover_bulk_equations → 04_geometry_physics_contracts
+
+Ruta C (ESPRIT + PySR/KAN + validación Kerr) fue eliminada el 2026-04-20:
+la extracción propia no identificaba limpiamente el (2,2,0) de strain real.
 ```
 
 La única familia con `family_status = canonical_strong` es AdS con frontera
@@ -37,29 +36,27 @@ GKPW (`--ads-boundary-mode gkpw`). El resto son `toy_sandbox` o `realdata_surrog
 
 ```
 RINGEST/
-  # Scripts de pipeline (19 activos)
+  # Scripts de pipeline (15 activos; Ruta C eliminada 2026-04-20)
   00_download_gwosc_events.py          Ruta B — descarga NPZ de GWOSC
   00_load_ligo_data.py                 Ruta B — NPZ → HDF5 whitened
   01_generate_sandbox_geometries.py    Ruta A — geometrías ADS sintéticas
-  01_extract_ringdown_poles.py         Rutas B, C — ESPRIT sobre la señal
+  01_extract_ringdown_poles.py         Ruta B — ESPRIT (rama alternativa, conservada)
   02_emergent_geometry_engine.py       Rutas A, B — motor neural (train/inference)
-  02_poles_to_dataset.py               Ruta C — polos → qnm_dataset.csv
+  02b_literature_to_dataset.py         Ruta B — YAML literatura → qnm_dataset.csv
   03_discover_bulk_equations.py        Ruta A — PySR sobre geometría de bulk
-  03_discover_qnm_equations.py         Ruta C — PySR sobre dataset QNM
   04_geometry_physics_contracts.py     Ruta A — contratos físicos (R<0, f≥0)
-  04_kan_qnm_classifier.py             Ruta C — k-means + KAN + auto_symbolic
   05_analyze_bulk_equations.py         Ruta A — análisis de ecuaciones descubiertas
-  05_validate_qnm_kerr.py              Ruta C — match vs Kerr y auditoría de clústeres
   06_build_bulk_eigenmodes_dataset.py  Ruta A — Sturm-Liouville
   07_emergent_lambda_sl_dictionary.py  Ruta A — redescubrimiento λ_SL = Δ(Δ−d)
   08_build_holographic_dictionary.py   Ruta A — atlas holográfico completo
   09_real_data_and_dictionary_contracts.py  Ruta A — contratos finales
-  realdata_ringdown_to_stage02_boundary_dataset.py  Ruta B — bridge polos→stage02
+  realdata_ringdown_to_stage02_boundary_dataset.py  Ruta B — bridge a stage02
   # Librerías compartidas
   bulk_scalar_solver.py  family_registry.py  feature_support.py  stage_utils.py
   # Documentación
-  PIPELINE_ROUTES.md          Mapa corto de las tres rutas
+  PIPELINE_ROUTES.md          Mapa corto de las rutas
   instrucciones_pipeline.md   Comandos completos con flags
+  data/qnm_events_literature.yml   Fuente canónica de QNM (literatura)
   docs/
   configs/
   contracts/
@@ -82,10 +79,9 @@ Dependencias opcionales por ruta:
 | Componente | Ruta | Instalar con |
 |---|---|---|
 | PyTorch | A (entrenamiento), B (inferencia) | `pip install -e ".[gpu]"` |
-| PySR + Julia | A (`03_discover_bulk_equations`), C (`03_discover_qnm_equations`) | `pip install -e ".[pysr]"` |
-| pykan + torch | C (`04_kan_qnm_classifier`) | `pip install kan torch` |
-| scipy | C (clustering k-means) | `pip install scipy` |
-| gwosc | B (descarga de eventos) | `pip install gwosc` |
+| PySR + Julia | A (`03_discover_bulk_equations`) | `pip install -e ".[pysr]"` |
+| gwosc | B (descarga de eventos, rama ESPRIT) | `pip install gwosc` |
+| pyyaml | B (lectura de YAML literatura) | `pip install pyyaml` |
 
 Los scripts con dependencias opcionales aceptan `--analysis-only` para ejecutarse
 sin ellas y escribir igualmente su contrato de salida JSON.
@@ -110,7 +106,24 @@ python3 08_build_holographic_dictionary.py  --run-dir $RUN
 python3 09_real_data_and_dictionary_contracts.py --run-dir $RUN --phase both
 ```
 
-### Ruta B — datos reales GWOSC
+### Ruta B — datos reales (carril literatura, activo)
+
+```bash
+python3 02b_literature_to_dataset.py \
+  --sources data/qnm_events_literature.yml \
+  --out runs/qnm_dataset_literature
+python3 realdata_ringdown_to_stage02_boundary_dataset.py \
+  --dataset-csv runs/qnm_dataset_literature/qnm_dataset.csv \
+  --out-dir data/gwosc_events/qnm_literature_boundary \
+  --d 4
+python3 02_emergent_geometry_engine.py --mode inference \
+  --data-dir data/gwosc_events/qnm_literature_boundary \
+  --checkpoint runs/<run_ruta_a>/02_emergent_geometry_engine/emergent_geometry_model.pt
+python3 03_discover_bulk_equations.py    --run-dir <run_dir>
+python3 04_geometry_physics_contracts.py --run-dir <run_dir> --data-dir data/gwosc_events/qnm_literature_boundary
+```
+
+Rama ESPRIT alternativa (conservada, no activa):
 
 ```bash
 python3 00_download_gwosc_events.py --out-dir data/gwosc_events \
@@ -122,18 +135,6 @@ python3 realdata_ringdown_to_stage02_boundary_dataset.py \
   --ringdown-dirs ringdown \
   --out-dir data/gwosc_events/GW150914/boundary_dataset \
   --d 4
-python3 02_emergent_geometry_engine.py --mode inference \
-  --data-dir data/gwosc_events/GW150914/boundary_dataset \
-  --checkpoint runs/<run_ruta_a>/02_emergent_geometry_engine/emergent_geometry_model.pt
-```
-
-### Ruta C — cadena QNM (modo análisis, sin dependencias pesadas)
-
-```bash
-python3 02_poles_to_dataset.py      --runs-dir data/gwosc_events --params-csv catalog_params.csv
-python3 03_discover_qnm_equations.py --dataset-csv runs/qnm_dataset/qnm_dataset.csv --analysis-only
-python3 04_kan_qnm_classifier.py    --summary runs/qnm_symbolic/qnm_symbolic_summary.json --analysis-only
-python3 05_validate_qnm_kerr.py     --summary runs/qnm_kan/qnm_kan_summary.json
 ```
 
 ---

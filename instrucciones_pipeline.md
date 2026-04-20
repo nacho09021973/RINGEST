@@ -102,7 +102,17 @@ python3 00_load_ligo_data.py \
   --whiten --fft
 ```
 
-### B-3 · Extraer polos de ringdown (ESPRIT)
+### B-3 · YAML literatura → qnm_dataset.csv (carril activo)
+
+```bash
+python3 02b_literature_to_dataset.py \
+  --sources data/qnm_events_literature.yml \
+  --out runs/qnm_dataset_literature
+```
+
+Salida: `runs/qnm_dataset_literature/qnm_dataset.csv`, `qnm_dataset_220.csv`.
+
+#### Rama ESPRIT alternativa (conservada, no activa)
 
 ```bash
 python3 01_extract_ringdown_poles.py \
@@ -114,7 +124,18 @@ python3 01_extract_ringdown_poles.py \
 
 Salida: `data/gwosc_events/GW150914/boundary/ringdown/poles_joint.json`
 
-### B-4 · Convertir polos → formato stage-02
+### B-4 · Bridge a formato stage-02
+
+Carril activo (CSV de literatura):
+
+```bash
+python3 realdata_ringdown_to_stage02_boundary_dataset.py \
+  --dataset-csv runs/qnm_dataset_literature/qnm_dataset.csv \
+  --out-dir data/gwosc_events/qnm_literature_boundary \
+  --d 4
+```
+
+Rama ESPRIT (alternativa):
 
 ```bash
 python3 realdata_ringdown_to_stage02_boundary_dataset.py \
@@ -129,122 +150,28 @@ python3 realdata_ringdown_to_stage02_boundary_dataset.py \
 ```bash
 python3 02_emergent_geometry_engine.py \
   --mode inference \
-  --data-dir data/gwosc_events/GW150914/boundary_dataset \
-  --output-dir data/gwosc_events/GW150914/02_emergent_geometry_engine \
+  --data-dir data/gwosc_events/qnm_literature_boundary \
+  --output-dir data/gwosc_events/qnm_literature_boundary/02_emergent_geometry_engine \
   --checkpoint runs/<run_ruta_a>/02_emergent_geometry_engine/emergent_geometry_model.pt
+```
+
+### B-6 · Auditoría downstream
+
+```bash
+python3 03_discover_bulk_equations.py    --run-dir <run_dir>
+python3 04_geometry_physics_contracts.py --run-dir <run_dir> \
+  --data-dir data/gwosc_events/qnm_literature_boundary
 ```
 
 ---
 
-## Ruta C — Cadena QNM
+## Ruta C — ELIMINADA (2026-04-20)
 
-Descubrimiento simbólico + clasificador KAN + validación Kerr sobre los polos
-de ringdown colectados por la Ruta B.
-
-Prerequisito: ejecutar los pasos B-1 a B-3 para todos los eventos deseados.
-
-### C-1 · Construir dataset QNM
-
-```bash
-# Con parámetros M_final/chi_final desde una tabla externa.
-# Columnas requeridas: event, M_final_Msun, chi_final.
-python3 02_poles_to_dataset.py \
-  --runs-dir data/gwosc_events \
-  --out-dir runs/qnm_dataset \
-  --params-csv catalog_params.csv \
-  --max-modes 4
-```
-
-Salida: `runs/qnm_dataset/qnm_dataset.csv`
-
-### C-2 · Descubrimiento simbólico (PySR)
-
-```bash
-# Solo perfilado del dataset + contrato KAN (sin Julia):
-python3 03_discover_qnm_equations.py \
-  --dataset-csv runs/qnm_dataset/qnm_dataset.csv \
-  --out-dir runs/qnm_symbolic \
-  --analysis-only
-
-# Regresión simbólica completa (requiere PySR/Julia):
-python3 03_discover_qnm_equations.py \
-  --dataset-csv runs/qnm_dataset/qnm_dataset.csv \
-  --out-dir runs/qnm_symbolic \
-  --include-normalized-targets \
-  --niterations 80 \
-  --maxsize 18
-```
-
-Salida: `runs/qnm_symbolic/qnm_symbolic_summary.json` (contiene `kan_contract`)
-
-### C-3 · Clasificador KAN
-
-```bash
-# Solo clustering k-means + contrato downstream (sin torch/KAN):
-python3 04_kan_qnm_classifier.py \
-  --summary runs/qnm_symbolic/qnm_symbolic_summary.json \
-  --out-dir runs/qnm_kan \
-  --analysis-only \
-  --n-clusters 3
-
-# Entrenamiento KAN completo (requiere torch + pykan):
-python3 04_kan_qnm_classifier.py \
-  --summary runs/qnm_symbolic/qnm_symbolic_summary.json \
-  --out-dir runs/qnm_kan \
-  --n-clusters 3 \
-  --kan-steps 100
-```
-
-Salida: `runs/qnm_kan/qnm_kan_summary.json`, `runs/qnm_kan/cluster_labels.csv`
-
-### C-4 · Validación Kerr (Berti et al. 2009, l=m=2, n=0,1,2)
-
-```bash
-python3 05_validate_qnm_kerr.py \
-  --summary runs/qnm_kan/qnm_kan_summary.json \
-  --out-dir runs/qnm_kerr_validation
-```
-
-Salida: `runs/qnm_kerr_validation/qnm_kerr_validation_summary.json`
-
-`05_validate_qnm_kerr.py` ahora escribe `cluster_audit.csv` y
-`cluster_audit_summary.json` para auditar la composición física de cada clúster.
-
-El sumario de auditoría se puede inyectar en el diccionario holográfico de la Ruta A
-con el flag `--kerr-audit` en `08_build_holographic_dictionary.py`.
-
-Veredictos posibles:
-
-| Veredicto | Significado |
-|---|---|
-| `ALL_CLUSTERS_KERR_CONSISTENT` | Todos los clusters encajan con modos Kerr (dist < 0.05) |
-| `CLUSTERS_BROADLY_KERR_CONSISTENT` | Encaje bueno o aceptable (dist < 0.15) |
-| `PARTIAL_KERR_CONSISTENCY` | Algunos clusters encajan, otros no |
-| `NO_KERR_CONSISTENCY` | Ningún cluster encaja — posible física no-Kerr |
-
-### C completa (un solo bloque)
-
-```bash
-python3 02_poles_to_dataset.py \
-  --runs-dir data/gwosc_events \
-  --out-dir runs/qnm_dataset \
-  --params-csv catalog_params.csv \
-  --max-modes 4
-
-python3 03_discover_qnm_equations.py \
-  --dataset-csv runs/qnm_dataset/qnm_dataset.csv \
-  --out-dir runs/qnm_symbolic \
-  --analysis-only
-
-python3 04_kan_qnm_classifier.py \
-  --summary runs/qnm_symbolic/qnm_symbolic_summary.json \
-  --out-dir runs/qnm_kan \
-  --analysis-only --n-clusters 3
-
-python3 05_validate_qnm_kerr.py \
-  --summary runs/qnm_kan/qnm_kan_summary.json \
-  --out-dir runs/qnm_kerr_validation
-```
+El carril ESPRIT + PySR/KAN + validación Kerr fue cerrado. La extracción
+propia no identificaba limpiamente el modo (2,2,0) del strain real. Scripts
+borrados: `02_poles_to_dataset.py`, `03_discover_qnm_equations.py`,
+`04_kan_qnm_classifier.py`, `05_validate_qnm_kerr.py`. El input canónico de
+QNM ahora viene de posteriors Bayesianos publicados (ver Ruta B-3).
 
 ---
 
