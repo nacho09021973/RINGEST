@@ -12,19 +12,24 @@ Si la respuesta es no, no lo priorices.
 
 ## Prioridades fisicas
 
-1. Prioriza datos GW reales, strain, polos QNM, `freq_hz`, `damping_hz`, `M_final`, `chi_final`, `mode_rank`.
-2. Prioriza la cadena:
-   datos reales -> polos -> `qnm_dataset.csv` -> PySR/KAN -> ecuaciones -> validacion Kerr -> familias empiricas
+1. Prioriza datos GW reales, strain, QNM, `freq_hz`, `damping_hz`, `M_final`, `chi_final`, `mode_rank`.
+2. Prioriza la cadena (flujo activo):
+   YAML literatura QNM -> `qnm_dataset.csv` -> bridge a stage02 -> inferencia geometrica -> auditoria downstream
 3. La consistencia fisica manda sobre metricas bonitas.
 4. Los outputs fisicos escritos en disco mandan sobre arquitectura, manifiestos o abstracciones.
 5. Un subconjunto pequeno no es una familia fisica fuerte. No sobrevendas resultados con N pequeno.
 
 ## Prioridades del repo
 
-- La Ruta C es el carril principal para extraer relaciones empiricas sobre QNM:
-  `02_poles_to_dataset.py` -> `03_discover_qnm_equations.py` -> `04_kan_qnm_classifier.py` -> `05_validate_qnm_kerr.py`
-- La Ruta B es el puente desde datos reales a polos y datasets derivados.
-- La Ruta A es sandbox/canonica ADS-GKPW. Usala como baseline o referencia metodologica, no como prioridad por defecto cuando la pregunta sea sobre observables reales de ringdown.
+- Ruta C (ESPRIT + PySR/KAN + validacion Kerr) fue ELIMINADA el 2026-04-20: la
+  extraccion propia no identificaba limpiamente el (2,2,0). Scripts borrados:
+  `02_poles_to_dataset.py`, `03_discover_qnm_equations.py`, `04_kan_qnm_classifier.py`,
+  `05_validate_qnm_kerr.py`. No los reintroduzcas.
+- Ruta B es el carril activo: `data/qnm_events_literature.yml` ->
+  `02b_literature_to_dataset.py` -> `realdata_ringdown_to_stage02_boundary_dataset.py`
+  -> `02_emergent_geometry_engine.py --mode inference` -> `03_discover_bulk_equations.py`
+  / `04_geometry_physics_contracts.py`.
+- Ruta A es sandbox/canonica ADS-GKPW. Usala como baseline o referencia metodologica, no como prioridad por defecto cuando la pregunta sea sobre observables reales de ringdown.
 - Recuerda el significado de `family_status`:
   - `canonical_strong`: solo el carril ADS/GKPW fuerte
   - `realdata_surrogate`: embedding derivado de ringdown real, no dual fuerte por si solo

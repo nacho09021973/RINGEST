@@ -1,0 +1,43 @@
+Use this provisional brand system for all UI and layout decisions.
+
+Visual direction:
+- Clean, corporate, neutral, non-decorative
+- Light background, restrained contrast, generous whitespace
+- Avoid playful styling, bright gradients, glossy effects, and ornamental shapes
+
+Typography:
+- Primary stack: Brand Sans, Source Sans 3, Inter, IBM Plex Sans, system-ui, sans-serif
+- Monospace stack: IBM Plex Mono, SFMono-Regular, Consolas, monospace
+- Local font files available: ./fonts/SourceSans3-wght.ttf and ./fonts/SourceSans3-Italic-wght.ttf
+- H1: 48px, weight 700, line-height 1.1
+- H2: 32px, weight 600, line-height 1.2
+- Body: 16px, weight 400, line-height 1.6
+- Caption: 13px, weight 500, line-height 1.45
+
+Spacing and layout:
+- Use a 4px base unit
+- Spacing scale: 4, 8, 12, 16, 24, 32, 48, 64
+- Reading width: 720px max
+- Wide layout width: 1200px max
+- Prefer consistent vertical rhythm in 8px increments
+- Desktop grid: 12 columns, 24px gutters, 32px outer margins
+
+Color palette:
+- Canvas: #F7F7F5
+- Surface: #FFFFFF
+- Muted surface: #F1F2EF
+- Primary text: #14171A
+- Secondary text: #586069
+- Border: #D7DBD4
+- Accent: #2F4758
+- Accent strong: #1F3341
+
+Component guidance:
+- Use subtle 1px borders instead of heavy shadows
+- Border radius should stay modest: 4px, 8px, or 12px
+- Buttons and controls should feel precise and understated
+- Accent color should be used sparingly for primary actions, links, and focus states
+
+Overall constraint:
+- The interface should feel calm, credible, and production-oriented
+- Prefer clarity over novelty

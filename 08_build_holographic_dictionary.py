@@ -428,7 +428,7 @@ def parse_args():
         "--kerr-audit",
         type=str,
         default=None,
-        help="Path to cluster_audit_summary.json from Route C (05_validate_qnm_kerr.py)",
+        help="Path to a cluster_audit_summary.json (legacy Route C artifact, now removed; flag kept for backwards compatibility)",
     )
     return parser.parse_args()
 

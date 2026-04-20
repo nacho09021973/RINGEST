@@ -405,27 +405,18 @@ def load_boundary_h5(path: Path) -> Dict[str, Any]:
 
         t_rel = f["time/t_rel"][:].astype(np.float64)
 
-        # Prefer whitened strain when available (produced by 00_load_ligo_data.py --whiten)
-        if "strain/H1_whitened" in f:
-            h1 = f["strain/H1_whitened"][:].astype(np.float64)
-            whitened = True
-        else:
-            h1 = f["strain/H1"][:].astype(np.float64)
-            whitened = False
-
-        if "strain/L1_whitened" in f:
-            l1 = f["strain/L1_whitened"][:].astype(np.float64)
-        elif "strain/L1" in f:
-            l1 = f["strain/L1"][:].astype(np.float64)
-        else:
-            l1 = None
+        h1_raw = f["strain/H1"][:].astype(np.float64)
+        h1_white = f["strain/H1_whitened"][:].astype(np.float64) if "strain/H1_whitened" in f else None
+        l1_raw = f["strain/L1"][:].astype(np.float64) if "strain/L1" in f else None
+        l1_white = f["strain/L1_whitened"][:].astype(np.float64) if "strain/L1_whitened" in f else None
+        whitened_available = h1_white is not None
 
         fs = float(attrs.get("fs_hz", float(f["time"].attrs.get("fs_hz", 0.0))))
         dt = float(attrs.get("dt", float(f["time"].attrs.get("dt", 1.0 / fs if fs else 0.0))))
         event = str(attrs.get("event", "UNKNOWN_EVENT"))
         gps = float(attrs.get("gps", 0.0))
 
-        if not whitened:
+        if not whitened_available:
             import warnings
             warnings.warn(
                 f"[01_extract_ringdown_poles] No whitened strain found in {path}. "
@@ -442,9 +433,11 @@ def load_boundary_h5(path: Path) -> Dict[str, Any]:
             "fs": fs,
             "dt": dt,
             "t_rel": t_rel,
-            "H1": h1,
-            "L1": l1,
-            "whitened": whitened,
+            "H1_raw": h1_raw,
+            "H1_whitened": h1_white,
+            "L1_raw": l1_raw,
+            "L1_whitened": l1_white,
+            "whitened_available": whitened_available,
         }
 
 
@@ -645,6 +638,14 @@ def build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--detrend", choices=["none", "mean", "linear"], default="mean", help="Detrend mode applied to window before fit.")
     p.add_argument("--hp-hz", type=float, default=30.0, help="Optional high-pass cutoff in Hz (FFT-domain).")
     p.add_argument("--lp-hz", type=float, default=None, help="Optional low-pass cutoff in Hz (FFT-domain).")
+    p.add_argument(
+        "--input-strain",
+        choices=["auto", "whitened", "raw"],
+        default="auto",
+        help="Serie de entrada para el fit. "
+             "'auto' usa whitened si existe; 'whitened' la exige; 'raw' fuerza strain cruda. "
+             "Default: auto.",
+    )
 
     # ESPRIT params
     p.add_argument("--L", type=int, default=0, help="Hankel rows. 0 => auto (min(Nw//2, 4096)).")
@@ -682,8 +683,28 @@ def main() -> int:
     fs = float(data["fs"])
     dt = float(data["dt"])
     t_rel = data["t_rel"]
-    h1 = data["H1"]
-    l1 = data["L1"]
+    whitened_available = bool(data.get("whitened_available", False))
+    if args.input_strain == "whitened":
+        if not whitened_available:
+            raise RuntimeError(
+                f"--input-strain=whitened pero {boundary_h5} no contiene strain whitening."
+            )
+        h1 = data["H1_whitened"]
+        l1 = data["L1_whitened"] if data["L1_whitened"] is not None else data["L1_raw"]
+        input_strain_used = "whitened"
+    elif args.input_strain == "raw":
+        h1 = data["H1_raw"]
+        l1 = data["L1_raw"]
+        input_strain_used = "raw"
+    else:
+        if whitened_available:
+            h1 = data["H1_whitened"]
+            l1 = data["L1_whitened"] if data["L1_whitened"] is not None else data["L1_raw"]
+            input_strain_used = "whitened"
+        else:
+            h1 = data["H1_raw"]
+            l1 = data["L1_raw"]
+            input_strain_used = "raw"
 
     def _channel_valid_for_peak(y):
         return y is not None and np.isfinite(y).any() and float(np.nanstd(y)) > 0.0
@@ -836,6 +857,8 @@ def main() -> int:
             "detrend": args.detrend,
             "hp_hz": args.hp_hz,
             "lp_hz": args.lp_hz,
+            "input_strain": args.input_strain,
+            "input_strain_used": input_strain_used,
             "L": L,
             "rank": args.rank,
             "sv_thresh": args.sv_thresh,
@@ -848,6 +871,8 @@ def main() -> int:
             "run_dir": str(run_dir),
             "boundary_h5_abs": str(boundary_h5),
             "boundary_h5_sha256": boundary_sha,
+            "whitened_available": whitened_available,
+            "input_strain_used": input_strain_used,
         },
         "window": window_info,
     }
@@ -908,7 +933,10 @@ def main() -> int:
             "H1_relative_rms": float(pf_h1.relative_rms) if pf_h1 is not None else None,
             "L1_relative_rms": float(pf_l1.relative_rms) if pf_l1 is not None else None,
         },
-        "input_strain_whitened": bool(data.get("whitened", False)),
+        "input_strain_requested": str(args.input_strain),
+        "input_strain_used": input_strain_used,
+        "input_strain_whitened_available": whitened_available,
+        "input_strain_whitened_used": bool(input_strain_used == "whitened"),
     }
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 

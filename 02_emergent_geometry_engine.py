@@ -1672,6 +1672,16 @@ def run_inference_mode(args):
         with h5py.File(h5_path, "r") as f:
             # Solo carga boundary (bulk_truth bloqueado)
             boundary_data, operators = loader.load_boundary_and_meta(f)
+            # Preservar semántica declarativa del input (no sobreescribir con el clasificador).
+            def _decode_attr(val, default=""):
+                if val is None:
+                    return default
+                if isinstance(val, bytes):
+                    return val.decode("utf-8")
+                return str(val)
+            boundary_family = _decode_attr(f.attrs.get("family"), "unknown")
+            boundary_family_status = _decode_attr(f.attrs.get("family_status"), "")
+            boundary_provenance_in = _decode_attr(f.attrs.get("provenance"), "")
         
         # Extraer d del boundary o manifest
         d_boundary = geo_info.get("d", boundary_data.get("d", d_value))
@@ -1745,8 +1755,13 @@ def run_inference_mode(args):
             # Atributos (IO_CONTRACTS_V1)
             family_pred = preds["family_name"]
             f_out.attrs["system_name"] = name
-            # CanAfAE'A+aEUR(TM)AfaEURsA,A3nico: 'family' debe existir (family_pred es opcional)
-            f_out.attrs["family"] = family_pred
+            # Canónico: 'family' es la semántica declarativa heredada del boundary input.
+            # El clasificador vive SOLO en family_pred / family_best_compatibility_label.
+            f_out.attrs["family"] = boundary_family
+            if boundary_family_status:
+                f_out.attrs["family_status"] = boundary_family_status
+            if boundary_provenance_in:
+                f_out.attrs["provenance_input"] = boundary_provenance_in
             f_out.attrs["family_pred"] = family_pred
             f_out.attrs["family_raw_pred"] = preds["family_raw_name"]
             f_out.attrs["family_best_compatibility_label"] = preds["family_raw_name"]
