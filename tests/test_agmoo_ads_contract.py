@@ -154,19 +154,20 @@ class TestAdsTemplateOnly:
 # 2. ads térmico + Gate 6 ausente → ADS_TEMPLATE_ONLY
 #    (la ausencia de Gate 6 bloquea antes que el origen fenomenológico)
 #
-# ADS_THERMAL_TOY_ONLY solo es alcanzable con Gate 6 presente.
+# `ADS_THERMAL_TOY_ONLY` queda como estado legacy del registro, pero no debe
+# aparecer como veredicto esperado en la lógica viva.
 # ---------------------------------------------------------------------------
 
 class TestAdsThermalToyOnly:
-    # -- Regresión crítica: Gate 6 ausente bloquea antes de verificar si es térmico --
+    # -- Regresión crítica: Gate 6 ausente bloquea antes de cualquier lectura experimental --
 
     def test_thermal_geodesic_no_gate6_gives_template_only(self):
         """
         REGRESIÓN: ads_thermal + GEODESIC_APPROXIMATION + Gate 6 ausente
-        → ADS_TEMPLATE_ONLY, NO ADS_THERMAL_TOY_ONLY.
+        → ADS_TEMPLATE_ONLY.
 
         Gate 6 ausente bloquea cualquier lectura holográfica más fuerte,
-        incluyendo ADS_THERMAL_TOY_ONLY. (contrato sec. 2b)
+        incluyendo cualquier veredicto experimental toy. (contrato sec. 2b)
         """
         meta = _meta_ads_thermal_no_gate6()
         result = validate_ads_geometry(meta)
@@ -204,9 +205,9 @@ class TestAdsThermalToyOnly:
         result = validate_ads_geometry(meta)
         assert result["correlator_type"] == "GEODESIC_APPROXIMATION"
 
-    # -- ADS_THERMAL_TOY_ONLY solo es alcanzable con Gate 6 presente --
+    # -- Gate 6 presente + carril experimental no fuerte colapsa en ADS_EXPERIMENTAL_TOY_ONLY --
 
-    def test_thermal_geodesic_with_gate6_gives_thermal_toy_only(self):
+    def test_thermal_geodesic_with_gate6_gives_experimental_toy_only(self):
         """
         ads_thermal + GEODESIC_APPROXIMATION + Gate 6 PRESENTE
         → ADS_EXPERIMENTAL_TOY_ONLY.
@@ -233,7 +234,7 @@ class TestAdsThermalToyOnly:
             f"got {result['overall_verdict']}"
         )
 
-    def test_thermal_toy_with_gate6_gives_thermal_toy_only(self):
+    def test_thermal_toy_with_gate6_gives_experimental_toy_only(self):
         """TOY_PHENOMENOLOGICAL + thermal + Gate 6 presente → ADS_EXPERIMENTAL_TOY_ONLY."""
         meta = {
             "family": "ads",
@@ -255,7 +256,7 @@ class TestAdsThermalToyOnly:
     def test_ads_d3_tfinite_without_gate6_is_template_only(self):
         """
         REGRESIÓN: caso ads_d3_Tfinite con z_h=1.0.
-        Gate 6 ausente → ADS_TEMPLATE_ONLY (no ADS_THERMAL_TOY_ONLY).
+        Gate 6 ausente → ADS_TEMPLATE_ONLY.
         """
         meta = {
             "family": "ads",
@@ -357,6 +358,13 @@ class TestNonAdsFamily:
         result = validate_ads_geometry(meta)
         assert result["classification"] is None
 
+    def test_non_ads_toy_provenance_is_none_for_stable_schema(self):
+        meta = {"family": "kerr", "d": 3, "z_h": 1.0}
+        result = validate_ads_geometry(meta)
+        assert result["overall_verdict"] == "NOT_ADS"
+        assert "toy_provenance" in result
+        assert result["toy_provenance"] is None
+
     def test_non_ads_does_not_raise(self):
         """Validador no lanza excepción para ninguna familia registrada."""
         for family in [
@@ -435,7 +443,7 @@ class TestRepoCurrentState:
     def test_all_ads_prototypes_are_template_only(self):
         """
         REGRESIÓN: los prototipos ads actuales del repo (ads_d3_Tfinite, etc.)
-        sin Gate 6 deben resultar en ADS_TEMPLATE_ONLY, no en ADS_THERMAL_TOY_ONLY.
+        sin Gate 6 deben resultar en ADS_TEMPLATE_ONLY.
 
         Clasificación geométrica: ads_thermal (correcto).
         Veredicto holográfico: ADS_TEMPLATE_ONLY (Gate 6 ausente bloquea).
