@@ -59,6 +59,9 @@ from typing import Any, List, Dict, Tuple, Optional
 import numpy as np  # type: ignore
 import h5py  # type: ignore
 
+if not hasattr(np, "trapezoid"):
+    np.trapezoid = np.trapz  # type: ignore[attr-defined]
+
 try:
     from tools.gkpw_ads_scalar_correlator import (
         CORRELATOR_TYPE as GKPW_ADS_CORRELATOR_TYPE,

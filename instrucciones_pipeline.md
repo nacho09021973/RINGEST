@@ -130,6 +130,130 @@ Leer `family_status` antes de interpretar una salida como física fuerte.
 
 ---
 
+## Protocolo técnico mínimo — retrain mixto `ads + rn_ads`
+
+Protocolo técnico, no físico. Sirve para repetir un retrain Stage 02 mixto
+con contrato homogéneo y auditar que el train procesa ambas familias sin
+fallos de H5/loader. `rn_ads` sigue siendo `toy_sandbox`.
+
+Soportado hoy:
+- retrain técnico `ads + rn_ads` con GKPW + `tools/pack_training_h5.py`
+- `bulk_truth` presente en ambas familias
+- familias registradas en `family_registry.py`
+
+Restricciones obligatorias:
+- misma `d`
+- mismo `n_z`
+- mismo `z_grid`
+- mismo contrato H5 training-ready (`/boundary` + `/bulk_truth`)
+- no usar familias desconocidas ni cohortes heterogéneas esperando interpolación/autocorrección
+
+Comandos mínimos reproducibles:
+
+```bash
+BASE=/tmp/ringest_gkpw_mixed
+rm -rf "$BASE"
+mkdir -p "$BASE"
+
+python3 01_generate_sandbox_geometries.py \
+  --run-dir "$BASE/ads_run" \
+  --ads-only \
+  --quick-test \
+  --ads-boundary-mode gkpw \
+  --focused-real-regime \
+  --focused-families ads \
+  --focused-d 3 \
+  --z-max 0.999 \
+  --n-z 100 \
+  --zh-min 1.0 \
+  --zh-max 1.001 \
+  --seed 42
+
+python3 tools/generate_rn_ads_geometries.py \
+  --out-dir "$BASE/rn_raw" \
+  --d 3 \
+  --z-h 1.0 \
+  --Q 0.2 0.4 0.6 \
+  --n-points 100 \
+  --z-frac-uv 0.01 \
+  --z-frac-ir 0.001
+
+python3 tools/build_multifamily_gkpw_bank.py \
+  --sources "$BASE/ads_run/01_generate_sandbox_geometries" "$BASE/rn_raw/manifest.json" \
+  --bank-dir "$BASE/bank" \
+  --allowed-families ads,rn_ads \
+  --n-omega 16 \
+  --n-k 4
+
+python3 -c 'import json, pathlib; ads_dir=pathlib.Path("'"$BASE"'/ads_run/01_generate_sandbox_geometries"); rn_manifest=json.load(open("'"$BASE"'/rn_raw/manifest.json")); out=pathlib.Path("'"$BASE"'/splits"); out.mkdir(parents=True, exist_ok=True)
+ads_entries=[{"h5": str(ads_dir/(e["name"]+".h5")), "name": e["name"], "family": e["family"], "category": e["category"]} for e in json.load(open(ads_dir/"geometries_manifest.json"))["geometries"]]
+rn_items=rn_manifest["items"]
+known_ads=[e for e in ads_entries if e["category"]=="known"]
+test_ads=[e for e in ads_entries if e["category"]=="test"]
+known_rn=rn_items[:2]
+test_rn=rn_items[2:]
+for name, items in [("ads_known.json", known_ads),("ads_test.json", test_ads),("rn_known.json", known_rn),("rn_test.json", test_rn)]:
+ json.dump({"items": items}, open(out/name,"w"), indent=2)'
+
+python3 tools/pack_training_h5.py \
+  --geometry-sources "$BASE/splits/ads_known.json" \
+  --gkpw-sources "$BASE/bank/bank_manifest.json" \
+  --out-dir "$BASE/packed_ads_known" \
+  --category known
+python3 tools/pack_training_h5.py \
+  --geometry-sources "$BASE/splits/ads_test.json" \
+  --gkpw-sources "$BASE/bank/bank_manifest.json" \
+  --out-dir "$BASE/packed_ads_test" \
+  --category test
+python3 tools/pack_training_h5.py \
+  --geometry-sources "$BASE/splits/rn_known.json" \
+  --gkpw-sources "$BASE/bank/bank_manifest.json" \
+  --out-dir "$BASE/packed_rn_known" \
+  --category known
+python3 tools/pack_training_h5.py \
+  --geometry-sources "$BASE/splits/rn_test.json" \
+  --gkpw-sources "$BASE/bank/bank_manifest.json" \
+  --out-dir "$BASE/packed_rn_test" \
+  --category test
+
+python3 -c 'import json, shutil, pathlib; parts=[pathlib.Path("'"$BASE"'/packed_ads_known"), pathlib.Path("'"$BASE"'/packed_ads_test"), pathlib.Path("'"$BASE"'/packed_rn_known"), pathlib.Path("'"$BASE"'/packed_rn_test")]; out=pathlib.Path("'"$BASE"'/train_ready"); out.mkdir(parents=True, exist_ok=True); merged={"geometries": []}
+for part in parts:
+ data=json.load(open(part/"geometries_manifest.json"))
+ for entry in data["geometries"]:
+  shutil.copy2(part / entry["file"], out / entry["file"])
+  merged["geometries"].append(entry)
+json.dump(merged, open(out/"geometries_manifest.json","w"), indent=2)'
+
+python3 02_emergent_geometry_engine.py \
+  --mode train \
+  --run-dir "$BASE/train_run" \
+  --data-dir "$BASE/train_ready" \
+  --output-dir "$BASE/train_out" \
+  --n-epochs 3 \
+  --batch-size 2 \
+  --device cpu \
+  --seed 42 \
+  --verbose
+
+python3 -c 'import json; data=json.load(open("'"$BASE"'/train_out/emergent_geometry_summary.json")); print(json.dumps({"n_train": data.get("n_train"), "n_test": data.get("n_test"), "train_family_stats_last_epoch": data.get("train_family_stats_last_epoch"), "metrics_by_family": data.get("metrics_by_family"), "test_metrics": data.get("test_metrics")}, indent=2, default=str))'
+```
+
+Aceptar el run como técnicamente sano solo si:
+- no aparece `TRAIN_COHORT_HETEROGENEOUS_*`
+- no aparece `TRAIN_UNKNOWN_FAMILY`
+- `n_train`/`n_test` reflejan ambas familias
+- `train_family_stats_last_epoch` muestra `with_bulk_truth > 0` para ambas
+- `generic_count > 0` para ambas
+- `ads_specific_count > 0` solo para `ads`
+
+Conclusiones prohibidas:
+- no implica dual fuerte para `rn_ads`
+- no implica ausencia de sesgo con `N` mayor
+- no implica equivalencia física entre `ads` y `rn_ads`
+- no implica calidad científica/publicable del modelo
+
+---
+
 ## Tests
 
 Smoke obligatorio tras tocar rutas, familias, ADS/GKPW o bridge real-data:

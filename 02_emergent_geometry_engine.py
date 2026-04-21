@@ -179,6 +179,77 @@ def _resolve_train_audit_critical_features(
     return critical_features_for_audit, info_message
 
 
+def _validate_train_cohort_homogeneity(
+    *,
+    ref_name: Optional[str],
+    ref_family: Optional[str],
+    ref_d: Optional[int],
+    ref_z_grid: Optional[np.ndarray],
+    sample_name: str,
+    sample_family: str,
+    sample_d: int,
+    sample_z_grid: np.ndarray,
+) -> None:
+    """
+    Stage 02 train uses a single global d and a single shared radial grid z_t.
+    Fail fast if the known/train cohort is heterogeneous in either contract.
+    """
+    if ref_name is None or ref_family is None or ref_d is None or ref_z_grid is None:
+        return
+
+    if int(sample_d) != int(ref_d):
+        raise ValueError(
+            "TRAIN_COHORT_HETEROGENEOUS_D: "
+            f"known sample {sample_name!r} (family={sample_family}, d={sample_d}) "
+            f"no coincide con la referencia {ref_name!r} (family={ref_family}, d={ref_d}). "
+            "El train de Stage 02 usa un único d global; prepara una cohorte homogénea."
+        )
+
+    ref_z = np.asarray(ref_z_grid, dtype=np.float64).reshape(-1)
+    sample_z = np.asarray(sample_z_grid, dtype=np.float64).reshape(-1)
+    if sample_z.shape != ref_z.shape:
+        raise ValueError(
+            "TRAIN_COHORT_HETEROGENEOUS_NZ: "
+            f"known sample {sample_name!r} (family={sample_family}, n_z={sample_z.size}) "
+            f"no coincide con la referencia {ref_name!r} (family={ref_family}, n_z={ref_z.size}). "
+            "El train de Stage 02 hace np.stack(...) y usa un único z_t; "
+            "no admite discretizaciones radiales con distinta longitud."
+        )
+
+    if not np.array_equal(sample_z, ref_z):
+        raise ValueError(
+            "TRAIN_COHORT_HETEROGENEOUS_ZGRID: "
+            f"known sample {sample_name!r} (family={sample_family}) "
+            f"no comparte exactamente z_grid con la referencia {ref_name!r} "
+            f"(family={ref_family}). El train de Stage 02 usa un único z_t global; "
+            "no admite rejillas radiales distintas aunque n_z coincida."
+        )
+
+
+def _resolve_train_family_id(
+    *,
+    family_map: Dict[str, int],
+    sample_family: str,
+    sample_name: str,
+    sample_h5_path: Path,
+) -> int:
+    """
+    Resolve family labels for Stage 02 train without silent fallback.
+
+    Unknown families must fail fast instead of collapsing to an unrelated
+    registered id (e.g. dpbrane=4), which contaminates labels and metrics.
+    """
+    if sample_family not in family_map:
+        raise ValueError(
+            "TRAIN_UNKNOWN_FAMILY: "
+            f"sample {sample_name!r} declara family={sample_family!r}, "
+            f"pero no existe en family_map. H5={sample_h5_path}. "
+            "Registra explícitamente la familia en family_registry.py o corrige la metadata; "
+            "Stage 02 train no admite fallback silencioso de labels."
+        )
+    return int(family_map[sample_family])
+
+
 # ============================================================
 # CONFIGURACIAfAE'A+aEUR(TM)AfAcAcaEURsA!A...aEURoeN DE PESOS DE LOSS (MODIFICAR AQUAfAE'A+aEUR(TM)AfaEURsA,A?)
 # ============================================================
@@ -1413,6 +1484,8 @@ def train_one_epoch(
         "total": 0.0, "A": 0.0, "f": 0.0, "R": 0.0, 
         "zh": 0.0, "family": 0.0, "physics": 0.0, "physics_ads": 0.0
     }
+    family_map_inv = {int(v): str(k) for k, v in family_map.items()}
+    family_epoch_stats: Dict[str, Dict[str, float]] = {}
     
     huber = nn.SmoothL1Loss()
     mse = nn.MSELoss()
@@ -1439,10 +1512,18 @@ def train_one_epoch(
         # (e.g. Kerr sintético). bulk_w=0 para esas, 1 para geometrías holográficas.
         huber_nr = nn.SmoothL1Loss(reduction='none')
         mse_nr   = nn.MSELoss(reduction='none')
-        loss_A  = (huber_nr(out["A"], yA).mean(dim=-1)  * bulk_w).mean()
-        loss_f  = (mse_nr(out["f"],   yf).mean(dim=-1)  * bulk_w).mean()
-        loss_R  = (huber_nr(out["R"], yR).mean(dim=-1)  * bulk_w).mean()
-        loss_zh = (huber_nr(out["z_h"].squeeze(-1), yzh) * bulk_w).mean() if out["z_h"].dim() > 1 else (huber(out["z_h"], yzh))
+        loss_A_per = huber_nr(out["A"], yA).mean(dim=-1) * bulk_w
+        loss_f_per = mse_nr(out["f"], yf).mean(dim=-1) * bulk_w
+        loss_R_per = huber_nr(out["R"], yR).mean(dim=-1) * bulk_w
+        loss_zh_per = (
+            huber_nr(out["z_h"].squeeze(-1), yzh) * bulk_w
+            if out["z_h"].dim() > 1
+            else huber_nr(out["z_h"], yzh) * bulk_w
+        )
+        loss_A  = loss_A_per.mean()
+        loss_f  = loss_f_per.mean()
+        loss_R  = loss_R_per.mean()
+        loss_zh = loss_zh_per.mean()
         loss_family = ce(out["family_logits"], yfam)
         
         # Pérdidas físicas.
@@ -1459,6 +1540,36 @@ def train_one_epoch(
             loss_physics = torch.tensor(0.0, device=device)
         ads_mask = (yfam == family_map["ads"])
         loss_physics_ads = physics_loss_ads_specific(out["A"], out["f"], z_t, d_value, ads_mask)
+
+        supervised_proxy_per = (
+            LOSS_WEIGHT_A * loss_A_per +
+            LOSS_WEIGHT_F * loss_f_per +
+            LOSS_WEIGHT_R * loss_R_per +
+            LOSS_WEIGHT_ZH * loss_zh_per
+        )
+        yfam_cpu = yfam.detach().cpu().tolist()
+        bulk_cpu = bulk_w.detach().cpu().tolist()
+        ads_cpu = ads_mask.detach().cpu().tolist()
+        supervised_cpu = supervised_proxy_per.detach().cpu().tolist()
+        for fam_idx, bulk_flag, ads_flag, supervised_val in zip(
+            yfam_cpu, bulk_cpu, ads_cpu, supervised_cpu
+        ):
+            fam_name = family_map_inv.get(int(fam_idx), f"family_{int(fam_idx)}")
+            fam_stats = family_epoch_stats.setdefault(
+                fam_name,
+                {
+                    "count": 0.0,
+                    "with_bulk_truth": 0.0,
+                    "generic_count": 0.0,
+                    "ads_specific_count": 0.0,
+                    "supervised_proxy_sum": 0.0,
+                },
+            )
+            fam_stats["count"] += 1.0
+            fam_stats["with_bulk_truth"] += float(bulk_flag > 0.0)
+            fam_stats["generic_count"] += float(bulk_flag > 0.0)
+            fam_stats["ads_specific_count"] += float(bool(ads_flag))
+            fam_stats["supervised_proxy_sum"] += float(supervised_val)
         
         # PAfAE'A+aEUR(TM)AfaEURsA,A(C)rdida total ponderada
         total = (
@@ -1485,7 +1596,20 @@ def train_one_epoch(
         losses["family"] += float(loss_family.item()) * batch_weight
         losses["physics"] += float(loss_physics.item()) * batch_weight
         losses["physics_ads"] += float(loss_physics_ads.item()) * batch_weight
-    
+    losses["by_family"] = {
+        fam_name: {
+            "count": int(stats["count"]),
+            "with_bulk_truth": int(stats["with_bulk_truth"]),
+            "generic_count": int(stats["generic_count"]),
+            "ads_specific_count": int(stats["ads_specific_count"]),
+            "supervised_proxy_mean": (
+                float(stats["supervised_proxy_sum"] / stats["count"])
+                if stats["count"] > 0
+                else 0.0
+            ),
+        }
+        for fam_name, stats in sorted(family_epoch_stats.items())
+    }
     return losses
 
 
@@ -2155,6 +2279,11 @@ def run_train_mode(args):
     
     z_grid = None
     d_value = 4
+    train_bulk_by_family: Dict[str, Dict[str, int]] = {}
+    train_ref_name: Optional[str] = None
+    train_ref_family: Optional[str] = None
+    train_ref_d: Optional[int] = None
+    train_ref_z_grid: Optional[np.ndarray] = None
     
     loader = CuerdasDataLoader(mode="train")
     
@@ -2181,9 +2310,37 @@ def run_train_mode(args):
         boundary_data["d"] = d_value_local
 
         X = build_feature_vector_v3(boundary_data, operators)
-        family_id = family_map.get(family, 4)
+        family_id = _resolve_train_family_id(
+            family_map=family_map,
+            sample_family=family,
+            sample_name=geo_info["name"],
+            sample_h5_path=h5_path,
+        )
+        fam_bulk_stats = train_bulk_by_family.setdefault(
+            family, {"seen": 0, "with_bulk_truth": 0, "without_bulk_truth": 0}
+        )
+        fam_bulk_stats["seen"] += 1
+        if has_bulk:
+            fam_bulk_stats["with_bulk_truth"] += 1
+        else:
+            fam_bulk_stats["without_bulk_truth"] += 1
 
         if category == "known":
+            _validate_train_cohort_homogeneity(
+                ref_name=train_ref_name,
+                ref_family=train_ref_family,
+                ref_d=train_ref_d,
+                ref_z_grid=train_ref_z_grid,
+                sample_name=geo_info["name"],
+                sample_family=family,
+                sample_d=d_value_local,
+                sample_z_grid=z_grid_local,
+            )
+            if train_ref_name is None:
+                train_ref_name = geo_info["name"]
+                train_ref_family = family
+                train_ref_d = int(d_value_local)
+                train_ref_z_grid = np.asarray(z_grid_local, dtype=np.float64).copy()
             train_data["X"].append(X)
             train_data["Y_A"].append(A_truth)
             train_data["Y_f"].append(f_truth)
@@ -2226,6 +2383,14 @@ def run_train_mode(args):
         count = np.sum(Y_family_train == fam_id)
         if count > 0:
             print(f"     {fam_name}: {count}")
+    print("\n   bulk_truth por family (cohorte cargada):")
+    for fam_name in sorted(train_bulk_by_family):
+        fam_stats = train_bulk_by_family[fam_name]
+        print(
+            f"     {fam_name}: seen={fam_stats['seen']}, "
+            f"with_bulk_truth={fam_stats['with_bulk_truth']}, "
+            f"without_bulk_truth={fam_stats['without_bulk_truth']}"
+        )
     
     # === FEATURE SUPPORT AUDIT (V3 train gate) ===
     if HAS_FEATURE_SUPPORT and audit_train_feature_support is not None:
@@ -2383,6 +2548,17 @@ def run_train_mode(args):
                 log_msg += f" || Test: A_r2={test_metrics['A_r2']:.3f}, f_r2={test_metrics['f_r2']:.3f}"
             
             print(log_msg)
+            train_family_stats = train_losses.get("by_family", {})
+            if train_family_stats:
+                print("     Train by family:")
+                for fam_name, fam_stats in train_family_stats.items():
+                    print(
+                        f"       {fam_name}: n={fam_stats['count']}, "
+                        f"bulk={fam_stats['with_bulk_truth']}, "
+                        f"generic={fam_stats['generic_count']}, "
+                        f"ads_specific={fam_stats['ads_specific_count']}, "
+                        f"supervised_proxy_mean={fam_stats['supervised_proxy_mean']:.4f}"
+                    )
     
     print("-" * 70)
     
@@ -2591,6 +2767,7 @@ def run_train_mode(args):
             "final_family_loss": final_train_losses.get("family", 0.0),
             "final_physics_loss": final_train_losses.get("physics", 0.0),
         },
+        "train_family_stats_last_epoch": final_train_losses.get("by_family", {}),
         "test_metrics": test_metrics_final,
         "metrics_by_family": metrics_by_family,
         "systems": systems_summary,
