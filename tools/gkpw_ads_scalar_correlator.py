@@ -23,6 +23,10 @@ except ImportError:  # pragma: no cover - script execution fallback
 
 CORRELATOR_TYPE = "GKPW_SOURCE_RESPONSE_NUMERICAL"
 SOLVER_VERSION = "gkpw_ads_scalar_correlator_v1"
+_CLASSIFICATION_BY_FAMILY: Dict[str, Tuple[str, str]] = {
+    "ads": ("ads_thermal", "ads_pure"),
+    "rn_ads": ("rn_ads_thermal", "rn_ads_pure"),
+}
 GATE6_REQUIRED_FIELDS = (
     "bulk_field_name",
     "operator_name",
@@ -65,6 +69,9 @@ class AdsGeometry:
     z: np.ndarray
     A: np.ndarray
     f: np.ndarray
+
+
+DomainWallGeometry = AdsGeometry
 
 
 def check_bf_bound(m2L2: float, d: int) -> bool:
@@ -115,12 +122,19 @@ def _read_dataset(fh: h5py.File, candidates: Tuple[str, ...]) -> np.ndarray:
     raise GKPWAdsError(f"missing required geometry dataset; tried {list(candidates)}")
 
 
-def load_ads_geometry(h5_path: Path) -> AdsGeometry:
+def load_domain_wall_geometry(
+    h5_path: Path,
+    *,
+    allowed_families=frozenset({"ads"}),
+) -> AdsGeometry:
     h5_path = Path(h5_path)
+    allowed = frozenset(allowed_families)
     with h5py.File(h5_path, "r") as fh:
         family = str(fh.attrs.get("family", "unknown"))
-        if family != "ads":
-            raise GKPWAdsError(f"GKPW ads scalar rail requires family='ads', got {family!r}")
+        if family not in allowed:
+            raise GKPWAdsError(
+                f"GKPW scalar rail: family={family!r} not in allowed_families={sorted(allowed)!r}"
+            )
         name = str(fh.attrs.get("system_name", fh.attrs.get("name", h5_path.stem)))
         d = int(fh.attrs.get("d", 3))
         z_h_raw = fh.attrs.get("z_h", 0.0)
@@ -141,6 +155,15 @@ def load_ads_geometry(h5_path: Path) -> AdsGeometry:
     if np.any(np.diff(z) <= 0.0):
         raise GKPWAdsError("z grid must be strictly increasing after sorting")
     return AdsGeometry(name=name, family=family, d=d, z_h=z_h, z=z, A=A, f=f)
+
+
+def load_ads_geometry(h5_path: Path) -> AdsGeometry:
+    h5_path = Path(h5_path)
+    with h5py.File(h5_path, "r") as fh:
+        family = str(fh.attrs.get("family", "unknown"))
+    if family != "ads":
+        raise GKPWAdsError(f"GKPW ads scalar rail requires family='ads', got {family!r}")
+    return load_domain_wall_geometry(h5_path, allowed_families=frozenset({"ads"}))
 
 
 def _physical_domain(geo: AdsGeometry, eps_horizon: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray, bool]:
@@ -303,12 +326,18 @@ def build_correlator_grid(geo: AdsGeometry, config: GKPWConfig) -> Dict[str, Any
             residual[ik, iw] = point["uv_fit_residual_norm"]
             ir_bc_declared = str(point["ir_bc"])
 
-    classification = "ads_thermal" if geo.z_h is not None and geo.z_h > 0.0 else "ads_pure"
+    thermal_label, pure_label = _CLASSIFICATION_BY_FAMILY.get(
+        geo.family, (f"{geo.family}_thermal", f"{geo.family}_pure")
+    )
+    classification = thermal_label if (geo.z_h is not None and geo.z_h > 0.0) else pure_label
     metadata: Dict[str, Any] = {
         "solver_version": SOLVER_VERSION,
         "classification": classification,
-        "ads_classification": classification,
         "correlator_type": CORRELATOR_TYPE,
+    }
+    if geo.family == "ads":
+        metadata["ads_classification"] = classification
+    metadata.update({
         "bulk_field_name": config.bulk_field_name,
         "operator_name": config.operator_name,
         "m2L2": float(config.m2L2),
@@ -328,7 +357,7 @@ def build_correlator_grid(geo: AdsGeometry, config: GKPWConfig) -> Dict[str, Any
             "HOLOGRAPHIC_WITTEN_DIAGRAM because full holographic renormalization and "
             "contact-term subtraction are not implemented."
         ),
-    }
+    })
     return {
         "omega_grid": omega_grid,
         "k_grid": k_grid,
@@ -365,6 +394,8 @@ def output_hash(result: Dict[str, Any]) -> str:
 
 
 def _agmoo_verdict(meta: Dict[str, Any]) -> str:
+    if str(meta.get("family", "")) != "ads":
+        return "AGMOO_NOT_APPLICABLE"
     if validate_ads_geometry is None:
         return "AGMOO_VALIDATOR_UNAVAILABLE"
     payload = dict(meta)
@@ -538,12 +569,13 @@ def generate_to_run(
     *,
     output_subdir: str = "gkpw_ads_scalar_correlator",
     run_benchmarks: bool = False,
+    allowed_families=frozenset({"ads"}),
 ) -> Dict[str, Any]:
     run_dir = Path(run_dir).resolve()
     output_dir = (run_dir / output_subdir).resolve()
     if run_dir not in output_dir.parents and output_dir != run_dir:
         raise GKPWAdsError(f"refusing to write outside run_dir: {output_dir}")
-    geo = load_ads_geometry(Path(geometry_h5))
+    geo = load_domain_wall_geometry(Path(geometry_h5), allowed_families=allowed_families)
     result = build_correlator_grid(geo, config)
     h5_path = output_dir / f"{geo.name}__gkpw_scalar_correlator.h5"
     meta = write_correlator_h5(result, h5_path, geo=geo, config=config)
@@ -587,6 +619,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run deterministic radial/UV/frequency stability checks and include them in the summary JSON.",
     )
+    parser.add_argument(
+        "--family",
+        default="ads",
+        help="Comma-separated list of allowed geometry families (default: ads).",
+    )
     return parser
 
 
@@ -605,7 +642,16 @@ def main() -> int:
         eps_horizon=args.eps_horizon,
         uv_fit_points=args.uv_fit_points,
     )
-    summary = generate_to_run(args.geometry_h5, args.run_dir, config, run_benchmarks=args.run_benchmarks)
+    allowed = frozenset(s.strip() for s in str(args.family).split(",") if s.strip())
+    if not allowed:
+        allowed = frozenset({"ads"})
+    summary = generate_to_run(
+        args.geometry_h5,
+        args.run_dir,
+        config,
+        run_benchmarks=args.run_benchmarks,
+        allowed_families=allowed,
+    )
     print(json.dumps(summary, indent=2, sort_keys=True, default=_json_default))
     return 0
 
