@@ -6,8 +6,10 @@ Emite H5 de familia RN-AdS (Reissner-Nordström-AdS planar, gauge domain-wall)
 consumibles por `tools/gkpw_ads_scalar_correlator.py`.
 
 NO sustituye Ruta A ni regenera training data sandbox. Produce miembros
-``canonical_strong`` del banco multi-familia previsto (ADS + RN-AdS + ...),
-paso previo a un bank GKPW no-toy.
+del carril multi-familia previsto (ADS + RN-AdS + ...), pero NO declara
+`canonical_strong`: en el contrato vivo del repo ese estatus sigue reservado
+a `ads` con frontera GKPW. Estos H5 son geometrías raw para un banco GKPW y
+para empaquetado posterior, no una promoción semántica de RN-AdS.
 
 Métrica (L=1, gauge domain-wall, brana plana):
 
@@ -33,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import List, Tuple
@@ -40,8 +43,14 @@ from typing import List, Tuple
 import h5py
 import numpy as np
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from family_registry import get_family_status
+
 FAMILY = "rn_ads"
-FAMILY_STATUS = "canonical_strong"
+FAMILY_STATUS = get_family_status(FAMILY, ads_boundary_mode="toy", source="sandbox")
 METRIC_CONVENTION = "domain_wall_L1_planar"
 
 
@@ -181,7 +190,7 @@ def generate_bank(
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="Generador de geometrías RN-AdS planar (canonical_strong).",
+        description="Generador de geometrías RN-AdS planar (raw geometry; family_status=toy_sandbox).",
     )
     p.add_argument("--out-dir", required=True, type=Path)
     p.add_argument("--d", type=int, default=3)
