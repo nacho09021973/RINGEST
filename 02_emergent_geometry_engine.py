@@ -207,6 +207,27 @@ FAMILY_OUTPUT_SEMANTICS = "compatibility_with_abstention"
 FAMILY_CONFIDENCE_TOP1_THRESHOLD = 0.60
 FAMILY_CONFIDENCE_MARGIN_THRESHOLD = 0.20
 
+# Nota epistemológica legible por evento. El ranking es compatibilidad con el
+# banco entrenado, no pertenencia física. Cuando el banco tiene una sola
+# familia, el "ranking" entre familias es ruido del head softmax y no prueba
+# nada entre familias — sólo contesta "¿compatible con esa única familia?".
+FAMILY_INTERPRETATION_NOTE_BASE = (
+    "Ranking = compatibilidad con el banco entrenado, no pertenencia física. "
+    "top1 solo debe leerse como 'familia declarada compatible' si "
+    "family_pred_confident=True; en otro caso abstenerse."
+)
+FAMILY_INTERPRETATION_NOTE_SINGLE_FAMILY = (
+    " Banco del checkpoint es single_family: los scores de las demás familias "
+    "son artefacto del head softmax y NO constituyen evidencia comparativa "
+    "entre familias; el único veredicto significativo es compatibilidad con "
+    "la familia activa."
+)
+FAMILY_INTERPRETATION_NOTE_REALDATA = (
+    " Entrada marcada como realdata_surrogate: el embedding viene de ringdown "
+    "observado; aunque coincida con una familia del banco, no implica "
+    "dualidad holográfica fuerte."
+)
+
 
 # ============================================================
 # UTILIDADES VARIAS
@@ -305,6 +326,9 @@ def safe_relative_path(path: Path, *base_paths: Optional[Path]) -> str:
 def build_family_inference_report(
     family_prob_row: np.ndarray,
     family_map_inv: Dict[int, str],
+    family_bank_status: str = "unknown",
+    family_bank_active_families: Optional[List[str]] = None,
+    boundary_family_status: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Convierte logits/probabilidades de family en compatibilidad + abstención explícita."""
     family_prob_row = np.asarray(family_prob_row, dtype=np.float64)
@@ -333,6 +357,21 @@ def build_family_inference_report(
         family_map_inv.get(int(idx), f"family_{int(idx)}"): float(family_prob_row[int(idx)])
         for idx in family_order
     }
+    # Ranking restringido a las familias realmente presentes en el banco del
+    # checkpoint. Si hay una sola familia activa, los scores para el resto son
+    # artefacto del head y se marcan explícitamente como no comparativos.
+    active_set = set(family_bank_active_families or [])
+    family_scores_active = (
+        {k: v for k, v in family_scores.items() if k in active_set}
+        if active_set else dict(family_scores)
+    )
+    # Nota epistemológica por evento (texto humano legible).
+    note_parts = [FAMILY_INTERPRETATION_NOTE_BASE]
+    if family_bank_status == "single_family_bank":
+        note_parts.append(FAMILY_INTERPRETATION_NOTE_SINGLE_FAMILY)
+    if boundary_family_status == "realdata_surrogate":
+        note_parts.append(FAMILY_INTERPRETATION_NOTE_REALDATA)
+    family_interpretation_note = "".join(note_parts)
     return {
         "family_pred": top1_idx,
         "family_raw_name": family_raw_name,
@@ -352,6 +391,8 @@ def build_family_inference_report(
             "top1_min": FAMILY_CONFIDENCE_TOP1_THRESHOLD,
             "margin_min": FAMILY_CONFIDENCE_MARGIN_THRESHOLD,
         },
+        "family_scores_active": family_scores_active,
+        "family_interpretation_note": family_interpretation_note,
     }
 
 
@@ -1509,6 +1550,9 @@ def run_inference_single(
     family_map_inv: Dict[int, str],
     device: torch.device,
     z_grid: torch.Tensor = None,  # V2.3: necesario para calcular R
+    family_bank_status: str = "unknown",
+    family_bank_active_families: Optional[List[str]] = None,
+    boundary_family_status: Optional[str] = None,
 ) -> Dict[str, np.ndarray]:
     """
     Ejecuta inferencia sobre un unico sistema (un vector de features).
@@ -1549,7 +1593,13 @@ def run_inference_single(
     R_pred = normalizer.denormalize_R(R_pred_norm)
     
     family_prob_row = family_probs[0]
-    family_report = build_family_inference_report(family_prob_row, family_map_inv)
+    family_report = build_family_inference_report(
+        family_prob_row,
+        family_map_inv,
+        family_bank_status=family_bank_status,
+        family_bank_active_families=family_bank_active_families,
+        boundary_family_status=boundary_family_status,
+    )
 
     return {
         "A_pred": A_pred[0],  # Quitar dimensiAfAE'A+aEUR(TM)AfaEURsA,A3n de batch
@@ -1828,7 +1878,12 @@ def run_inference_mode(args):
         z_t = torch.from_numpy(z_grid.astype(np.float32)).to(device)
         
         # Inferencia
-        preds = run_inference_single(model, X_norm, normalizer, family_map_inv, device, z_grid=z_t)
+        preds = run_inference_single(
+            model, X_norm, normalizer, family_map_inv, device, z_grid=z_t,
+            family_bank_status=family_bank_status,
+            family_bank_active_families=family_bank_active_families,
+            boundary_family_status=boundary_family_status or None,
+        )
         
         # === GUARDAR COMO .h5 (IO_CONTRACTS_V1) ===
         out_h5_path = geom_dir / f"{name}_emergent.h5"
@@ -1853,8 +1908,12 @@ def run_inference_mode(args):
             f_out.attrs["family_pred_was_abstained"] = preds["family_pred_was_abstained"]
             f_out.attrs["family_abstention_reason"] = preds["family_abstention_reason"]
             f_out.attrs["family_scores_json"] = json.dumps(preds["family_scores"], sort_keys=True)
+            f_out.attrs["family_scores_active_json"] = json.dumps(
+                preds.get("family_scores_active", {}), sort_keys=True
+            )
             f_out.attrs["family_bank_status"] = family_bank_status
             f_out.attrs["family_bank_active_families_json"] = json.dumps(family_bank_active_families)
+            f_out.attrs["family_interpretation_note"] = preds["family_interpretation_note"]
             f_out.attrs["d"] = int(d_boundary)
             f_out.attrs["d_pred"] = int(d_boundary)
             # CanAfAE'A+aEUR(TM)AfaEURsA,A3nico: provenance AfAE'A,AcAfaEUR1Aca,!A AfaEUR1Aca,!A  {"train","inference"}
@@ -1917,8 +1976,10 @@ def run_inference_mode(args):
                 family_pred_was_abstained=np.array(bool(preds.get('family_pred_was_abstained', True)), dtype=np.bool_),
                 family_abstention_reason=np.array(str(preds.get('family_abstention_reason', 'unknown')), dtype=object),
                 family_scores_json=np.array(json.dumps(preds.get('family_scores', {}), sort_keys=True), dtype=object),
+                family_scores_active_json=np.array(json.dumps(preds.get('family_scores_active', {}), sort_keys=True), dtype=object),
                 family_bank_status=np.array(str(family_bank_status), dtype=object),
                 family_bank_active_families_json=np.array(json.dumps(family_bank_active_families), dtype=object),
+                family_interpretation_note=np.array(str(preds.get('family_interpretation_note', '')), dtype=object),
                 family_top1_score=np.array(float(preds.get('family_top1_score', float('nan'))), dtype=np.float32),
                 family_top2_score=np.array(float(preds.get('family_top2_score', float('nan'))), dtype=np.float32),
                 family_margin=np.array(float(preds.get('family_margin', float('nan'))), dtype=np.float32),
@@ -1942,6 +2003,8 @@ def run_inference_mode(args):
             "family_pred_was_abstained": preds["family_pred_was_abstained"],
             "family_abstention_reason": preds["family_abstention_reason"],
             "family_scores": preds["family_scores"],
+            "family_scores_active": preds.get("family_scores_active", {}),
+            "family_interpretation_note": preds["family_interpretation_note"],
             "family_bank_status": family_bank_status,
             "family_bank_active_families": family_bank_active_families,
             "family_top1_score": preds["family_top1_score"],

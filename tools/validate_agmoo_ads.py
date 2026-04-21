@@ -244,7 +244,7 @@ def check_uv_ir_gate(meta: Dict) -> Dict:
     }
 
 
-def normalize_ads_pipeline_tier(meta: Dict, correlator_type: str) -> str:
+def normalize_ads_pipeline_tier(meta: Dict) -> str:
     """
     Política de compatibilidad:
 
@@ -310,6 +310,11 @@ def compute_ads_verdict(
     5. Gate UV/IR = FRAGILE → ADS_UV_IR_FRAGILE.
     6. Gate UV/IR = PASS → ADS_HOLOGRAPHIC_STRONG_PASS.
     7. Default (Gate 6 OK, UV/IR no declarado) → ADS_HOLOGRAPHIC_PARTIAL_PASS.
+
+    Nota de compatibilidad:
+    - `ADS_THERMAL_TOY_ONLY` queda como etiqueta legacy del registro, pero ya no se
+      emite desde la lógica viva: los casos toy/no fuertes del carril experimental
+      colapsan en `ADS_EXPERIMENTAL_TOY_ONLY`.
     """
     # 1. BF bound violation
     if bf_check.get("pass") is False:
@@ -346,11 +351,6 @@ def compute_ads_verdict(
         return "ADS_EXPERIMENTAL_TOY_ONLY"
     if tier == "experimental" and toy_provenance:
         return "ADS_EXPERIMENTAL_TOY_ONLY"
-
-    # 5b. Compatibilidad historica: termico + no-Witten no fuerte.
-    is_thermal = classification == "ads_thermal"
-    if is_thermal and not strong_correlator:
-        return "ADS_THERMAL_TOY_ONLY"
 
     # 6. UV/IR gate fragile
     if uv_ir_gate.get("status") == "FRAGILE":
@@ -397,6 +397,7 @@ def validate_ads_geometry(meta: Dict[str, Any]) -> Dict[str, Any]:
             "correlator_type": None,
             "ads_pipeline_tier": None,
             "strong_correlator": None,
+            "toy_provenance": None,
             "geometry_gate_status": "NOT_APPLICABLE",
             "holographic_gate_status": "NOT_APPLICABLE",
             "uv_ir_gate_status": "NOT_APPLICABLE",
@@ -419,7 +420,7 @@ def validate_ads_geometry(meta: Dict[str, Any]) -> Dict[str, Any]:
     correlator_type = meta.get("correlator_type", "UNKNOWN")
     if correlator_type not in CORRELATOR_TYPES:
         correlator_type = "UNKNOWN"
-    ads_pipeline_tier = normalize_ads_pipeline_tier(meta, correlator_type)
+    ads_pipeline_tier = normalize_ads_pipeline_tier(meta)
     strong_correlator = is_strong_correlator(correlator_type)
     toy_provenance = has_toy_provenance(meta)
 

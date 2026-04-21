@@ -12,7 +12,7 @@ Este documento formaliza el contrato mínimo que debe satisfacer cualquier
 geometría o run de familia `ads` en el pipeline RINGEST para recibir una
 interpretación holográfica válida.
 
-El contrato distingue cuatro sub-clasificaciones y seis estados de veredicto.
+El contrato distingue cuatro sub-clasificaciones y siete estados de veredicto en el registro.
 Un run `ads` que no satisfaga los gates mínimos **no puede** recibir
 interpretación holográfica fuerte.
 
@@ -38,6 +38,7 @@ cae en `ads_toy_boundary`.
 | Valor                          | Descripción                                               |
 |-------------------------------|-----------------------------------------------------------|
 | `HOLOGRAPHIC_WITTEN_DIAGRAM`  | Diagrama de Witten completo (AdS/CFT exacto)              |
+| `GKPW_SOURCE_RESPONSE_NUMERICAL` | Source/response bulk numérico; correlador fuerte aceptado |
 | `GEODESIC_APPROXIMATION`      | Aproximación geodésica, AGMOO Sec. 3.5.1                  |
 | `QNM_SURROGATE`               | Surrogate basado en modos quasinormales                   |
 | `TOY_PHENOMENOLOGICAL`        | Modelo fenomenológico toy (power-law / thermal scaling)   |
@@ -89,25 +90,28 @@ el gate retorna `FRAGILE`.
 |---------------------------------|--------------------------------------------------------------------------------|
 | `ADS_CONTRACT_FAIL`             | Cota BF violada, o campos geométricos críticos (`family`, `d`) ausentes        |
 | `ADS_TEMPLATE_ONLY`             | `correlator_type=UNKNOWN` **o** Gate 6 ausente (sin excepción térmica)         |
-| `ADS_THERMAL_TOY_ONLY`          | Gate 6 **presente** + térmico + correlador no-Witten                           |
+| `ADS_THERMAL_TOY_ONLY`          | Estado legacy permitido en constantes/registro; no se espera como salida viva actual |
+| `ADS_EXPERIMENTAL_TOY_ONLY`     | Tier experimental con correlador no fuerte o `toy_provenance=True`, con Gate 6 presente |
 | `ADS_UV_IR_FRAGILE`             | Gate 6 presente, Gate UV/IR retorna FRAGILE                                    |
 | `ADS_HOLOGRAPHIC_PARTIAL_PASS`  | Gates geométrico y holográfico pasan; UV/IR no declarado                       |
 | `ADS_HOLOGRAPHIC_STRONG_PASS`   | Todos los gates pasan completamente                                            |
 
-> **Invariante clave**: `ADS_THERMAL_TOY_ONLY` requiere Gate 6 presente.
-> La ausencia de Gate 6 bloquea siempre con `ADS_TEMPLATE_ONLY`, aunque el caso sea térmico.
+> **Invariante clave**: en la lógica viva actual, Gate 6 ausente bloquea con
+> `ADS_TEMPLATE_ONLY` en ruta experimental/legacy, aunque el caso sea térmico.
+> `ADS_THERMAL_TOY_ONLY` se conserva solo como compatibilidad legacy del registro.
 
 ### Lógica de prioridad (orden de evaluación)
 
-```
-1. BF bound violada o campos geométricos críticos ausentes → ADS_CONTRACT_FAIL
-2. correlator_type = UNKNOWN → ADS_TEMPLATE_ONLY
-   Gate 6 incompleto (cualquier clasificación) → ADS_TEMPLATE_ONLY
-3. Gate 6 presente + ads_thermal + correlador ≠ HOLOGRAPHIC_WITTEN_DIAGRAM → ADS_THERMAL_TOY_ONLY
-4. Gate UV/IR = FRAGILE → ADS_UV_IR_FRAGILE
-5. Gate UV/IR = PASS → ADS_HOLOGRAPHIC_STRONG_PASS
-6. Por defecto → ADS_HOLOGRAPHIC_PARTIAL_PASS
-```
+1. BF bound violada o campos geométricos críticos ausentes → `ADS_CONTRACT_FAIL`
+2. Tier canonical + Gate 6 incompleto → `ADS_CONTRACT_FAIL`
+3. Tier canonical + correlador no fuerte → `ADS_CONTRACT_FAIL`
+4. Tier canonical + procedencia toy → `ADS_CONTRACT_FAIL`
+5. `correlator_type = UNKNOWN` → `ADS_TEMPLATE_ONLY`
+6. Tier experimental/legacy + Gate 6 ausente → `ADS_TEMPLATE_ONLY`
+7. Tier experimental + correlador no fuerte o `toy_provenance=True` + Gate 6 presente → `ADS_EXPERIMENTAL_TOY_ONLY`
+8. Gate UV/IR = `FRAGILE` → `ADS_UV_IR_FRAGILE`
+9. Gate UV/IR = `PASS` → `ADS_HOLOGRAPHIC_STRONG_PASS`
+10. Por defecto → `ADS_HOLOGRAPHIC_PARTIAL_PASS`
 
 ---
 
@@ -125,7 +129,7 @@ el gate retorna `FRAGILE`.
 - El correlador usa `correlator_2pt_geodesic` → `GEODESIC_APPROXIMATION`.
 - No existen campos del Gate 6 holográfico en los HDF5 generados actualmente.
 - Gate 6 ausente bloquea con `ADS_TEMPLATE_ONLY` **antes** de evaluar si el caso es térmico.
-  (`ADS_THERMAL_TOY_ONLY` solo es alcanzable cuando Gate 6 está **presente**.)
+  (`ADS_THERMAL_TOY_ONLY` queda solo como compatibilidad legacy del registro, no como salida viva.)
 
 **Deuda contractual registrada**:
 - `correlator_2pt_geodesic` tiene un fallback silencioso a `correlator_2pt_thermal` cuando
