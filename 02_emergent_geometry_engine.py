@@ -1895,7 +1895,16 @@ def run_inference_mode(args):
             literature_mode_policy = _decode_attr(
                 f["boundary"].attrs.get("literature_mode_policy"), ""
             )
-        
+            _lit_kerr_raw = f["boundary"].attrs.get("literature_kerr_220_distance")
+            literature_kerr_220_distance: Optional[float] = None
+            if _lit_kerr_raw is not None:
+                try:
+                    _v = float(_lit_kerr_raw)
+                    if np.isfinite(_v):
+                        literature_kerr_220_distance = _v
+                except (TypeError, ValueError):
+                    pass
+
         # Extraer d del boundary o manifest
         d_boundary = geo_info.get("d", boundary_data.get("d", d_value))
         if isinstance(d_boundary, np.ndarray):
@@ -2052,6 +2061,8 @@ def run_inference_mode(args):
             f_out.attrs["family_margin"] = preds["family_margin"]
             f_out.attrs["family_entropy"] = preds["family_entropy"]
             f_out.attrs["checkpoint_source"] = str(checkpoint_path)
+            if literature_kerr_220_distance is not None:
+                f_out.attrs["literature_kerr_220_distance"] = literature_kerr_220_distance
 
             # OOD-permissive mode metadata (support_mode gate contract)
             if gate_report is not None:
@@ -2142,13 +2153,18 @@ def run_inference_mode(args):
             "provenance": "inference",
             "provenance_detail": "inference_from_boundary_using_sandbox_model",
             "family": preds["family_name"],
+            "literature_kerr_220_distance": literature_kerr_220_distance,
         })
         
+        _kerr_str = (
+            f" kerr_220_dist={literature_kerr_220_distance:.4f}"
+            if literature_kerr_220_distance is not None else ""
+        )
         print(
             "      -> "
             f"family_pred={preds['family_name']} "
             f"(raw={preds['family_raw_name']}, mode={preds['family_classification_mode']}), "
-            f"zh_pred={preds['zh_pred']:.3f}"
+            f"zh_pred={preds['zh_pred']:.3f}{_kerr_str}"
         )
 
     # === GATE FAIL CHECK ===
