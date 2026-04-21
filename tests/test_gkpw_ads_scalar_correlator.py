@@ -21,6 +21,7 @@ from tools.gkpw_ads_scalar_correlator import (  # noqa: E402
     compute_stability_benchmarks,
     generate_to_run,
     load_ads_geometry,
+    load_domain_wall_geometry,
     validate_gate6_metadata,
 )
 from tools.validate_agmoo_ads import validate_ads_geometry  # noqa: E402
@@ -55,6 +56,23 @@ def _write_ads_h5(path: Path, *, z_h: float = 1.0, include_bulk_truth: bool = Fa
             bulk.create_dataset("z_grid", data=z)
             bulk.create_dataset("A_truth", data=A + 999.0)
             bulk.create_dataset("f_truth", data=np.ones_like(f) * 999.0)
+
+
+def _write_rn_ads_h5(path: Path, *, z_h: float = 1.0, Q: float = 0.0, d: int = 3) -> None:
+    z = np.linspace(0.01, z_h * 0.999, 80)
+    A = -np.log(z)
+    u = z / z_h
+    f_raw = 1.0 - (1.0 + Q ** 2) * u ** d + (Q ** 2) * u ** (2 * (d - 1))
+    f = np.maximum(f_raw, 1e-8)
+    with h5py.File(path, "w") as h5:
+        h5.attrs["system_name"] = path.stem
+        h5.attrs["family"] = "rn_ads"
+        h5.attrs["d"] = d
+        h5.attrs["z_h"] = z_h
+        h5.attrs["charge_Q"] = Q
+        h5.create_dataset("z_grid", data=z)
+        h5.create_dataset("A_of_z", data=A)
+        h5.create_dataset("f_of_z", data=f)
 
 
 class TestGKPWAdsScalarCorrelator(unittest.TestCase):
@@ -245,6 +263,54 @@ class TestGKPWAdsScalarCorrelator(unittest.TestCase):
                 h5.attrs["family"] = "lifshitz"
             with self.assertRaisesRegex(GKPWAdsError, "family='ads'"):
                 load_ads_geometry(h5_path)
+
+    def test_rn_ads_q0_matches_ads_schwarzschild(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ads_path = Path(tmp) / "ads_bench.h5"
+            rn_path = Path(tmp) / "rn_ads_q0.h5"
+            _write_ads_h5(ads_path, z_h=1.0)
+            _write_rn_ads_h5(rn_path, z_h=1.0, Q=0.0, d=3)
+            ads_geo = load_ads_geometry(ads_path)
+            rn_geo = load_domain_wall_geometry(
+                rn_path, allowed_families=frozenset({"ads", "rn_ads"})
+            )
+            config = self._small_config()
+            ads_res = build_correlator_grid(ads_geo, config)
+            rn_res = build_correlator_grid(rn_geo, config)
+
+        np.testing.assert_allclose(
+            rn_res["G_R_real"], ads_res["G_R_real"], rtol=1e-8, atol=1e-10
+        )
+        np.testing.assert_allclose(
+            rn_res["G_R_imag"], ads_res["G_R_imag"], rtol=1e-8, atol=1e-10
+        )
+        self.assertEqual(rn_geo.family, "rn_ads")
+        self.assertEqual(rn_res["metadata"]["classification"], "rn_ads_thermal")
+        self.assertNotIn("ads_classification", rn_res["metadata"])
+
+    def test_rn_ads_q_positive_differs_from_ads(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ads_path = Path(tmp) / "ads_base.h5"
+            rn_path = Path(tmp) / "rn_ads_qpos.h5"
+            _write_ads_h5(ads_path, z_h=1.0)
+            _write_rn_ads_h5(rn_path, z_h=1.0, Q=0.3, d=3)
+            ads_geo = load_ads_geometry(ads_path)
+            rn_geo = load_domain_wall_geometry(
+                rn_path, allowed_families=frozenset({"ads", "rn_ads"})
+            )
+            config = self._small_config()
+            ads_res = build_correlator_grid(ads_geo, config)
+            rn_res = build_correlator_grid(rn_geo, config)
+
+        self.assertTrue(np.all(np.isfinite(rn_res["G_R_real"])))
+        self.assertTrue(np.all(np.isfinite(rn_res["G_R_imag"])))
+
+        base = ads_res["G_R_real"] + 1j * ads_res["G_R_imag"]
+        variant = rn_res["G_R_real"] + 1j * rn_res["G_R_imag"]
+        denom = max(float(np.linalg.norm(base.ravel())), 1e-30)
+        rel_l2 = float(np.linalg.norm((variant - base).ravel()) / denom)
+        self.assertGreater(rel_l2, 1e-3)
+        self.assertLess(rel_l2, 1.0)
 
 
 if __name__ == "__main__":
