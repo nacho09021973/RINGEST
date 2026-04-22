@@ -1,0 +1,248 @@
+events:
+  - event: GW150914
+    ifo: H1+L1
+    M_final_Msun: 63.1
+    chi_final: 0.69
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 248.0
+        sigma_f_hz: 7.5
+        tau_ms: 4.2
+        sigma_tau_ms: 0.25
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW170104
+    ifo: H1+L1
+    M_final_Msun: 48.9
+    chi_final: 0.66
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 287.0
+        sigma_f_hz: 20.0
+        tau_ms: 3.5
+        sigma_tau_ms: 0.35
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW170814
+    ifo: H1+L1+V1
+    M_final_Msun: 53.2
+    chi_final: 0.72
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 293.0
+        sigma_f_hz: 12.5
+        tau_ms: 3.7
+        sigma_tau_ms: 0.25
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW170823
+    ifo: H1+L1
+    M_final_Msun: 65.4
+    chi_final: 0.72
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 197.0
+        sigma_f_hz: 17.0
+        tau_ms: 5.5
+        sigma_tau_ms: 0.9
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190408_181802
+    ifo: literature
+    M_final_Msun: 41.4
+    chi_final: 0.67
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 319.0
+        sigma_f_hz: 15.5
+        tau_ms: 3.2
+        sigma_tau_ms: 0.3
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190421_213856
+    ifo: literature
+    M_final_Msun: 70.5
+    chi_final: 0.66
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 162.0
+        sigma_f_hz: 14.0
+        tau_ms: 6.3
+        sigma_tau_ms: 1.0
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190503_185404
+    ifo: literature
+    M_final_Msun: 66.5
+    chi_final: 0.66
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 191.0
+        sigma_f_hz: 16.0
+        tau_ms: 5.3
+        sigma_tau_ms: 0.8
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190512_180714
+    ifo: literature
+    M_final_Msun: 34.3
+    chi_final: 0.65
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 381.0
+        sigma_f_hz: 37.5
+        tau_ms: 2.6
+        sigma_tau_ms: 0.2
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190513_205428
+    ifo: literature
+    M_final_Msun: 52.1
+    chi_final: 0.71
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 241.0
+        sigma_f_hz: 27.0
+        tau_ms: 4.3
+        sigma_tau_ms: 0.75
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190519_153544
+    ifo: literature
+    M_final_Msun: 100.0
+    chi_final: 0.79
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 127.0
+        sigma_f_hz: 9.0
+        tau_ms: 9.5
+        sigma_tau_ms: 1.6
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190521
+    ifo: H1+L1+V1
+    M_final_Msun: 147.4
+    chi_final: 0.62
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 68.0
+        sigma_f_hz: 4.0
+        tau_ms: 15.8
+        sigma_tau_ms: 3.2
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190521_074359
+    ifo: literature
+    M_final_Msun: 72.6
+    chi_final: 0.71
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 198.0
+        sigma_f_hz: 7.0
+        tau_ms: 5.4
+        sigma_tau_ms: 0.4
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190602_175927
+    ifo: literature
+    M_final_Msun: 110.5
+    chi_final: 0.72
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 105.0
+        sigma_f_hz: 9.5
+        tau_ms: 10.0
+        sigma_tau_ms: 1.7
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190706_222641
+    ifo: literature
+    M_final_Msun: 107.3
+    chi_final: 0.78
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 108.0
+        sigma_f_hz: 10.5
+        tau_ms: 10.9
+        sigma_tau_ms: 2.3
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190708_232457
+    ifo: literature
+    M_final_Msun: 30.1
+    chi_final: 0.68
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 497.0
+        sigma_f_hz: 28.0
+        tau_ms: 2.1
+        sigma_tau_ms: 0.15
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190727_060333
+    ifo: literature
+    M_final_Msun: 65.4
+    chi_final: 0.73
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 178.0
+        sigma_f_hz: 17.0
+        tau_ms: 6.1
+        sigma_tau_ms: 0.95
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190828_063405
+    ifo: literature
+    M_final_Msun: 54.3
+    chi_final: 0.74
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 239.0
+        sigma_f_hz: 10.5
+        tau_ms: 4.8
+        sigma_tau_ms: 0.55
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190910_112807
+    ifo: literature
+    M_final_Msun: 74.4
+    chi_final: 0.69
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 177.0
+        sigma_f_hz: 8.0
+        tau_ms: 5.9
+        sigma_tau_ms: 0.65
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
+  - event: GW190915_235702
+    ifo: literature
+    M_final_Msun: 54.7
+    chi_final: 0.69
+    modes:
+      - l: 2
+        m: 2
+        n: 0
+        f_hz: 232.0
+        sigma_f_hz: 16.0
+        tau_ms: 4.6
+        sigma_tau_ms: 0.7
+        source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog

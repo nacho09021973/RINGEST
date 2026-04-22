@@ -85,11 +85,14 @@ sin ellas y escribir igualmente su contrato de salida JSON.
 
 ## Uso rápido
 
-### Ruta A — sandbox ADS/GKPW (checkpoint-only, 2026-04-20)
+### Ruta A — sandbox ADS/GKPW
 
-`01_generate_sandbox_geometries.py` fue eliminado el 2026-04-20. Ruta A
-sólo opera sobre el run congelado `runs/ads_gkpw_20260416_091407/`, que
-conserva tanto los H5 sandbox como el checkpoint entrenado.
+`01_generate_sandbox_geometries.py` ha sido restaurado al repo. Ruta A ya no
+debe describirse como eliminada ni como checkpoint-only. El run
+`runs/ads_gkpw_20260416_091407/` sigue siendo una referencia útil porque
+conserva H5 sandbox y checkpoint entrenado, pero la reproducibilidad
+operativa completa de ese checkpoint debe considerarse pendiente de
+verificación.
 
 ```bash
 RUN=runs/ads_gkpw_20260416_091407
@@ -106,6 +109,13 @@ python3 09_real_data_and_dictionary_contracts.py --run-dir $RUN --phase both
 ```
 
 ### Ruta B — datos reales (carril literatura, activo)
+
+`data/qnm_events_literature.yml` es input canónico y debe vivir en git.
+La inferencia de Ruta B no es portable por sí sola mientras el checkpoint
+canónico que se use para `02_emergent_geometry_engine.py --mode inference`
+no tenga un mecanismo reproducible de obtención (LFS, artefacto descargable
+o bootstrap). La relación exacta entre el script restaurado de Ruta A y la
+regeneración operativa de ese checkpoint sigue pendiente de verificación.
 
 ```bash
 python3 02b_literature_to_dataset.py \

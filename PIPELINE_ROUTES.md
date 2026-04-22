@@ -5,15 +5,16 @@ Para comandos completos con flags consultar [instrucciones_pipeline.md](instrucc
 
 ---
 
-## Ruta A — Sandbox ADS/GKPW (checkpoint-only, 2026-04-20)
+## Ruta A — Sandbox ADS/GKPW
 
 Geometría emergente sobre datos sintéticos. Única configuración con
-`family_status = canonical_strong`. El generador sandbox
-(`01_generate_sandbox_geometries.py`) fue eliminado el 2026-04-20; Ruta A
-sigue operativa solo sobre el checkpoint ya entrenado
-(`runs/ads_gkpw_20260416_091407/02_emergent_geometry_engine/emergent_geometry_model.pt`)
-y sobre los H5 de bulk/boundary ya existentes en disco. No se puede
-regenerar training data desde cero.
+`family_status = canonical_strong`. `01_generate_sandbox_geometries.py` ha
+sido restaurado al repo, así que Ruta A ya no debe describirse como
+eliminada ni como checkpoint-only. El checkpoint
+`runs/ads_gkpw_20260416_091407/02_emergent_geometry_engine/emergent_geometry_model.pt`
+y los H5 asociados siguen siendo una referencia útil en disco, pero la
+reproducibilidad operativa completa de ese checkpoint sigue pendiente de
+verificación.
 
 ```text
 runs/ads_gkpw_20260416_091407/01_generate_sandbox_geometries/   (congelado)
@@ -34,6 +35,13 @@ runs/ads_gkpw_20260416_091407/01_generate_sandbox_geometries/   (congelado)
 Inferencia holográfica sobre ringdown real. El carril activo usa QNM
 publicados (Bayesian posteriors de LVC / Isi / Giesler / Capano / pyRing),
 no extracción ESPRIT propia.
+
+`data/qnm_events_literature.yml` es input canónico de esta ruta y debe estar
+en git. La inferencia sigue dependiendo de un checkpoint canónico de Ruta A;
+hasta que ese checkpoint tenga un mecanismo reproducible de obtención, Ruta B
+no debe presentarse como portable. La restauración de
+`01_generate_sandbox_geometries.py` no equivale por sí sola a reproducibilidad
+operativa verificada del checkpoint.
 
 ```text
 data/qnm_events_literature.yml
@@ -65,7 +73,7 @@ QNM ahora viene de literatura (ver Ruta B).
 
 | `family_status` | Significado |
 |---|---|
-| `canonical_strong` | Ruta A con `--ads-boundary-mode gkpw` (checkpoint congelado) |
+| `canonical_strong` | Ruta A con `--ads-boundary-mode gkpw` |
 | `toy_sandbox` | Familia sintética/fenomenológica |
 | `realdata_surrogate` | Embedding de ringdown real |
 | `non_holographic_surrogate` | Carril Kerr (no holográfico) |

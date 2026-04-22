@@ -2006,6 +2006,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def build_focused_sampling_config(args: argparse.Namespace) -> FocusedSamplingConfig:
+    if not getattr(args, "focused_real_regime", False) and "--focused-d" in sys.argv:
+        args.focused_real_regime = True
     families = tuple(str(fam).lower() for fam in getattr(args, "focused_families", []))
     if not families:
         raise ValueError("focused_real_regime requiere al menos una family en --focused-families")

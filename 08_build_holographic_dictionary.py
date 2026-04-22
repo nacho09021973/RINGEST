@@ -159,10 +159,10 @@ def resolve_geometry_dir(args, ctx, run_dir: Optional[Path]) -> Path:
         raise FileNotFoundError(
             "Missing canonical geometry input. Provide --data-dir explicitly or "
             "provide contractual run identity so stage 08 can read "
-            "<run_dir>/02_emergent_geometry_engine/outputs/geometry_emergent."
+            "<run_dir>/02_emergent_geometry_engine/geometry_emergent."
         )
 
-    geometry_dir = run_dir.resolve() / "02_emergent_geometry_engine" / "outputs" / "geometry_emergent"
+    geometry_dir = run_dir.resolve() / "02_emergent_geometry_engine" / "geometry_emergent"
     if geometry_dir.exists() and geometry_dir.is_dir():
         return geometry_dir
 
@@ -190,6 +190,54 @@ def resolve_output_file(args, ctx, run_dir: Optional[Path]) -> Path:
         "Missing output destination. Provide --output-summary explicitly or "
         "provide contractual run identity so stage 08 can write outputs safely."
     )
+
+
+def _load_delta_mass_dict(raw: Any) -> Dict[str, Any]:
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8")
+    if isinstance(raw, str):
+        return json.loads(raw)
+    if isinstance(raw, dict):
+        return raw
+    return {}
+
+
+def resolve_delta_mass_dict(
+    f: h5py.File,
+    h5_path: Path,
+    run_dir: Optional[Path],
+) -> Tuple[Dict[str, Any], str]:
+    """
+    Stage 08 consume geometry_emergent/*.h5, pero los quick-tests AdS/GKPW
+    conservan Delta/m2L2 en los HDF5 fuente de stage 01.
+    """
+    if "boundary" in f and "Delta_mass_dict" in f["boundary"].attrs:
+        try:
+            return _load_delta_mass_dict(f["boundary"].attrs["Delta_mass_dict"]), "geometry_hdf5"
+        except Exception as exc:
+            print(f"   {h5_path.stem}: error leyendo Delta_mass_dict del HDF5 emergent: {exc}")
+
+    if run_dir is None:
+        return {}, "not_available"
+
+    system_name = f.attrs.get("system_name", h5_path.stem)
+    if isinstance(system_name, bytes):
+        system_name = system_name.decode("utf-8")
+    if isinstance(system_name, str) and system_name.endswith("_emergent"):
+        system_name = system_name[:-9]
+
+    source_h5 = run_dir.resolve() / "01_generate_sandbox_geometries" / f"{system_name}.h5"
+    if not source_h5.exists():
+        return {}, "not_available"
+
+    try:
+        with h5py.File(source_h5, "r") as source_f:
+            if "boundary" not in source_f or "Delta_mass_dict" not in source_f["boundary"].attrs:
+                return {}, "not_available"
+            return _load_delta_mass_dict(source_f["boundary"].attrs["Delta_mass_dict"]), "stage01_boundary_hdf5"
+    except Exception as exc:
+        print(f"   {h5_path.stem}: error leyendo Delta_mass_dict desde stage 01: {exc}")
+        return {}, "not_available"
 
 
 def safe_relpath(path: Path, base: Path) -> str:
@@ -328,6 +376,8 @@ def discover_mass_dimension_relation(Deltas, m2L2, d, seed=42):
     model.fit(X, y)
     best = model.get_best()
     y_pred = model.predict(X)
+    y = np.asarray(y).reshape(-1)
+    y_pred = np.asarray(y_pred).reshape(-1)
 
     ss_res = np.sum((y - y_pred) ** 2)
     ss_tot = np.sum((y - np.mean(y)) ** 2)
@@ -536,15 +586,9 @@ def main() -> int:
                 }
 
                 if args.mass_source == "hdf5":
-                    Delta_mass_dict = {}
-                    if "boundary" in f and "Delta_mass_dict" in f["boundary"].attrs:
-                        try:
-                            raw = f["boundary"].attrs["Delta_mass_dict"]
-                            if isinstance(raw, bytes):
-                                raw = raw.decode("utf-8")
-                            Delta_mass_dict = json.loads(raw)
-                        except Exception as e:
-                            print(f"   {name}: error leyendo Delta_mass_dict: {e}")
+                    Delta_mass_dict, delta_mass_source = resolve_delta_mass_dict(f, h5_path, run_dir)
+                    if Delta_mass_dict:
+                        print(f"   {name}: Delta_mass_dict <- {delta_mass_source}")
 
                     for op_name, info in Delta_mass_dict.items():
                         if isinstance(info, dict):
