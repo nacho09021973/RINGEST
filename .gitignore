@@ -65,6 +65,7 @@ repo/
 # ── Reabrir solo la jerarquía necesaria para canary GWOSC ────────────────────
 !data/
 data/*
+!data/qnm_events_literature.yml
 !data/gwosc_events/
 data/gwosc_events/*
 

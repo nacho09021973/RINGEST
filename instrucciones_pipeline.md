@@ -15,18 +15,19 @@ Para empezar desde cero basta con `rm -rf runs/`.
 
 | Ruta | Descripción |
 |---|---|
-| [A — Sandbox ADS/GKPW](#ruta-a-sandbox-adsgkpw-checkpoint-only) | Checkpoint congelado (generador sandbox eliminado) |
+| [A — Sandbox ADS/GKPW](#ruta-a-sandbox-adsgkpw) | Generador sandbox restaurado; reproducibilidad operativa pendiente |
 | [B — Datos reales (literatura QNM)](#ruta-b-datos-reales-literatura-qnm) | Inferencia holográfica sobre QNM publicados |
 | [C — Cadena QNM](#ruta-c-eliminada-2026-04-20) | ELIMINADA |
 
 ---
 
-## Ruta A — Sandbox ADS/GKPW (checkpoint-only)
+## Ruta A — Sandbox ADS/GKPW
 
-`01_generate_sandbox_geometries.py` fue eliminado el 2026-04-20; ya no se
-regenera training data. Los pasos 2–9 se ejecutan sobre el `run-dir`
-congelado `runs/ads_gkpw_20260416_091407/`, que contiene tanto los H5
-sandbox como el checkpoint entrenado.
+`01_generate_sandbox_geometries.py` ha sido restaurado al repo. Ruta A ya no
+debe describirse como checkpoint-only ni como eliminada. El `run-dir`
+congelado `runs/ads_gkpw_20260416_091407/` sigue siendo una referencia útil
+porque contiene H5 sandbox y checkpoint entrenado, pero la reproducibilidad
+operativa completa de ese checkpoint sigue pendiente de verificación.
 
 ```bash
 RUN_DIR=runs/ads_gkpw_20260416_091407
@@ -67,6 +68,11 @@ python3 09_real_data_and_dictionary_contracts.py --run-dir "$RUN_DIR"
 
 Carril activo: QNM publicados (Bayesian posteriors LVC / Isi / Giesler /
 Capano / pyRing) → bridge → inferencia con el checkpoint de Ruta A.
+`data/qnm_events_literature.yml` forma parte del contrato canónico y debe
+estar versionado. La ruta completa no es portable hasta que el checkpoint
+canónico usado en inferencia tenga distribución reproducible fuera de un
+disco local. La restauración de `01_generate_sandbox_geometries.py` no
+equivale todavía a reproducibilidad operativa verificada del checkpoint.
 
 ### B-1 · YAML literatura → qnm_dataset.csv
 
