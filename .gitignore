@@ -99,3 +99,7 @@ data/gwosc_events/*/g2_contract_validation/
 data/gwosc_events/*/boundary/ringdown_audit_*/
 data/gwosc_events/*/boundary_dataset*/
 data/gwosc_events/*/raw/*.hdf5
+
+# Julia local
+.julia_depot/
+.juliaup/
