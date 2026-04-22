@@ -1,0 +1,176 @@
+{
+  "policy": {
+    "A": "multipole_anchor_and_remnant_anchor",
+    "B": "remnant_anchor_only",
+    "C": "no_sufficient_remnant_anchor"
+  },
+  "artifacts_used": [
+    "runs/community_ringdown_cohort/community_ringdown_cohort.csv",
+    "runs/qnm_dataset_literature/qnm_dataset.csv",
+    "runs/audit_envsum_v3/dataset_envsum/qnm_dataset.csv"
+  ],
+  "rows": [
+    {
+      "event": "GW150914",
+      "validation_tier": "A",
+      "tier_status": "verified_from_repo",
+      "tier_rationale": "remanente materializado en cohorte+qnm_dataset_literature; ancla multipolo local en audit_envsum_v3 con 2 mode_rank y poles_joint.json presente",
+      "has_multipole_anchor": "yes",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv;runs/audit_envsum_v3/dataset_envsum/qnm_dataset.csv;runs/audit_envsum_v3/runs_sumabs/GW150914/ringdown/poles_joint.json"
+    },
+    {
+      "event": "GW170104",
+      "validation_tier": "A",
+      "tier_status": "verified_from_repo",
+      "tier_rationale": "remanente materializado en cohorte+qnm_dataset_literature; ancla multipolo local en audit_envsum_v3 con 4 mode_rank y poles_joint.json presente",
+      "has_multipole_anchor": "yes",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv;runs/audit_envsum_v3/dataset_envsum/qnm_dataset.csv;runs/audit_envsum_v3/runs_sumabs/GW170104/ringdown/poles_joint.json"
+    },
+    {
+      "event": "GW170814",
+      "validation_tier": "A",
+      "tier_status": "verified_from_repo",
+      "tier_rationale": "remanente materializado en cohorte+qnm_dataset_literature; ancla multipolo local en audit_envsum_v3 con 4 mode_rank y poles_joint.json presente",
+      "has_multipole_anchor": "yes",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv;runs/audit_envsum_v3/dataset_envsum/qnm_dataset.csv;runs/audit_envsum_v3/runs_sumabs/GW170814/ringdown/poles_joint.json"
+    },
+    {
+      "event": "GW170823",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190408_181802",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190421_213856",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190503_185404",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190512_180714",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190513_205428",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190519_153544",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190521_074359",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190602_175927",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190706_222641",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190708_232457",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190727_060333",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190828_063405",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190910_112807",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    },
+    {
+      "event": "GW190915_235702",
+      "validation_tier": "B",
+      "tier_status": "provisional",
+      "tier_rationale": "remanente usable materializado en cohorte+qnm_dataset_literature; sin ancla multipolo local suficiente en los artefactos inspeccionados",
+      "has_multipole_anchor": "no",
+      "has_remnant_anchor": "yes",
+      "source_artifacts": "runs/community_ringdown_cohort/community_ringdown_cohort.csv;runs/qnm_dataset_literature/qnm_dataset.csv"
+    }
+  ]
+}
