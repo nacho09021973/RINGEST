@@ -183,13 +183,35 @@ def resolve_output_file(args, ctx, run_dir: Optional[Path]) -> Path:
         return Path(args.output_summary).resolve()
     
     if run_dir is not None:
-        out_dir = run_dir.resolve() / "08_build_holographic_dictionary"
+        out_dir = run_dir.resolve() / "08_build_holographic_dictionary" / "outputs"
         return out_dir / "holographic_dictionary_v3_summary.json"
 
     raise ValueError(
         "Missing output destination. Provide --output-summary explicitly or "
         "provide contractual run identity so stage 08 can write outputs safely."
     )
+
+
+def resolve_run_dir_from_args(args) -> Optional[Path]:
+    run_dir_arg = getattr(args, "run_dir", None)
+    if run_dir_arg:
+        return Path(run_dir_arg).resolve()
+
+    experiment = getattr(args, "experiment", None)
+    if not experiment:
+        return None
+
+    runs_dir = getattr(args, "runs_dir", None)
+    if runs_dir:
+        candidate = Path(runs_dir).resolve() / experiment
+        if candidate.exists():
+            return candidate
+        return None
+
+    candidate = (Path.cwd() / "runs" / experiment).resolve()
+    if candidate.exists():
+        return candidate
+    return None
 
 
 def _load_delta_mass_dict(raw: Any) -> Dict[str, Any]:
@@ -220,9 +242,11 @@ def resolve_delta_mass_dict(
     if run_dir is None:
         return {}, "not_available"
 
-    system_name = f.attrs.get("system_name", h5_path.stem)
+    system_name = f.attrs.get("system_name")
     if isinstance(system_name, bytes):
         system_name = system_name.decode("utf-8")
+    if not system_name:
+        system_name = h5_path.stem
     if isinstance(system_name, str) and system_name.endswith("_emergent"):
         system_name = system_name[:-9]
 
@@ -355,7 +379,7 @@ def discover_mass_dimension_relation(Deltas, m2L2, d, seed=42):
     m2L2 = np.array(m2L2).reshape(-1, 1)
 
     X = np.hstack([Deltas, np.full_like(Deltas, d)])
-    y = m2L2
+    y = np.asarray(m2L2).reshape(-1)
 
     if len(X) < 5:
         results["status"] = "insufficient_data"
@@ -375,9 +399,7 @@ def discover_mass_dimension_relation(Deltas, m2L2, d, seed=42):
     )
     model.fit(X, y)
     best = model.get_best()
-    y_pred = model.predict(X)
-    y = np.asarray(y).reshape(-1)
-    y_pred = np.asarray(y_pred).reshape(-1)
+    y_pred = np.asarray(model.predict(X)).reshape(-1)
 
     ss_res = np.sum((y - y_pred) ** 2)
     ss_tot = np.sum((y - np.mean(y)) ** 2)
@@ -506,17 +528,15 @@ def main() -> int:
             raise ValueError(error_msg)
 
         if HAS_STAGE_UTILS and StageContext:
-            has_contractual_identity = bool(
-                getattr(args, "run_dir", None)
-                or (
-                    getattr(args, "experiment", None)
-                    and getattr(args, "runs_dir", None)
-                )
-            )
             if not getattr(args, "experiment", None) and infer_experiment:
                 args.experiment = infer_experiment(args)
+            run_dir = resolve_run_dir_from_args(args)
+            has_explicit_stage_context = bool(
+                getattr(args, "run_dir", None)
+                or getattr(args, "runs_dir", None)
+            )
 
-            if has_contractual_identity:
+            if has_explicit_stage_context:
                 ctx = StageContext.from_args(
                     args,
                     stage_number="08",
@@ -525,8 +545,8 @@ def main() -> int:
                 run_dir = ctx.run_root
                 print(f"[V3] Experiment: {ctx.experiment}")
                 print(f"[V3] Stage dir: {ctx.stage_dir}")
-        elif getattr(args, "run_dir", None):
-            run_dir = Path(args.run_dir).resolve()
+        else:
+            run_dir = resolve_run_dir_from_args(args)
 
         geometry_dir = resolve_geometry_dir(args, ctx, run_dir)
         output_file = resolve_output_file(args, ctx, run_dir)

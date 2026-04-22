@@ -120,7 +120,9 @@ except ImportError:
 
 # V3 contract: feature support audit (C2 — QNM block removed)
 HAS_FEATURE_SUPPORT = False
+FEATURE_NAMES_V2_5 = None
 FEATURE_NAMES_V3 = None
+CRITICAL_FEATURES_V2_5 = None
 CRITICAL_FEATURES_V3 = None
 audit_feature_support = None
 audit_train_feature_support = None
@@ -128,7 +130,9 @@ SUPPORT_MODE_STRICT = "strict"
 SUPPORT_MODE_PERMISSIVE_OOD = "permissive_ood"
 try:
     from feature_support import (
+        FEATURE_NAMES_V2_5,
         FEATURE_NAMES_V3,
+        CRITICAL_FEATURES as CRITICAL_FEATURES_V2_5,
         CRITICAL_FEATURES_V3,
         audit_feature_support,
         audit_train_feature_support,
@@ -138,6 +142,30 @@ try:
     HAS_FEATURE_SUPPORT = True
 except ImportError:
     pass
+
+
+def resolve_inference_feature_contract(n_features: int):
+    """
+    Selecciona el contrato de features compatible con el checkpoint cargado.
+    """
+    if int(n_features) == 20:
+        return {
+            "label": "v2_5",
+            "builder": build_feature_vector,
+            "feature_names": list(FEATURE_NAMES_V2_5) if FEATURE_NAMES_V2_5 is not None else None,
+            "critical_features": list(CRITICAL_FEATURES_V2_5) if CRITICAL_FEATURES_V2_5 is not None else None,
+        }
+    if int(n_features) == 17:
+        return {
+            "label": "v3",
+            "builder": build_feature_vector_v3,
+            "feature_names": list(FEATURE_NAMES_V3) if FEATURE_NAMES_V3 is not None else None,
+            "critical_features": list(CRITICAL_FEATURES_V3) if CRITICAL_FEATURES_V3 is not None else None,
+        }
+    raise ValueError(
+        f"Unsupported inference feature contract: checkpoint expects n_features={n_features}. "
+        "Stage 02 only knows the contractual layouts V2.5 (20) and V3 (17)."
+    )
 
 
 def _resolve_train_audit_critical_features(
@@ -1797,6 +1825,7 @@ def run_inference_mode(args):
         X_mean = X_mean.flatten()
     if isinstance(X_std, np.ndarray) and X_std.ndim > 1:
         X_std = X_std.flatten()
+    inference_feature_contract = resolve_inference_feature_contract(n_features)
     
     # NormalizaciAfAE'A+aEUR(TM)AfaEURsA,A3n de targets
     normalizer = TargetNormalizer.from_dict(ckpt.get("normalizer", {}))
@@ -1806,6 +1835,7 @@ def run_inference_mode(args):
     d_value = ckpt.get("d", 4)
     
     print(f"  Checkpoint:  {checkpoint_path}")
+    print(f"   feature_contract: {inference_feature_contract['label']} ({n_features} features)")
     print(f"   z_grid: [{z_grid[0]:.3f}, {z_grid[-1]:.3f}], {len(z_grid)} points")
     print(f"   d (checkpoint): {d_value}")
 
@@ -1911,22 +1941,27 @@ def run_inference_mode(args):
             d_boundary = int(d_boundary.ravel()[0])
         boundary_data["d"] = d_boundary
         
-        # Construir features (V3 — 17 features, no QNM block)
-        X = build_feature_vector_v3(boundary_data, operators)
+        # Construir features con el contrato que espera el checkpoint cargado.
+        X = inference_feature_contract["builder"](boundary_data, operators)
 
         # Feature support audit (V3 gate)
         # Resolve support_mode from args (default: strict)
         _support_mode = getattr(args, 'support_mode', SUPPORT_MODE_STRICT)
         gate_report = None  # Will hold gate metadata for H5 output
 
-        if HAS_FEATURE_SUPPORT and audit_feature_support is not None:
+        if (
+            HAS_FEATURE_SUPPORT
+            and audit_feature_support is not None
+            and inference_feature_contract["feature_names"] is not None
+            and inference_feature_contract["critical_features"] is not None
+        ):
             _x_mean_flat = X_mean.flatten() if hasattr(X_mean, 'flatten') else np.asarray(X_mean).flatten()
             _x_std_flat = (X_std.flatten() if hasattr(X_std, 'flatten') else np.asarray(X_std).flatten())
             _critical_features_for_gate, _gate_context_msg = (
                 _resolve_train_audit_critical_features(
-                    feature_names=list(FEATURE_NAMES_V3),
+                    feature_names=inference_feature_contract["feature_names"],
                     X_std_raw=_x_std_flat,
-                    critical_features=list(CRITICAL_FEATURES_V3),
+                    critical_features=inference_feature_contract["critical_features"],
                     literature_mode_policy=literature_mode_policy,
                 )
             )
@@ -1936,7 +1971,7 @@ def run_inference_mode(args):
                 feature_vector=X,
                 X_mean=_x_mean_flat,
                 X_std=_x_std_flat,
-                feature_names=list(FEATURE_NAMES_V3),
+                feature_names=inference_feature_contract["feature_names"],
                 critical_features=_critical_features_for_gate,
                 support_mode=_support_mode,
             )
@@ -2172,8 +2207,8 @@ def run_inference_mode(args):
     _summary_pre: Dict[str, Any] = {
         "version": "V2.2",
         "mode": "inference",
-        "feature_contract": "v3",
-        "n_features": 17,
+        "feature_contract": inference_feature_contract["label"],
+        "n_features": int(n_features),
         "description": (
             "Geometría emergente inferida desde datos boundary-only "
             "usando modelo entrenado en sandbox"
