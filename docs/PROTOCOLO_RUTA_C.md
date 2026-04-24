@@ -70,20 +70,45 @@ blanco gaussiano calibrado correctamente.
 
 ---
 
-## Limitaciones actuales (versión 1.0)
+## Corrección cosmológica (versión 1.1)
+
+La predicción Kerr usa la **masa en marco detector**:
+
+```
+M_detector = M_source × (1 + z)
+f_kerr_detector = omega_re(chi) / (2π × M_detector × G/c³)
+```
+
+`z` se almacena en el YAML a nivel de evento (fuente: catálogo GWTC-2,
+Abbott et al. 2021). Sin esta corrección, f_kerr se calcula en el marco fuente
+y los residuos sufren un sesgo sistemático de −2.3σ a −9σ. Con la corrección,
+el residual_f medio pasa a +1.4σ y los eventos `strong_tension` se reducen
+de 12 a 3. Lo mismo aplica a gamma_kerr (τ_detector = τ_source × (1+z)).
+
+## Limitaciones actuales (versión 1.1)
 
 1. **Faltan `sigma_M_final_Msun` y `sigma_chi_final` en el YAML.** Sin estos,
    `σ_f_Kerr = 0`: el residuo usa únicamente el error observacional en el
    numerador. Los residuos son conservadores (sobrestiman la tensión real si
    la incertidumbre en M_f/chi_f no es despreciable).
 
-2. **Solo modo (2,2,0).** El YAML no contiene modos adicionales. El protocolo
+2. **Sesgo residual leve (+1.4σ medio).** Después de la corrección (1+z),
+   persiste un sesgo positivo pequeño. Hipótesis: sigma_f_hz subestimado,
+   incertidumbre en z, o parámetros M_f/chi_f del YAML ligeramente
+   inconsistentes con los usados en la medición QNM del paper. A auditar en T6.
+
+3. **3 eventos en `strong_tension`**: GW190519_153544 (r_f=+3.7),
+   GW190521_074359 (r_f=+4.6, r_γ=+3.3), GW190910_112807 (r_f=+3.3).
+   Todos a alta redshift (z>0.35) o con incertidumbres grandes. A investigar
+   en T6 antes de interpretarlos como tensión física real.
+
+4. **Solo modo (2,2,0).** El YAML no contiene modos adicionales. El protocolo
    admite (2,2,1) y (3,3,0) si se añaden con fuente trazable.
 
-3. **N = 19 eventos.** Subcohorte pequeña. Ningún resultado se interpreta
+5. **N = 19 eventos.** Subcohorte pequeña. Ningún resultado se interpreta
    como confirmación estadística fuerte con este N.
 
-4. **Una sola fuente de literatura.** Todos los eventos citan el mismo paper
+6. **Una sola fuente de literatura.** Todos los eventos citan el mismo paper
    (GWTC-2 TGR). La sensibilidad a la fuente no está auditada todavía.
 
 ---
