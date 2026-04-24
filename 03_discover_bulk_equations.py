@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # 03_discover_bulk_equations.py
-# CUERDAS — Bloque A: Geometría emergente (descubrimiento de ecuaciones de bulk)
+# CUERDAS  Bloque A: Geometria emergente (descubrimiento de ecuaciones de bulk)
 #
 # Objective:
-#   Aplicar regresión simbólica (PySR u otro SR) sobre la geometría emergente
+#   Aplicar regresion simbolica (PySR u otro SR) sobre la geometria emergente
 #   para descubrir ecuaciones de campo en el bulk (para A, f, R, etc.).
 #
 # Inputs: (IO CONTRACT V3)
-#   Geometrías emergentes bajo:
+#   Geometrias emergentes bajo:
 #   - Prioridad 1: runs/<exp>/02_emergent_geometry_engine/geometry_emergent/*.h5
 #   - Prioridad 2: runs/<exp>/01_generate_sandbox_geometries/*.h5
 #
@@ -17,11 +17,11 @@
 #     <geometry_name>/einstein_discovery.json
 #
 # HONESTIDAD
-#   - No se usan ecuaciones teóricas conocidas como features ni como términos forzados.
-#   - Las comparaciones con ecuaciones de Einstein o variantes se realizan más tarde,
-#     y se etiquetan explícitamente como "post-hoc".
+#   - No se usan ecuaciones teoricas conocidas como features ni como terminos forzados.
+#   - Las comparaciones con ecuaciones de Einstein o variantes se realizan mas tarde,
+#     y se etiquetan explicitamente como "post-hoc".
 #
-# Version: 2024-12-29 — fix Ricci
+# Version: 2024-12-29  fix Ricci
 
 import argparse
 import json
@@ -46,10 +46,10 @@ except Exception as exc:
     HAS_PYSR = False
     print(f"Warning: PySR not available or not usable: {exc}")
 
-# Stage 03 usa resolución de rutas local (resolve_output_dir en este archivo);
-# la antigua importación opcional de `io_contract_resolver` era código muerto
-# (el flag nunca se consumía) y se retiró en abril 2026 para no ocultar deuda
-# detrás de un warning "Using legacy path resolution" permanente.
+# Stage 03 usa resolucion de rutas local (resolve_output_dir en este archivo);
+# la antigua importacion opcional de `io_contract_resolver` era codigo muerto
+# (el flag nunca se consumia) y se retiro en abril 2026 para no ocultar deuda
+# detras de un warning "Using legacy path resolution" permanente.
 
 HAS_STAGE_UTILS = False
 EXIT_OK = 0
@@ -81,12 +81,12 @@ if not HAS_STAGE_UTILS:
 
 
 # ============================================================
-# CARGA DE GEOMETRÍAS (H5 + NPZ)
+# CARGA DE GEOMETRIAS (H5 + NPZ)
 # ============================================================
 
 def load_geometry_file(file_path: Path) -> Dict[str, Any]:
     """
-    Carga un file de geometría (.h5 o .npz).
+    Carga un file de geometria (.h5 o .npz).
     Devuelve dict con keys: z, A, f, category, name
     """
     name = file_path.stem.replace("_geometry", "").replace("_emergent", "")
@@ -247,11 +247,49 @@ def discover_geometric_relations(
         "max": float(np.max(R)),
         "coefficient_of_variation": float(R_std / (np.abs(R_mean) + 1e-10))
     }
-    
+
+    # B1-fix: observable UV para "esto es AdS" en el gauge del pipeline.
+    # En ds^2 = e^{2A}(-f dt^2 + dx^2) + dz^2/f, AdS (incluso con horizonte)
+    # satisface R(z) -> -D(D+1)/z^2 en UV (z -> 0), porque la correccion del
+    # blackening decae como (z/zh)^d. Por eso cv(R) no es util aqui y el
+    # observable natural es R*z^2 en una ventana UV cerca del boundary.
+    z_min = float(np.min(z))
+    z_max = float(np.max(z))
+    dz_grid = (z_max - z_min) / max(len(z) - 1, 1)
+    z_lo = z_min + 5.0 * dz_grid
+    z_hi = min(0.5 * z_max, 0.5)
+    uv_mask = (z >= z_lo) & (z <= z_hi)
+    R_times_z2 = R * (z ** 2)
+    n_uv = int(np.count_nonzero(uv_mask))
+    if n_uv >= 3:
+        rz2_uv = R_times_z2[uv_mask]
+        rz2_uv_mean = float(np.mean(rz2_uv))
+        rz2_uv_std = float(np.std(rz2_uv))
+        results["R_statistics"]["R_times_z2_uv_median"] = float(np.median(rz2_uv))
+        results["R_statistics"]["R_times_z2_uv_cv"] = float(
+            rz2_uv_std / (abs(rz2_uv_mean) + 1e-10)
+        )
+    else:
+        results["R_statistics"]["R_times_z2_uv_median"] = None
+        results["R_statistics"]["R_times_z2_uv_cv"] = None
+    results["R_statistics"]["uv_window"] = {
+        "z_lo": float(z_lo),
+        "z_hi": float(z_hi),
+        "n_points": n_uv,
+    }
+
     print(f"   R statistics:")
     print(f"     Mean: {R_mean:.4f}")
     print(f"     Std:  {R_std:.4f}")
     print(f"     CV:   {results['R_statistics']['coefficient_of_variation']:.4f}")
+    rz2_uv_med = results["R_statistics"]["R_times_z2_uv_median"]
+    if rz2_uv_med is not None:
+        print(
+            f"     R*z^2 UV median (z in [{z_lo:.4f}, {z_hi:.4f}], n={n_uv}): "
+            f"{rz2_uv_med:.4f}"
+        )
+    else:
+        print(f"     R*z^2 UV median: N/A (n_uv={n_uv} < 3)")
     
     if not HAS_PYSR:
         raise RuntimeError(
@@ -324,7 +362,7 @@ def discover_geometric_relations(
     }
     
     print(f"     Discovered: R = {best_R['equation']}")
-    print(f"     R²: {r2:.4f}")
+    print(f"     R2: {r2:.4f}")
     print(f"     Complexity: {best_R['complexity']}")
     
     return results
@@ -336,10 +374,10 @@ def discover_geometric_relations(
 
 def validate_einstein_posterior(results: Dict[str, Any], d: int) -> Dict[str, Any]:
     """
-    Validacion post-hoc: ¿la ecuacion descubierta es compatible con Einstein?
+    Validacion post-hoc: la ecuacion descubierta es compatible con Einstein?
     
-    Para AdS_d+1 con constante cosmologica Λ < 0:
-        R = 2D/(D-2) * Λ = -d(d+1)/L²  (constante y NEGATIVO)
+    Para AdS_d+1 con constante cosmologica  < 0:
+        R = 2D/(D-2) *  = -d(d+1)/L2  (constante y NEGATIVO)
     
     Criterios:
         1. R debe ser aproximadamente constante (cv < 0.15)
@@ -364,14 +402,28 @@ def validate_einstein_posterior(results: Dict[str, Any], d: int) -> Dict[str, An
     R_mean = R_stats.get("mean", 0)
     R_std = R_stats.get("std", 0)
     
-    # Test 1: R constante (baja variacion)
-    validation["R_constant"] = cv < 0.15
+    # Test 1 (B1-fix): "R constante" reformulado para el gauge del pipeline.
+    # En ds^2 = e^{2A}(-f dt^2 + dx^2) + dz^2/f, AdS (incluso con horizonte)
+    # cumple R*z^2 -> -D(D+1) en UV, porque la correccion del blackening decae
+    # como (z/zh)^d cuando z -> 0. cv(R) es intrinsecamente alto en este gauge
+    # para AdS puro, asi que se sustituye por un residuo relativo UV frente a
+    # -D(D+1). Se mantiene el nombre de la bandera por compatibilidad downstream.
+    R_rz2_uv = R_stats.get("R_times_z2_uv_median", None)
+    if R_rz2_uv is not None:
+        target_rz2 = -D * (D + 1)
+        residual_rz2 = abs(R_rz2_uv - target_rz2) / abs(target_rz2)
+        validation["R_constant"] = residual_rz2 < 0.20
+        validation["R_times_z2_uv_median"] = float(R_rz2_uv)
+        validation["R_times_z2_uv_target"] = float(target_rz2)
+        validation["R_times_z2_uv_residual_rel"] = float(residual_rz2)
+    else:
+        validation["R_constant"] = False
     
-    # Test 2: R negativo (requisito para AdS con Λ < 0)
+    # Test 2: R negativo (requisito para AdS con  < 0)
     validation["R_negative"] = R_mean < -0.1  # Threshold para evitar R~0
     
     # Test 3: R significativo (no flat space donde R=0)
-    # AdS tipico tiene |R| ~ d(d+1)/L² ~ O(1) o mayor
+    # AdS tipico tiene |R| ~ d(d+1)/L2 ~ O(1) o mayor
     validation["R_significant"] = abs(R_mean) > 0.5
     
     # Einstein vacuum requiere los tres criterios
@@ -379,7 +431,7 @@ def validate_einstein_posterior(results: Dict[str, Any], d: int) -> Dict[str, An
         validation["einstein_vacuum_compatible"] = True
         Lambda_implied = R_mean * (D - 2) / (2 * D)
         validation["implied_Lambda"] = float(Lambda_implied)
-        # Estimar L² desde R = -d(d+1)/L²
+        # Estimar L2 desde R = -d(d+1)/L2
         L_squared = -d * (d + 1) / (R_mean + 1e-10)
         if L_squared > 0:
             validation["implied_L"] = float(np.sqrt(L_squared))
@@ -420,7 +472,7 @@ def validate_einstein_posterior(results: Dict[str, Any], d: int) -> Dict[str, An
     if validation["A_is_logarithmic"]:
         score += 0.1
     
-    # Buen ajuste R²: +0.1 (solo si R es significativo)
+    # Buen ajuste R2: +0.1 (solo si R es significativo)
     if R_eq and R_eq.get("r2", 0) > 0.95 and validation["R_significant"]:
         score += 0.1
     
@@ -438,12 +490,12 @@ def validate_einstein_posterior(results: Dict[str, Any], d: int) -> Dict[str, An
 
 
 # ============================================================
-# RESOLUCIÓN DE RUTAS (CON CONTRATO)
+# RESOLUCION DE RUTAS (CON CONTRATO)
 # ============================================================
 
 def resolve_geometries_dir(args, run_dir: Optional[Path] = None) -> Path:
     """
-    Resuelve el directorio de geometrías usando solo rutas contractuales.
+    Resuelve el directorio de geometrias usando solo rutas contractuales.
     """
     if args.geometry_dir:
         geo_dir = Path(args.geometry_dir).resolve()
@@ -506,19 +558,19 @@ def main() -> int:
     )
     
     parser.add_argument("--geometry-dir", type=str, default=None,
-                        help="directory con *.h5 o *.npz de geometrías")
+                        help="directory con *.h5 o *.npz de geometrias")
     parser.add_argument("--run-dir", type=str, default=None,
-                        help="Run dir (busca geometrías automáticamente)")
+                        help="Run dir (busca geometrias automaticamente)")
     parser.add_argument("--output-dir", type=str, default=None,
                         help="directory de salida")
     parser.add_argument("--niterations", type=int, default=100,
                         help="Iteraciones PySR")
     parser.add_argument("--maxsize", type=int, default=15,
-                        help="Tamaño máximo de expresiones")
+                        help="Tamano maximo de expresiones")
     parser.add_argument("--seed", type=int, default=42,
                         help="Semilla para reproducibilidad")
     parser.add_argument("--d", type=int, default=3,
-                        help="Dimensión del boundary CFT")
+                        help="Dimension del boundary CFT")
     
     if HAS_STAGE_UTILS:
         add_standard_arguments(parser)
@@ -553,14 +605,14 @@ def main() -> int:
         elif args.run_dir:
             run_dir = Path(args.run_dir).resolve()
 
-        # CONTRACT: PySR must be installed — fail fast before touching the FS.
+        # CONTRACT: PySR must be installed  fail fast before touching the FS.
         if not HAS_PYSR:
             raise RuntimeError(
                 "PY_SR_UNAVAILABLE: PySR (pysr) is not installed. "
                 "Install it with: pip install pysr"
             )
 
-        # === RESOLVER GEOMETRÍAS ===
+        # === RESOLVER GEOMETRIAS ===
         geometries_dir = resolve_geometries_dir(args, run_dir)
         
         # === RESOLVER OUTPUT ===
@@ -581,7 +633,7 @@ def main() -> int:
         all_results = {"geometries": []}
         discovery_json_paths: List[Path] = []
         
-        # Buscar files de geometría
+        # Buscar files de geometria
         geometry_files = sorted(geometries_dir.glob("*.h5"))
         if not geometry_files:
             geometry_files = sorted(geometries_dir.glob("*.npz"))
@@ -589,7 +641,7 @@ def main() -> int:
         if not geometry_files:
             raise FileNotFoundError(f"No se encontraron files .h5 ni .npz en {geometries_dir}")
         
-        print(f"\nEncontrados {len(geometry_files)} files de geometría")
+        print(f"\nEncontrados {len(geometry_files)} files de geometria")
         
         for geo_path in geometry_files:
             try:
@@ -629,7 +681,7 @@ def main() -> int:
             print(f"     Einstein score:           {validation['einstein_score']:.2f}")
             print(f"     Verdict:                {validation['verdict']}")
             if 'implied_Lambda' in validation:
-                print(f"     Lambda implícita:         {validation['implied_Lambda']:.4f}")
+                print(f"     Lambda implicita:         {validation['implied_Lambda']:.4f}")
             
             geo_results = {
                 "name": name,
