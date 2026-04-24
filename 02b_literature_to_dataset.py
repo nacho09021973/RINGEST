@@ -224,7 +224,8 @@ def row_from_entry(event_name: str, ifo: str,
     sigma_gamma_kerr_hz = None
     kerr_sigma_source = "none"
     if f_kerr_hz is not None:
-        if sigma_M is not None and sigma_chi is not None:
+        if sigma_M is not None or sigma_chi is not None:
+            # Compute chi derivative (used when sigma_chi is available)
             dchi = 1e-3
             t_hi = kerr_theory(min(chi_f + dchi, 0.99), n)
             t_lo = kerr_theory(max(chi_f - dchi, 0.0), n)
@@ -236,13 +237,19 @@ def row_from_entry(event_name: str, ifo: str,
                 df_dchi = dg_dchi = 0.0
             df_dM = -f_kerr_hz / M_f if M_f > 0 else 0.0
             dg_dM = -gamma_kerr_hz / M_f if (gamma_kerr_hz is not None and M_f > 0) else 0.0
+            # Use whichever sigmas are available; treat absent ones as 0
+            s_chi = float(sigma_chi) if sigma_chi is not None else 0.0
+            s_M = float(sigma_M) if sigma_M is not None else 0.0
             sigma_f_kerr_hz = math.sqrt(
-                (df_dchi * float(sigma_chi)) ** 2 + (df_dM * float(sigma_M)) ** 2
+                (df_dchi * s_chi) ** 2 + (df_dM * s_M) ** 2
             )
             sigma_gamma_kerr_hz = math.sqrt(
-                (dg_dchi * float(sigma_chi)) ** 2 + (dg_dM * float(sigma_M)) ** 2
+                (dg_dchi * s_chi) ** 2 + (dg_dM * s_M) ** 2
             )
-            kerr_sigma_source = "propagated"
+            if sigma_M is not None and sigma_chi is not None:
+                kerr_sigma_source = "propagated"
+            else:
+                kerr_sigma_source = "propagated_partial"
         else:
             # No M/chi uncertainties in YAML: treat Kerr prediction as exact
             sigma_f_kerr_hz = 0.0
