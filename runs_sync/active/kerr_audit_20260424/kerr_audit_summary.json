@@ -1,0 +1,19 @@
+{
+  "n_unique_events": 19,
+  "n_mode_rows": 19,
+  "n_residuals": 38,
+  "kerr_sigma_source": "point_estimate",
+  "verdict_counts_by_mode": {
+    "marginal": 4,
+    "strong_tension": 12,
+    "tension": 3
+  },
+  "verdict_counts_by_event": {
+    "marginal": 4,
+    "strong_tension": 12,
+    "tension": 3
+  },
+  "residual_mean": -2.3191,
+  "residual_std": 2.0796,
+  "note": "scipy not available; KS/AD tests skipped"
+}
