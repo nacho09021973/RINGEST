@@ -1,0 +1,38 @@
+{
+  "name": "GW190915_235702",
+  "category": "unknown",
+  "results": {
+    "R_statistics": {
+      "mean": -10.55526351928711,
+      "std": 25.01139259338379,
+      "min": -189.74349975585938,
+      "max": 51.318519592285156,
+      "coefficient_of_variation": 2.3695659087473047
+    },
+    "pysr_available": true,
+    "R_is_constant": false,
+    "R_equation": {
+      "equation": "(x2 * neg((x4 / x1) + -23.079441)) + square(x3 - 2.097763)",
+      "complexity": 13,
+      "loss": 2.4613912,
+      "r2": 0.9960653607625594,
+      "feature_names": [
+        "A",
+        "f",
+        "dA",
+        "d2A",
+        "df",
+        "d2f"
+      ]
+    }
+  },
+  "validation": {
+    "R_constant": false,
+    "R_negative": true,
+    "R_significant": true,
+    "einstein_vacuum_compatible": false,
+    "A_is_logarithmic": false,
+    "einstein_score": 0.5,
+    "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+  }
+}

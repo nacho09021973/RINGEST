@@ -1,0 +1,58 @@
+{
+  "artifacts": {
+    "bulk_equations_output_dir": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs",
+    "einstein_discovery_1": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW150914/einstein_discovery.json",
+    "einstein_discovery_10": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190519_153544/einstein_discovery.json",
+    "einstein_discovery_11": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190521_074359/einstein_discovery.json",
+    "einstein_discovery_12": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190602_175927/einstein_discovery.json",
+    "einstein_discovery_13": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190706_222641/einstein_discovery.json",
+    "einstein_discovery_14": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190708_232457/einstein_discovery.json",
+    "einstein_discovery_15": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190727_060333/einstein_discovery.json",
+    "einstein_discovery_16": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190828_063405/einstein_discovery.json",
+    "einstein_discovery_17": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190910_112807/einstein_discovery.json",
+    "einstein_discovery_18": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190915_235702/einstein_discovery.json",
+    "einstein_discovery_2": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW170104/einstein_discovery.json",
+    "einstein_discovery_3": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW170814/einstein_discovery.json",
+    "einstein_discovery_4": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW170823/einstein_discovery.json",
+    "einstein_discovery_5": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190408_181802/einstein_discovery.json",
+    "einstein_discovery_6": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190421_213856/einstein_discovery.json",
+    "einstein_discovery_7": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190503_185404/einstein_discovery.json",
+    "einstein_discovery_8": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190512_180714/einstein_discovery.json",
+    "einstein_discovery_9": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/GW190513_205428/einstein_discovery.json",
+    "einstein_discovery_summary": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations/outputs/einstein_discovery_summary.json",
+    "geometry_input_dir": "/home/ignac/RINGEST/runs/community_ringdown_cohort/02_emergent_geometry_engine/geometry_emergent"
+  },
+  "created_at": "2026-04-23T10:27:18.470819+00:00",
+  "experiment": "community_ringdown_cohort",
+  "metadata": {
+    "command": "03_discover_bulk_equations.py --run-dir /home/ignac/RINGEST/runs/community_ringdown_cohort --geometry-dir /home/ignac/RINGEST/runs/community_ringdown_cohort/02_emergent_geometry_engine/geometry_emergent",
+    "experiment": "community_ringdown_cohort"
+  },
+  "outputs": {
+    "bulk_equations_output_dir": "03_discover_bulk_equations/outputs",
+    "einstein_discovery_files": [
+      "03_discover_bulk_equations/outputs/GW150914/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW170104/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW170814/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW170823/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190408_181802/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190421_213856/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190503_185404/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190512_180714/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190513_205428/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190519_153544/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190521_074359/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190602_175927/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190706_222641/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190708_232457/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190727_060333/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190828_063405/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190910_112807/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/GW190915_235702/einstein_discovery.json"
+    ],
+    "einstein_discovery_summary": "03_discover_bulk_equations/outputs/einstein_discovery_summary.json"
+  },
+  "run_root": "/home/ignac/RINGEST/runs/community_ringdown_cohort",
+  "stage": "03_discover_bulk_equations",
+  "stage_dir": "/home/ignac/RINGEST/runs/community_ringdown_cohort/03_discover_bulk_equations"
+}

@@ -1,0 +1,38 @@
+{
+  "name": "GW190706_222641",
+  "category": "unknown",
+  "results": {
+    "R_statistics": {
+      "mean": -0.04754551127552986,
+      "std": 0.6687725782394409,
+      "min": -1.9854053258895874,
+      "max": 1.9969379901885986,
+      "coefficient_of_variation": 14.065945635903635
+    },
+    "pysr_available": true,
+    "R_is_constant": false,
+    "R_equation": {
+      "equation": "(x3 + (((x4 * 0.7304252) + x2) * x2)) * -7.998788",
+      "complexity": 11,
+      "loss": 1.8948865e-06,
+      "r2": 0.9999957633142517,
+      "feature_names": [
+        "A",
+        "f",
+        "dA",
+        "d2A",
+        "df",
+        "d2f"
+      ]
+    }
+  },
+  "validation": {
+    "R_constant": false,
+    "R_negative": false,
+    "R_significant": false,
+    "einstein_vacuum_compatible": false,
+    "A_is_logarithmic": false,
+    "einstein_score": 0.0,
+    "verdict": "NON_EINSTEIN_OR_DEFORMED"
+  }
+}

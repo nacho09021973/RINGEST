@@ -1,0 +1,38 @@
+{
+  "name": "ads_d3_Tfinite_known_019",
+  "category": "ads",
+  "results": {
+    "R_statistics": {
+      "mean": -36.29508590698242,
+      "std": 92.76245880126953,
+      "min": -360.9122009277344,
+      "max": 183.52896118164062,
+      "coefficient_of_variation": 2.5557856244987804
+    },
+    "pysr_available": true,
+    "R_is_constant": false,
+    "R_equation": {
+      "equation": "((x3 / -1.4788475) - square(x2)) * 12.068275",
+      "complexity": 8,
+      "loss": 915.6725,
+      "r2": 0.8935867467994737,
+      "feature_names": [
+        "A",
+        "f",
+        "dA",
+        "d2A",
+        "df",
+        "d2f"
+      ]
+    }
+  },
+  "validation": {
+    "R_constant": false,
+    "R_negative": true,
+    "R_significant": true,
+    "einstein_vacuum_compatible": false,
+    "A_is_logarithmic": false,
+    "einstein_score": 0.4,
+    "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+  }
+}

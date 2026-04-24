@@ -1,0 +1,38 @@
+{
+  "name": "GW170814",
+  "category": "unknown",
+  "results": {
+    "R_statistics": {
+      "mean": -0.04718650504946709,
+      "std": 0.6926385164260864,
+      "min": -2.0031046867370605,
+      "max": 2.010653495788574,
+      "coefficient_of_variation": 14.678741606993306
+    },
+    "pysr_available": true,
+    "R_is_constant": false,
+    "R_equation": {
+      "equation": "(((0.94261944 - x1) * (((x2 / -0.591448) - x4) * x2)) - x3) * 7.999533",
+      "complexity": 15,
+      "loss": 4.7640924e-07,
+      "r2": 0.9999990069586612,
+      "feature_names": [
+        "A",
+        "f",
+        "dA",
+        "d2A",
+        "df",
+        "d2f"
+      ]
+    }
+  },
+  "validation": {
+    "R_constant": false,
+    "R_negative": false,
+    "R_significant": false,
+    "einstein_vacuum_compatible": false,
+    "A_is_logarithmic": false,
+    "einstein_score": 0.0,
+    "verdict": "NON_EINSTEIN_OR_DEFORMED"
+  }
+}

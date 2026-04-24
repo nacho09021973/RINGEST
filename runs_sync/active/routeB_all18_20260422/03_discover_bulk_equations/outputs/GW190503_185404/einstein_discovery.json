@@ -1,0 +1,38 @@
+{
+  "name": "GW190503_185404",
+  "category": "unknown",
+  "results": {
+    "R_statistics": {
+      "mean": -11.784550666809082,
+      "std": 28.041156768798828,
+      "min": -211.06822204589844,
+      "max": 58.753448486328125,
+      "coefficient_of_variation": 2.3794845948210956
+    },
+    "pysr_available": true,
+    "R_is_constant": false,
+    "R_equation": {
+      "equation": "((x2 * (22.628174 - (x4 / x1))) + 4.2389197) - ((x3 * x1) * 8.968058)",
+      "complexity": 15,
+      "loss": 2.6085787,
+      "r2": 0.9966824900862268,
+      "feature_names": [
+        "A",
+        "f",
+        "dA",
+        "d2A",
+        "df",
+        "d2f"
+      ]
+    }
+  },
+  "validation": {
+    "R_constant": false,
+    "R_negative": true,
+    "R_significant": true,
+    "einstein_vacuum_compatible": false,
+    "A_is_logarithmic": false,
+    "einstein_score": 0.5,
+    "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+  }
+}

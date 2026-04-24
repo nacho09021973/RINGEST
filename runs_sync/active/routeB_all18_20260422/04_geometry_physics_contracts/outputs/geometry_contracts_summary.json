@@ -1,0 +1,1444 @@
+{
+  "version": "2.2",
+  "n_total": 18,
+  "n_with_errors": 0,
+  "n_inference_mode": 18,
+  "n_generic_passed": 18,
+  "n_generic_passed_strict": 18,
+  "n_generic_passed_relaxed": 18,
+  "n_ads_family": 0,
+  "n_ads_specific_passed": 0,
+  "n_overall_passed": 18,
+  "n_overall_passed_strict": 18,
+  "n_overall_passed_relaxed": 18,
+  "n_real_failures": 0,
+  "avg_score": 0.8000000000000002,
+  "phase_passed": true,
+  "phase_passed_strict": true,
+  "phase_passed_relaxed": true,
+  "n_ringdown_inference_relaxed_correlator": 0,
+  "contracts": [
+    {
+      "name": "GW150914",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.6049196216334926,
+        "correlation_quality": 0.5975773026134836,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -13.06397533416748,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.5254522562026978,
+      "family_candidate_top2_score": 0.3871646225452423,
+      "family_candidate_margin": 0.13828763365745544,
+      "family_candidate_entropy": 0.9375834465026855,
+      "family_candidate_status": "weak_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW170104",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.6062846143086614,
+        "correlation_quality": 0.5975773026134907,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -12.829925537109375,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.685443639755249,
+      "family_candidate_top2_score": 0.26388147473335266,
+      "family_candidate_margin": 0.42156216502189636,
+      "family_candidate_entropy": 0.7741457223892212,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW170814",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.43507756821448307,
+        "correlation_quality": 0.5975773026131189,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -12.84705924987793,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.7301784753799438,
+      "family_candidate_top2_score": 0.23152999579906464,
+      "family_candidate_margin": 0.498648464679718,
+      "family_candidate_entropy": 0.7039459347724915,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW170823",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.6194973637895285,
+        "correlation_quality": 0.5975773026135607,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -12.978222846984863,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.578195333480835,
+      "family_candidate_top2_score": 0.34599679708480835,
+      "family_candidate_margin": 0.2321985363960266,
+      "family_candidate_entropy": 0.8968872427940369,
+      "family_candidate_status": "weak_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190408_181802",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.5710822358932331,
+        "correlation_quality": 0.5975773026133341,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -11.969027519226074,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.9615184664726257,
+      "family_candidate_top2_score": 0.03510632365942001,
+      "family_candidate_margin": 0.9264121651649475,
+      "family_candidate_entropy": 0.1759355366230011,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190421_213856",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.7242498826499314,
+        "correlation_quality": 0.5975773026143665,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -13.275494575500488,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "ads",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.5189623832702637,
+      "family_candidate_top2_score": 0.30208539962768555,
+      "family_candidate_margin": 0.21687698364257812,
+      "family_candidate_entropy": 1.0460503101348877,
+      "family_candidate_status": "weak_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190503_185404",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.7781096991336777,
+        "correlation_quality": 0.5975773026149918,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -13.133893966674805,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "ads",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.46942174434661865,
+      "family_candidate_top2_score": 0.36234647035598755,
+      "family_candidate_margin": 0.1070752739906311,
+      "family_candidate_entropy": 1.0596212148666382,
+      "family_candidate_status": "weak_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190512_180714",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.5884925766198629,
+        "correlation_quality": 0.5975773026134061,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -12.075356483459473,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.9490811824798584,
+      "family_candidate_top2_score": 0.04597147926688194,
+      "family_candidate_margin": 0.9031097292900085,
+      "family_candidate_entropy": 0.2193685621023178,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190513_205428",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.5625405253304007,
+        "correlation_quality": 0.5975773026133023,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -11.81684398651123,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.974067747592926,
+      "family_candidate_top2_score": 0.023863771930336952,
+      "family_candidate_margin": 0.9502039551734924,
+      "family_candidate_entropy": 0.12847153842449188,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190519_153544",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.4831833786991665,
+        "correlation_quality": 0.597577302613123,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -12.585018157958984,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.8383631706237793,
+      "family_candidate_top2_score": 0.14158423244953156,
+      "family_candidate_margin": 0.6967789530754089,
+      "family_candidate_entropy": 0.5091540217399597,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190521_074359",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.5452307766554927,
+        "correlation_quality": 0.5975773026132458,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -12.600476264953613,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.8211193680763245,
+      "family_candidate_top2_score": 0.15587517619132996,
+      "family_candidate_margin": 0.6652442216873169,
+      "family_candidate_entropy": 0.5450103282928467,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190602_175927",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.5552007108571072,
+        "correlation_quality": 0.5975773026132771,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -11.317768096923828,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.9923974871635437,
+      "family_candidate_top2_score": 0.0071448590606451035,
+      "family_candidate_margin": 0.9852526187896729,
+      "family_candidate_entropy": 0.046680886298418045,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190706_222641",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.4952096044856083,
+        "correlation_quality": 0.5975773026131369,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -11.889131546020508,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.9712541103363037,
+      "family_candidate_top2_score": 0.026425939053297043,
+      "family_candidate_margin": 0.9448281526565552,
+      "family_candidate_entropy": 0.1395038366317749,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190708_232457",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.5585520229950477,
+        "correlation_quality": 0.5975773026132885,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -12.580666542053223,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.8275795578956604,
+      "family_candidate_top2_score": 0.1503487527370453,
+      "family_candidate_margin": 0.6772308349609375,
+      "family_candidate_entropy": 0.5320841073989868,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190727_060333",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.5368951431203958,
+        "correlation_quality": 0.5975773026132218,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -11.44516658782959,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.9899203777313232,
+      "family_candidate_top2_score": 0.00943483505398035,
+      "family_candidate_margin": 0.9804855585098267,
+      "family_candidate_entropy": 0.05914045497775078,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190828_063405",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.5855885254925371,
+        "correlation_quality": 0.5975773026133935,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -12.826278686523438,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.6990253925323486,
+      "family_candidate_top2_score": 0.25475284457206726,
+      "family_candidate_margin": 0.44427254796028137,
+      "family_candidate_entropy": 0.752355694770813,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190910_112807",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.5582311083021493,
+        "correlation_quality": 0.5975773026132873,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -12.041572570800781,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.9545560479164124,
+      "family_candidate_top2_score": 0.04129175469279289,
+      "family_candidate_margin": 0.913264274597168,
+      "family_candidate_entropy": 0.20044076442718506,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    },
+    {
+      "name": "GW190915_235702",
+      "family": "unknown",
+      "category": "ringdown",
+      "d": 4,
+      "regularity": {
+        "A_finite": true,
+        "f_finite": true,
+        "no_nan": true,
+        "smooth": true
+      },
+      "causality": {
+        "f_non_negative": true,
+        "f_bounded": true,
+        "horizon_if_thermal": true,
+        "skipped": true
+      },
+      "unitarity": {
+        "all_operators_unitary": true,
+        "n_operators": 0,
+        "n_violations": 0,
+        "min_delta": null,
+        "unitarity_bound": 1.0,
+        "violations": [],
+        "skipped": true
+      },
+      "correlator_structure": {
+        "has_spatial_structure": true,
+        "is_monotonic_decay": true,
+        "has_power_law": true,
+        "log_slope": -0.5462525734633092,
+        "correlation_quality": 0.5975773026132488,
+        "skipped": false,
+        "contract_mode": "ringdown_inference_relaxed_v1"
+      },
+      "ads_einstein": {
+        "R_is_constant": false,
+        "R_matches_ads": true,
+        "Lambda_matches_ads": false,
+        "R_mean": -11.8178129196167,
+        "R_expected": -20.0
+      },
+      "ads_asymptotic": {
+        "A_logarithmic_uv": false,
+        "f_to_one_uv": true,
+        "A_monotone": true
+      },
+      "holographic": {
+        "mass_dimension_ok": false,
+        "hawking_ok": false,
+        "conformal_symmetry_ok": false
+      },
+      "A_r2": null,
+      "f_r2": null,
+      "R_r2": null,
+      "family_accuracy": null,
+      "mode": "inference",
+      "errors": [],
+      "warnings": [
+        "NPZ sin *_truth: inference mode",
+        "inference mode: metricas R\u00b2 no disponibles",
+        "correlator_contract_mode=ringdown_inference_relaxed_v1: has_power_law and is_monotonic_decay are WARN/N_A for ringdown inference"
+      ],
+      "family_candidate_top1": "hyperscaling",
+      "family_candidate_top2": "unknown",
+      "family_candidate_top1_score": 0.9744495153427124,
+      "family_candidate_top2_score": 0.023530710488557816,
+      "family_candidate_margin": 0.9509187936782837,
+      "family_candidate_entropy": 0.12692448496818542,
+      "family_candidate_status": "compatible_candidate_unverified",
+      "family_output_semantics": "compatibility_with_abstention",
+      "generic_passed_strict": true,
+      "generic_passed_relaxed": true,
+      "overall_passed_strict": true,
+      "overall_passed_relaxed": true,
+      "generic_contract_status": "strict_pass",
+      "correlator_contract_status": "pass",
+      "pass_mode": "strict"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "artifacts": {
+    "geometry_contracts_summary": "/home/ignac/RINGEST/runs/community_ringdown_cohort/04_geometry_physics_contracts/outputs/geometry_contracts_summary.json"
+  },
+  "created_at": "2026-04-23T10:48:45.024107+00:00",
+  "experiment": "community_ringdown_cohort",
+  "metadata": {
+    "command": "04_geometry_physics_contracts.py --run-dir /home/ignac/RINGEST/runs/community_ringdown_cohort --data-dir /home/ignac/RINGEST/runs/community_ringdown_cohort/qnm_reference_boundary_smoke",
+    "experiment": "community_ringdown_cohort"
+  },
+  "outputs": {
+    "geometry_contracts_summary": "04_geometry_physics_contracts/outputs/geometry_contracts_summary.json"
+  },
+  "run_root": "/home/ignac/RINGEST/runs/community_ringdown_cohort",
+  "stage": "04_geometry_physics_contracts",
+  "stage_dir": "/home/ignac/RINGEST/runs/community_ringdown_cohort/04_geometry_physics_contracts"
+}
