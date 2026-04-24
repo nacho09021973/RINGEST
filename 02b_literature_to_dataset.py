@@ -92,12 +92,13 @@ OUTPUT_COLUMNS = [
     "omega_re", "omega_im",
     "amp_abs", "relative_rms",
     "M_final_Msun", "chi_final",
+    "z", "M_final_detector_Msun",
     "is_220_candidate", "kerr_220_distance", "kerr_220_chi_ref",
     "omega_re_norm", "omega_im_norm",
     # extensions for literature uncertainty (downstream scripts ignore them)
     "sigma_freq_hz", "sigma_damping_hz",
     "sigma_M_final_Msun", "sigma_chi_final",
-    # Ruta C: Kerr prediction in physical Hz and standardized residuals
+    # Ruta C: Kerr prediction in physical Hz (detector-frame) and standardized residuals
     "f_kerr_hz", "gamma_kerr_hz",
     "sigma_f_kerr_hz", "sigma_gamma_kerr_hz",
     "residual_f", "residual_gamma",
@@ -143,6 +144,7 @@ def load_sources(path: Path) -> Dict[str, Any]:
 def row_from_entry(event_name: str, ifo: str,
                    M_f: float, chi_f: float,
                    sigma_M: Optional[float], sigma_chi: Optional[float],
+                   z: float,
                    mode_rank: int,
                    mode_entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Build a single CSV row from a YAML mode entry."""
@@ -157,7 +159,12 @@ def row_from_entry(event_name: str, ifo: str,
     tau_ms = mode_entry.get("tau_ms")
     source_paper = str(mode_entry.get("source_paper", "unknown"))
 
-    scale = M_f * G_OVER_C3_PER_MSUN  # seconds per rad/s (to dimensionless)
+    # scale for normalization uses source-frame mass (omega_re_norm is dimensionless)
+    scale = M_f * G_OVER_C3_PER_MSUN  # s per rad/s (to dimensionless)
+    # Detector-frame mass accounts for cosmological redshift:
+    # f_detector = f_source / (1+z)  ↔  M_detector = M_source * (1+z)
+    M_detector = M_f * (1.0 + z)
+    scale_detector = M_detector * G_OVER_C3_PER_MSUN
 
     # THEORY SEED: if f_hz is null AND source_paper starts with "berti_theory",
     # compute from Kerr table. This is a pipeline sanity check — Berti distance
@@ -205,18 +212,20 @@ def row_from_entry(event_name: str, ifo: str,
 
     is_220 = (n == 0) and (kerr_dist is not None) and (kerr_dist < KERR_220_FAIR_THRESHOLD)
 
-    # --- Ruta C: Kerr prediction in physical Hz for this mode ---
+    # --- Ruta C: Kerr prediction in physical Hz for this mode (detector-frame) ---
+    # Uses scale_detector = M_source*(1+z)*G/c^3 so that f_kerr is in the
+    # detector frame, matching f_hz from the literature.
     kerr_target = kerr_theory(chi_f, n)
-    if kerr_target is not None and scale > 0:
+    if kerr_target is not None and scale_detector > 0:
         ore_k, oim_k = kerr_target
-        f_kerr_hz = ore_k / (2.0 * math.pi * scale)
-        gamma_kerr_hz = -oim_k / scale  # oim_k < 0, so gamma > 0
+        f_kerr_hz = ore_k / (2.0 * math.pi * scale_detector)
+        gamma_kerr_hz = -oim_k / scale_detector  # oim_k < 0, so gamma > 0
     else:
         f_kerr_hz = None
         gamma_kerr_hz = None
 
     # Propagate sigma_M and sigma_chi into Kerr prediction uncertainty.
-    # f_kerr ∝ omega_re(chi)/M  →  df/dM = -f_kerr/M  (analytical)
+    # f_kerr ∝ omega_re(chi)/M_detector  →  df/dM = -f_kerr/M_detector
     # df/dchi from numerical derivative of Berti table.
     # When sigma_M or sigma_chi are absent: sigma_f_kerr_hz = 0 (conservative
     # choice: treats Kerr prediction as exact given the point estimate M,chi).
@@ -231,10 +240,11 @@ def row_from_entry(event_name: str, ifo: str,
             t_lo = kerr_theory(max(chi_f - dchi, 0.0), n)
             step = (min(chi_f + dchi, 0.99) - max(chi_f - dchi, 0.0))
             if t_hi is not None and t_lo is not None and step > 0:
-                df_dchi = (t_hi[0] - t_lo[0]) / step / (2.0 * math.pi * scale)
-                dg_dchi = -(t_hi[1] - t_lo[1]) / step / scale
+                df_dchi = (t_hi[0] - t_lo[0]) / step / (2.0 * math.pi * scale_detector)
+                dg_dchi = -(t_hi[1] - t_lo[1]) / step / scale_detector
             else:
                 df_dchi = dg_dchi = 0.0
+            # sigma_M is uncertainty on M_source, so df/dM_source = -f_kerr/M_source
             df_dM = -f_kerr_hz / M_f if M_f > 0 else 0.0
             dg_dM = -gamma_kerr_hz / M_f if (gamma_kerr_hz is not None and M_f > 0) else 0.0
             # Use whichever sigmas are available; treat absent ones as 0
@@ -286,6 +296,8 @@ def row_from_entry(event_name: str, ifo: str,
         "relative_rms": None,
         "M_final_Msun": M_f,
         "chi_final": chi_f,
+        "z": z,
+        "M_final_detector_Msun": M_detector,
         "is_220_candidate": is_220,
         "kerr_220_distance": kerr_dist,
         "kerr_220_chi_ref": chi_f if target_220 is not None else None,
@@ -319,12 +331,14 @@ def build_rows(sources: Dict[str, Any]) -> List[Dict[str, Any]]:
         chi_f = float(chi_raw)
         sigma_M = ev.get("sigma_M_final_Msun")
         sigma_chi = ev.get("sigma_chi_final")
+        z_raw = ev.get("z", 0.0)
+        z = float(z_raw) if z_raw is not None else 0.0
         modes = ev.get("modes", [])
         # Sort modes by n so mode_rank=0 is fundamental
         modes_sorted = sorted(modes, key=lambda x: int(x.get("n", 0)))
         for rank, mode_entry in enumerate(modes_sorted):
             row = row_from_entry(event_name, ifo, M_f, chi_f,
-                                 sigma_M, sigma_chi, rank, mode_entry)
+                                 sigma_M, sigma_chi, z, rank, mode_entry)
             if row is not None:
                 rows.append(row)
     return rows
