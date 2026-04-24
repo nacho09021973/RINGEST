@@ -1,0 +1,20 @@
+{
+  "counts": null,
+  "created_at": "2026-04-23T10:25:20.718267+00:00",
+  "error_message": null,
+  "exit_code": 0,
+  "experiment": "community_ringdown_cohort",
+  "input_root": null,
+  "n_evaluable": null,
+  "n_not_evaluable": null,
+  "n_theories": null,
+  "notes": null,
+  "output_dir": null,
+  "post_hoc_only": null,
+  "script": null,
+  "stage": "02_emergent_geometry_engine",
+  "stage_name": null,
+  "status": "OK",
+  "upstream_training_contamination": null,
+  "verdict_counts": null
+}

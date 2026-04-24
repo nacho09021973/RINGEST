@@ -1,0 +1,17 @@
+{
+  "artifacts": {
+    "geometry_contracts_summary": "/home/adnac/ringest/runs/routeB_all18_20260422/04_geometry_physics_contracts/outputs/geometry_contracts_summary.json"
+  },
+  "created_at": "2026-04-22T16:51:36.157303+00:00",
+  "experiment": "routeB_all18_20260422",
+  "metadata": {
+    "command": "04_geometry_physics_contracts.py --run-dir /home/adnac/ringest/runs/routeB_all18_20260422 --data-dir /home/adnac/ringest/runs/routeB_all18_20260422/boundary",
+    "experiment": "routeB_all18_20260422"
+  },
+  "outputs": {
+    "geometry_contracts_summary": "04_geometry_physics_contracts/outputs/geometry_contracts_summary.json"
+  },
+  "run_root": "/home/adnac/ringest/runs/routeB_all18_20260422",
+  "stage": "04_geometry_physics_contracts",
+  "stage_dir": "/home/adnac/ringest/runs/routeB_all18_20260422/04_geometry_physics_contracts"
+}

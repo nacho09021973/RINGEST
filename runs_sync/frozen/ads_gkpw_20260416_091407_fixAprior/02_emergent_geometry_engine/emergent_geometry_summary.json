@@ -1,0 +1,256 @@
+{
+  "version": "V2.2",
+  "mode": "train",
+  "n_train": 10,
+  "n_test": 5,
+  "n_features": 17,
+  "n_z": 256,
+  "n_epochs": 2000,
+  "best_epoch": 50,
+  "loss_weights": {
+    "A": 2.0,
+    "f": 2.0,
+    "R": 0.001,
+    "zh": 0.1,
+    "family": 0.05,
+    "physics": 0.05,
+    "physics_ads": 0.02
+  },
+  "train_metrics": {
+    "final_total_loss": 0.47966468334198,
+    "final_A_loss": 0.012571456842124462,
+    "final_f_loss": 0.02422507107257843,
+    "final_R_loss": 77.31346130371094,
+    "final_zh_loss": 8.20963009573461e-07,
+    "final_family_loss": 2.9825674573658034e-05,
+    "final_physics_loss": 6.188967704772949
+  },
+  "train_family_stats_last_epoch": {
+    "ads": {
+      "count": 10,
+      "with_bulk_truth": 10,
+      "generic_count": 10,
+      "ads_specific_count": 10,
+      "supervised_proxy_mean": 0.15090660527348518
+    }
+  },
+  "test_metrics": {
+    "A_r2": 0.9832280233526469,
+    "f_r2": 0.940674225332243,
+    "R_r2": -0.0028918779826310193,
+    "zh_mae": 0.06154142813673245,
+    "family_accuracy": 1.0
+  },
+  "metrics_by_family": {
+    "ads": {
+      "count": 5,
+      "A_r2": 0.9832280233526469,
+      "f_r2": 0.940674225332243
+    }
+  },
+  "systems": [
+    {
+      "system_name": "ads_d3_Tfinite_known_002",
+      "name": "ads_d3_Tfinite_known_002",
+      "category": "known",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 1.2850145101547241,
+      "zh_truth": 1.2853734109820536,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_known_002_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_known_002_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_known_004",
+      "name": "ads_d3_Tfinite_known_004",
+      "category": "known",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 0.921794593334198,
+      "zh_truth": 0.9224788145395487,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_known_004_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_known_004_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_known_005",
+      "name": "ads_d3_Tfinite_known_005",
+      "category": "known",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 1.0852043628692627,
+      "zh_truth": 1.0863190720483988,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_known_005_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_known_005_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_known_008",
+      "name": "ads_d3_Tfinite_known_008",
+      "category": "known",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 1.0792409181594849,
+      "zh_truth": 1.078998639473239,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_known_008_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_known_008_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_known_009",
+      "name": "ads_d3_Tfinite_known_009",
+      "category": "known",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 0.9121986627578735,
+      "zh_truth": 0.912715580877921,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_known_009_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_known_009_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_known_010",
+      "name": "ads_d3_Tfinite_known_010",
+      "category": "known",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 1.2356767654418945,
+      "zh_truth": 1.2358726727933187,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_known_010_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_known_010_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_known_013",
+      "name": "ads_d3_Tfinite_known_013",
+      "category": "known",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 1.1459592580795288,
+      "zh_truth": 1.1468572935446903,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_known_013_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_known_013_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_known_016",
+      "name": "ads_d3_Tfinite_known_016",
+      "category": "known",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 0.985031008720398,
+      "zh_truth": 0.9854229557355603,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_known_016_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_known_016_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_known_017",
+      "name": "ads_d3_Tfinite_known_017",
+      "category": "known",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 1.1009820699691772,
+      "zh_truth": 1.1018883968095063,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_known_017_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_known_017_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_known_019",
+      "name": "ads_d3_Tfinite_known_019",
+      "category": "known",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 1.198703408241272,
+      "zh_truth": 1.1993558808371207,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_known_019_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_known_019_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_test_test_000",
+      "name": "ads_d3_Tfinite_test_test_000",
+      "category": "test",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 0.8456203937530518,
+      "zh_truth": 0.9324870274181046,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_test_test_000_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_test_test_000_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_test_test_002",
+      "name": "ads_d3_Tfinite_test_test_002",
+      "category": "test",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 0.8813118934631348,
+      "zh_truth": 0.7044173618506032,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_test_test_002_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_test_test_002_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_test_test_003",
+      "name": "ads_d3_Tfinite_test_test_003",
+      "category": "test",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 1.0932077169418335,
+      "zh_truth": 1.0989105139552193,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_test_test_003_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_test_test_003_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_test_test_007",
+      "name": "ads_d3_Tfinite_test_test_007",
+      "category": "test",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 1.1875251531600952,
+      "zh_truth": 1.1589993144496153,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_test_test_007_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_test_test_007_geometry.npz"
+    },
+    {
+      "system_name": "ads_d3_Tfinite_test_test_008",
+      "name": "ads_d3_Tfinite_test_test_008",
+      "category": "test",
+      "family_pred": "ads",
+      "family_truth": "ads",
+      "family_pred_id": 0,
+      "family_truth_id": 0,
+      "zh_pred": 1.0224303007125854,
+      "zh_truth": 1.0321476403947976,
+      "h5_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent/ads_d3_Tfinite_test_test_008_emergent.h5",
+      "npz_output": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/predictions/ads_d3_Tfinite_test_test_008_geometry.npz"
+    }
+  ],
+  "normalizer_stats": {
+    "A_mean": -0.918281106397869,
+    "A_std": 0.7126270789816819,
+    "f_mean": 0.16397057719479266,
+    "f_std": 0.337127916907015,
+    "R_mean": -3.066517750587205,
+    "R_std": 7.45207587080947
+  }
+}

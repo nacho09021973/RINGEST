@@ -1,0 +1,28 @@
+{
+  "counts": {
+    "average_einstein_score": 0.5,
+    "n_geometries": 18,
+    "n_likely_einstein": 0,
+    "n_non_einstein": 0,
+    "n_possibly_einstein": 18,
+    "n_with_equations": 18,
+    "pysr_available": true
+  },
+  "created_at": "2026-04-22T16:50:56.472197+00:00",
+  "error_message": null,
+  "exit_code": 0,
+  "experiment": "routeB_all18_20260422",
+  "input_root": null,
+  "n_evaluable": null,
+  "n_not_evaluable": null,
+  "n_theories": null,
+  "notes": null,
+  "output_dir": null,
+  "post_hoc_only": null,
+  "script": null,
+  "stage": "03_discover_bulk_equations",
+  "stage_name": null,
+  "status": "OK",
+  "upstream_training_contamination": null,
+  "verdict_counts": null
+}

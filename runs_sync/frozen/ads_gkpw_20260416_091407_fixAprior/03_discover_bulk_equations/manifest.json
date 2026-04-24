@@ -1,0 +1,52 @@
+{
+  "artifacts": {
+    "bulk_equations_output_dir": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs",
+    "einstein_discovery_1": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_002/einstein_discovery.json",
+    "einstein_discovery_10": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_019/einstein_discovery.json",
+    "einstein_discovery_11": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_test_test_000/einstein_discovery.json",
+    "einstein_discovery_12": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_test_test_002/einstein_discovery.json",
+    "einstein_discovery_13": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_test_test_003/einstein_discovery.json",
+    "einstein_discovery_14": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_test_test_007/einstein_discovery.json",
+    "einstein_discovery_15": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_test_test_008/einstein_discovery.json",
+    "einstein_discovery_2": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_004/einstein_discovery.json",
+    "einstein_discovery_3": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_005/einstein_discovery.json",
+    "einstein_discovery_4": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_008/einstein_discovery.json",
+    "einstein_discovery_5": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_009/einstein_discovery.json",
+    "einstein_discovery_6": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_010/einstein_discovery.json",
+    "einstein_discovery_7": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_013/einstein_discovery.json",
+    "einstein_discovery_8": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_016/einstein_discovery.json",
+    "einstein_discovery_9": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_017/einstein_discovery.json",
+    "einstein_discovery_summary": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations/outputs/einstein_discovery_summary.json",
+    "geometry_input_dir": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent"
+  },
+  "created_at": "2026-04-24T08:48:26.217810+00:00",
+  "experiment": "ads_gkpw_20260416_091407_fixAprior",
+  "metadata": {
+    "command": "03_discover_bulk_equations.py --run-dir runs/ads_gkpw_20260416_091407_fixAprior --geometry-dir runs/ads_gkpw_20260416_091407_fixAprior/02_emergent_geometry_engine/geometry_emergent",
+    "experiment": "ads_gkpw_20260416_091407_fixAprior"
+  },
+  "outputs": {
+    "bulk_equations_output_dir": "03_discover_bulk_equations/outputs",
+    "einstein_discovery_files": [
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_002/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_004/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_005/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_008/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_009/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_010/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_013/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_016/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_017/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_known_019/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_test_test_000/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_test_test_002/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_test_test_003/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_test_test_007/einstein_discovery.json",
+      "03_discover_bulk_equations/outputs/ads_d3_Tfinite_test_test_008/einstein_discovery.json"
+    ],
+    "einstein_discovery_summary": "03_discover_bulk_equations/outputs/einstein_discovery_summary.json"
+  },
+  "run_root": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior",
+  "stage": "03_discover_bulk_equations",
+  "stage_dir": "/home/ignac/RINGEST/runs/ads_gkpw_20260416_091407_fixAprior/03_discover_bulk_equations"
+}

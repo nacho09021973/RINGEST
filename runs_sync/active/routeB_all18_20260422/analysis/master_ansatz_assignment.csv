@@ -1,0 +1,8 @@
+event,assignment,equation_class,source_kind,r2,M_final_Msun,chi_final,zh_pred,assignment_rationale
+GW150914,A,square_x3_plus_rational,community_ringdown_pilot,0.9931422119225892,62.8947854783675,0.6067675788186017,1.3606071472167969,entra en el nucleo racional con correccion baja en x3
+GW170104,B,mixed_x0_x3_coupled,community_ringdown_t0_selected,0.994566512696865,82.64191370161068,0.4608595016394539,1.365721344947815,requiere mezcla moderada x0/x3 ademas del nucleo
+GW170814,A,square_x3_plus_rational,community_ringdown_t0_selected,0.9951462775387728,63.81781490838661,0.7206382397930899,1.3501298427581787,entra en el nucleo racional con correccion baja en x3
+GW170823,B,mixed_x0_x3_coupled,community_ringdown_single_pass,0.9945892587643218,76.57476515432445,0.4749515854051285,1.3654944896697998,requiere mezcla moderada x0/x3 ademas del nucleo
+GW190421_213856,A,square_x3_plus_rational,community_ringdown_single_pass,0.9947828355836866,121.90259603738912,0.2836636095725934,1.3760106563568115,entra en el nucleo racional con correccion baja en x3
+GW190503_185404,outlier,x3_x1_bilinear,community_ringdown_single_pass,0.9966824900862268,130.91562962802442,0.20604350798273136,1.389824628829956,queda fuera de la familia minima por el termino bilineal x3*x1
+GW190828_063405,A,linear_x3_rational,community_ringdown_single_pass,0.9924588297780877,84.8411542174124,0.5990150140059536,1.3611843585968018,queda absorbido por el nucleo como correccion baja lineal en x3

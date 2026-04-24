@@ -1,0 +1,38 @@
+{
+  "name": "GW170104",
+  "category": "unknown",
+  "results": {
+    "R_statistics": {
+      "mean": -11.49694538116455,
+      "std": 26.949663162231445,
+      "min": -204.4886932373047,
+      "max": 55.88920211791992,
+      "coefficient_of_variation": 2.3440716006313016
+    },
+    "pysr_available": true,
+    "R_is_constant": false,
+    "R_equation": {
+      "equation": "neg((((x4 / x1) - 13.17248) - ((x3 + x0) * 6.932565)) * x2)",
+      "complexity": 14,
+      "loss": 3.9462562,
+      "r2": 0.994566512696865,
+      "feature_names": [
+        "A",
+        "f",
+        "dA",
+        "d2A",
+        "df",
+        "d2f"
+      ]
+    }
+  },
+  "validation": {
+    "R_constant": false,
+    "R_negative": true,
+    "R_significant": true,
+    "einstein_vacuum_compatible": false,
+    "A_is_logarithmic": false,
+    "einstein_score": 0.5,
+    "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+  }
+}

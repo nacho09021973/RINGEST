@@ -1,0 +1,18 @@
+# `runs_sync/` solo admite por defecto artefactos ligeros y trazables.
+*
+!*/
+!.gitignore
+!README.md
+!**/*.md
+!**/*.json
+!**/*.csv
+!**/*.txt
+!**/*.yml
+!**/*.yaml
+
+# Binarios de pipeline fuera de Git normal hasta activar LFS.
+*.h5
+*.hdf5
+*.npz
+*.nc
+*.pt

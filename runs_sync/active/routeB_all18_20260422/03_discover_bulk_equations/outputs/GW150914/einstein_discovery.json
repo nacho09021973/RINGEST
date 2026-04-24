@@ -1,0 +1,38 @@
+{
+  "name": "GW150914",
+  "category": "unknown",
+  "results": {
+    "R_statistics": {
+      "mean": -11.715590476989746,
+      "std": 27.38353157043457,
+      "min": -207.53355407714844,
+      "max": 56.826995849609375,
+      "coefficient_of_variation": 2.337358208618169
+    },
+    "pysr_available": true,
+    "R_is_constant": false,
+    "R_equation": {
+      "equation": "neg((x2 * (((x4 / x1) + square(x3 - 0.8077009)) - 26.597477)) - 5.190074)",
+      "complexity": 15,
+      "loss": 5.142365,
+      "r2": 0.9931422119225892,
+      "feature_names": [
+        "A",
+        "f",
+        "dA",
+        "d2A",
+        "df",
+        "d2f"
+      ]
+    }
+  },
+  "validation": {
+    "R_constant": false,
+    "R_negative": true,
+    "R_significant": true,
+    "einstein_vacuum_compatible": false,
+    "A_is_logarithmic": false,
+    "einstein_score": 0.5,
+    "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+  }
+}

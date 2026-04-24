@@ -1,0 +1,697 @@
+{
+  "geometries": [
+    {
+      "name": "GW150914",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -11.715590476989746,
+          "std": 27.38353157043457,
+          "min": -207.53355407714844,
+          "max": 56.826995849609375,
+          "coefficient_of_variation": 2.337358208618169
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "neg((x2 * (((x4 / x1) + square(x3 - 0.8077009)) - 26.597477)) - 5.190074)",
+          "complexity": 15,
+          "loss": 5.142365,
+          "r2": 0.9931422119225892,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW170104",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -11.49694538116455,
+          "std": 26.949663162231445,
+          "min": -204.4886932373047,
+          "max": 55.88920211791992,
+          "coefficient_of_variation": 2.3440716006313016
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "neg((((x4 / x1) - 13.17248) - ((x3 + x0) * 6.932565)) * x2)",
+          "complexity": 14,
+          "loss": 3.9462562,
+          "r2": 0.994566512696865,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW170814",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -11.506381034851074,
+          "std": 26.89201545715332,
+          "min": -203.55801391601562,
+          "max": 56.20557403564453,
+          "coefficient_of_variation": 2.33713931213192
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "square(2.1517012 - x3) + (x2 * ((x4 / neg(x1)) + 23.891819))",
+          "complexity": 13,
+          "loss": 3.5101173,
+          "r2": 0.9951462775387728,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW170823",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -11.63757610321045,
+          "std": 27.245206832885742,
+          "min": -206.63304138183594,
+          "max": 56.64363098144531,
+          "coefficient_of_variation": 2.341141023785487
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "x2 * ((13.266534 - (x4 / x1)) - ((x3 + x0) * -6.895242))",
+          "complexity": 13,
+          "loss": 4.0164,
+          "r2": 0.9945892587643218,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190408_181802",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -10.694095611572266,
+          "std": 25.307540893554688,
+          "min": -192.06903076171875,
+          "max": 51.92868423461914,
+          "coefficient_of_variation": 2.3664965989206523
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "(neg(x4 / (x1 / x2)) + (x2 * 19.390837)) + square(1.3211039 - x3)",
+          "complexity": 15,
+          "loss": 8.410297,
+          "r2": 0.9868685862813521,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190421_213856",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -11.915287971496582,
+          "std": 28.23275375366211,
+          "min": -212.09678649902344,
+          "max": 58.91055679321289,
+          "coefficient_of_variation": 2.369456266685519
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "square(x3 + -2.175832) + (x2 * (neg(x4 / x1) - -24.204292))",
+          "complexity": 13,
+          "loss": 4.1585407,
+          "r2": 0.9947828355836866,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190503_185404",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -11.784550666809082,
+          "std": 28.041156768798828,
+          "min": -211.06822204589844,
+          "max": 58.753448486328125,
+          "coefficient_of_variation": 2.3794845948210956
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "((x2 * (22.628174 - (x4 / x1))) + 4.2389197) - ((x3 * x1) * 8.968058)",
+          "complexity": 15,
+          "loss": 2.6085787,
+          "r2": 0.9966824900862268,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190512_180714",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -10.794502258300781,
+          "std": 25.528017044067383,
+          "min": -193.88148498535156,
+          "max": 52.56818389892578,
+          "coefficient_of_variation": 2.3649091392055896
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "((23.284292 - (x4 / x1)) * x2) + square(x3 + -2.1137426)",
+          "complexity": 12,
+          "loss": 2.7097673,
+          "r2": 0.9958418716952613,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190513_205428",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -10.552995681762695,
+          "std": 25.01908302307129,
+          "min": -189.83164978027344,
+          "max": 51.27389907836914,
+          "coefficient_of_variation": 2.3708038719347986
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "(((x4 / neg(x1)) + 23.07932) * x2) + square(x3 + -2.0979125)",
+          "complexity": 13,
+          "loss": 2.4659495,
+          "r2": 0.996060496870521,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190519_153544",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -11.266767501831055,
+          "std": 26.420778274536133,
+          "min": -200.27113342285156,
+          "max": 54.81350326538086,
+          "coefficient_of_variation": 2.3450185041989884
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "square(x3 + -2.1391435) - (((x4 / x1) - 23.689947) * x2)",
+          "complexity": 12,
+          "loss": 3.216231,
+          "r2": 0.9953925993970977,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190521_074359",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -11.281070709228516,
+          "std": 26.467439651489258,
+          "min": -200.7322998046875,
+          "max": 54.64031982421875,
+          "coefficient_of_variation": 2.3461815224332265
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "square(x3 + -2.1401262) - (((x4 / x1) + -23.704638) * x2)",
+          "complexity": 12,
+          "loss": 3.2485287,
+          "r2": 0.995362724302516,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190602_175927",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -10.123357772827148,
+          "std": 23.936243057250977,
+          "min": -182.3002166748047,
+          "max": 39.68399429321289,
+          "coefficient_of_variation": 2.364456892086099
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "4.119162 - (x2 * ((x4 / x1) - (24.979195 - square(x3 - 1.197202))))",
+          "complexity": 14,
+          "loss": 3.370777,
+          "r2": 0.9941167398268728,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190706_222641",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -10.624298095703125,
+          "std": 25.122007369995117,
+          "min": -190.51242065429688,
+          "max": 51.771095275878906,
+          "coefficient_of_variation": 2.364580430957502
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "(square(x3 + -2.1015184) - ((x2 * x4) / x1)) - (x2 * -23.135395)",
+          "complexity": 14,
+          "loss": 2.5096197,
+          "r2": 0.9960235138645661,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190708_232457",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -11.26244831085205,
+          "std": 26.435688018798828,
+          "min": -200.5245361328125,
+          "max": 54.51209259033203,
+          "coefficient_of_variation": 2.3472416732951147
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "neg(((x3 / 0.10239258) + ((x4 * x2) / x1)) + (x1 * 34.974022))",
+          "complexity": 14,
+          "loss": 5.521368,
+          "r2": 0.9920993001249913,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190727_060333",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -10.211684226989746,
+          "std": 24.29946517944336,
+          "min": -184.15147399902344,
+          "max": 49.65794372558594,
+          "coefficient_of_variation": 2.379574675348978
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "square(2.0737126 - x3) - (x2 * ((x4 / x1) - 22.774176))",
+          "complexity": 12,
+          "loss": 2.1640382,
+          "r2": 0.9963350209568226,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190828_063405",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -11.4912748336792,
+          "std": 26.910120010375977,
+          "min": -204.07769775390625,
+          "max": 55.66986846923828,
+          "coefficient_of_variation": 2.3417871732797026
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "((x2 * (neg(x4 / x1) + 21.721323)) + 5.3621006) + (x3 / -0.1307417)",
+          "complexity": 14,
+          "loss": 5.460971,
+          "r2": 0.9924588297780877,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190910_112807",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -10.76168441772461,
+          "std": 25.4382381439209,
+          "min": -193.04811096191406,
+          "max": 52.25322341918945,
+          "coefficient_of_variation": 2.3637784900835292
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "((x2 * (neg(x4 / x1) - -20.90998)) + 4.9114366) - (x3 / 0.13080649)",
+          "complexity": 14,
+          "loss": 4.752145,
+          "r2": 0.9926562866124664,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    },
+    {
+      "name": "GW190915_235702",
+      "category": "unknown",
+      "results": {
+        "R_statistics": {
+          "mean": -10.55526351928711,
+          "std": 25.01139259338379,
+          "min": -189.74349975585938,
+          "max": 51.318519592285156,
+          "coefficient_of_variation": 2.3695659087473047
+        },
+        "pysr_available": true,
+        "R_is_constant": false,
+        "R_equation": {
+          "equation": "(x2 * neg((x4 / x1) + -23.079441)) + square(x3 - 2.097763)",
+          "complexity": 13,
+          "loss": 2.4613912,
+          "r2": 0.9960653607625594,
+          "feature_names": [
+            "A",
+            "f",
+            "dA",
+            "d2A",
+            "df",
+            "d2f"
+          ]
+        }
+      },
+      "validation": {
+        "R_constant": false,
+        "R_negative": true,
+        "R_significant": true,
+        "einstein_vacuum_compatible": false,
+        "A_is_logarithmic": false,
+        "einstein_score": 0.5,
+        "verdict": "POSSIBLY_EINSTEIN_WITH_MATTER"
+      }
+    }
+  ],
+  "summary": {
+    "n_geometries": 18,
+    "n_with_equations": 18,
+    "n_likely_einstein": 0,
+    "n_possibly_einstein": 18,
+    "n_non_einstein": 0,
+    "average_einstein_score": 0.5,
+    "pysr_available": true
+  }
+}
