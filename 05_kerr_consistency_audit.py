@@ -127,17 +127,34 @@ def global_stats(audit_rows: List[Dict[str, Any]]) -> Dict[str, Any]:
                 all_residuals.append(v)
 
     n = len(all_residuals)
+    unique_events = sorted({row["event"] for row in audit_rows})
     stats: Dict[str, Any] = {
-        "n_events": len(audit_rows),
+        "n_unique_events": len(unique_events),
+        "n_mode_rows": len(audit_rows),
         "n_residuals": n,
         "kerr_sigma_source": audit_rows[0].get("kerr_sigma_source", "") if audit_rows else "",
     }
 
+    # Per-mode verdict counts (one entry per CSV row / mode)
     verdict_counts: Dict[str, int] = {}
     for row in audit_rows:
         v = row.get("verdict_kerr", "no_data")
         verdict_counts[v] = verdict_counts.get(v, 0) + 1
-    stats["verdict_counts"] = verdict_counts
+    stats["verdict_counts_by_mode"] = verdict_counts
+
+    # Per-event verdict: worst mode verdict per event
+    event_worst: Dict[str, str] = {}
+    order = ["no_data", "consistent", "marginal", "tension", "strong_tension"]
+    for row in audit_rows:
+        ev = row["event"]
+        v = row.get("verdict_kerr", "no_data")
+        prev = event_worst.get(ev, "no_data")
+        if order.index(v) > order.index(prev):
+            event_worst[ev] = v
+    event_verdict_counts: Dict[str, int] = {}
+    for v in event_worst.values():
+        event_verdict_counts[v] = event_verdict_counts.get(v, 0) + 1
+    stats["verdict_counts_by_event"] = event_verdict_counts
 
     if n == 0:
         stats["note"] = "no residuals available"
@@ -169,7 +186,8 @@ def global_stats(audit_rows: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 def print_summary(audit_rows: List[Dict[str, Any]], gstats: Dict[str, Any]) -> None:
     print(f"\n[KERR CONSISTENCY AUDIT — {SCRIPT_VERSION}]")
-    print(f"  eventos              : {gstats['n_events']}")
+    print(f"  eventos únicos       : {gstats['n_unique_events']}")
+    print(f"  filas de modos       : {gstats['n_mode_rows']}")
     print(f"  residuos totales     : {gstats['n_residuals']}")
     print(f"  kerr_sigma_source    : {gstats.get('kerr_sigma_source', 'n/a')}")
     print(f"  residual mean / std  : {gstats.get('residual_mean', 'n/a')} / {gstats.get('residual_std', 'n/a')}")
@@ -179,8 +197,8 @@ def print_summary(audit_rows: List[Dict[str, Any]], gstats: Dict[str, Any]) -> N
         print(f"  AD stat / crit 5%    : {gstats['ad_stat']} / {gstats['ad_critical_5pct']}  "
               f"({'OK' if gstats['ad_consistent_with_normal_5pct'] else 'FAIL'} vs N(0,1))")
 
-    print(f"\n  Veredictos:")
-    for v, cnt in sorted(gstats.get("verdict_counts", {}).items()):
+    print(f"\n  Veredictos por evento (peor modo):")
+    for v, cnt in sorted(gstats.get("verdict_counts_by_event", {}).items()):
         print(f"    {v:20s} : {cnt}")
 
     print(f"\n  Tabla por evento:")

@@ -1,8 +1,14 @@
 {
-  "n_events": 19,
+  "n_unique_events": 19,
+  "n_mode_rows": 19,
   "n_residuals": 38,
   "kerr_sigma_source": "point_estimate",
-  "verdict_counts": {
+  "verdict_counts_by_mode": {
+    "marginal": 4,
+    "strong_tension": 12,
+    "tension": 3
+  },
+  "verdict_counts_by_event": {
     "marginal": 4,
     "strong_tension": 12,
     "tension": 3
