@@ -74,7 +74,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# Registro canónico de familias — fuente de verdad para FAMILY_MAP
+# Registro canonico de familias  fuente de verdad para FAMILY_MAP
 try:
     from family_registry import FAMILY_MAP as _REGISTRY_FAMILY_MAP
     _HAS_FAMILY_REGISTRY = True
@@ -118,7 +118,7 @@ try:
 except ImportError:
     HAS_CUERDAS_IO = False
 
-# V3 contract: feature support audit (C2 — QNM block removed)
+# V3 contract: feature support audit (C2  QNM block removed)
 HAS_FEATURE_SUPPORT = False
 FEATURE_NAMES_V2_5 = None
 FEATURE_NAMES_V3 = None
@@ -230,7 +230,7 @@ def _validate_train_cohort_homogeneity(
             "TRAIN_COHORT_HETEROGENEOUS_D: "
             f"known sample {sample_name!r} (family={sample_family}, d={sample_d}) "
             f"no coincide con la referencia {ref_name!r} (family={ref_family}, d={ref_d}). "
-            "El train de Stage 02 usa un único d global; prepara una cohorte homogénea."
+            "El train de Stage 02 usa un unico d global; prepara una cohorte homogenea."
         )
 
     ref_z = np.asarray(ref_z_grid, dtype=np.float64).reshape(-1)
@@ -240,7 +240,7 @@ def _validate_train_cohort_homogeneity(
             "TRAIN_COHORT_HETEROGENEOUS_NZ: "
             f"known sample {sample_name!r} (family={sample_family}, n_z={sample_z.size}) "
             f"no coincide con la referencia {ref_name!r} (family={ref_family}, n_z={ref_z.size}). "
-            "El train de Stage 02 hace np.stack(...) y usa un único z_t; "
+            "El train de Stage 02 hace np.stack(...) y usa un unico z_t; "
             "no admite discretizaciones radiales con distinta longitud."
         )
 
@@ -249,7 +249,7 @@ def _validate_train_cohort_homogeneity(
             "TRAIN_COHORT_HETEROGENEOUS_ZGRID: "
             f"known sample {sample_name!r} (family={sample_family}) "
             f"no comparte exactamente z_grid con la referencia {ref_name!r} "
-            f"(family={ref_family}). El train de Stage 02 usa un único z_t global; "
+            f"(family={ref_family}). El train de Stage 02 usa un unico z_t global; "
             "no admite rejillas radiales distintas aunque n_z coincida."
         )
 
@@ -272,7 +272,7 @@ def _resolve_train_family_id(
             "TRAIN_UNKNOWN_FAMILY: "
             f"sample {sample_name!r} declara family={sample_family!r}, "
             f"pero no existe en family_map. H5={sample_h5_path}. "
-            "Registra explícitamente la familia en family_registry.py o corrige la metadata; "
+            "Registra explicitamente la familia en family_registry.py o corrige la metadata; "
             "Stage 02 train no admite fallback silencioso de labels."
         )
     return int(family_map[sample_family])
@@ -289,8 +289,12 @@ LOSS_WEIGHT_F = 2.0          # Blackening factor f(z) - PRIORITARIO
 LOSS_WEIGHT_R = 0.001        # Escalar de Ricci R(z) - MUY BAJO (secundario)
 LOSS_WEIGHT_ZH = 0.1         # PosiciAfAE'A+aEUR(TM)AfaEURsA,A3n del horizonte z_h - BAJO
 LOSS_WEIGHT_FAMILY = 0.05    # ClasificaciAfAE'A+aEUR(TM)AfaEURsA,A3n de family - MUY BAJO
-LOSS_WEIGHT_PHYSICS = 0.05   # Regularización física genérica (solo muestras con bulk_truth)
-LOSS_WEIGHT_PHYSICS_ADS = 0.02  # Regularización AdS-específica (solo muestras ads, via ads_mask)
+LOSS_WEIGHT_PHYSICS = 0.05   # Regularizacion fisica generica (solo muestras con bulk_truth)
+LOSS_WEIGHT_PHYSICS_ADS = 0.02  # Regularizacion AdS-especifica (solo muestras ads, via ads_mask)
+A_UV_Z_MAX = 0.2            # Reponderacion UV local solo para la supervision de A(z)
+A_UV_GAIN = 3.0             # Gain en z <= A_UV_Z_MAX, normalizado a media 1
+LOSS_WEIGHT_A_UV_EDGE = 0.05  # MSE adicional solo en el borde UV extremo de A(z)
+A_UV_EDGE_Z_MAX = 0.05        # Primer tramo UV donde el sesgo residual de A es dominante
 
 # Learning rate y scheduler
 LEARNING_RATE = 1e-3
@@ -300,31 +304,31 @@ GRAD_CLIP_NORM = 1.0
 # Frecuencia de evaluaciAfAE'A+aEUR(TM)AfaEURsA,A3n en test (cada N epochs)
 EVAL_FREQUENCY = 50
 
-# Semántica operativa de family en inference sobre cohortes OOD/unificadas:
+# Semantica operativa de family en inference sobre cohortes OOD/unificadas:
 # publicar compatibilidad y abstenerse salvo soporte suficiente.
 FAMILY_OUTPUT_SEMANTICS = "compatibility_with_abstention"
 FAMILY_CONFIDENCE_TOP1_THRESHOLD = 0.60
 FAMILY_CONFIDENCE_MARGIN_THRESHOLD = 0.20
 
-# Nota epistemológica legible por evento. El ranking es compatibilidad con el
-# banco entrenado, no pertenencia física. Cuando el banco tiene una sola
+# Nota epistemologica legible por evento. El ranking es compatibilidad con el
+# banco entrenado, no pertenencia fisica. Cuando el banco tiene una sola
 # familia, el "ranking" entre familias es ruido del head softmax y no prueba
-# nada entre familias — sólo contesta "¿compatible con esa única familia?".
+# nada entre familias  solo contesta "compatible con esa unica familia?".
 FAMILY_INTERPRETATION_NOTE_BASE = (
-    "Ranking = compatibilidad con el banco entrenado, no pertenencia física. "
+    "Ranking = compatibilidad con el banco entrenado, no pertenencia fisica. "
     "top1 solo debe leerse como 'familia declarada compatible' si "
     "family_pred_confident=True; en otro caso abstenerse."
 )
 FAMILY_INTERPRETATION_NOTE_SINGLE_FAMILY = (
-    " Banco del checkpoint es single_family: los scores de las demás familias "
+    " Banco del checkpoint es single_family: los scores de las demas familias "
     "son artefacto del head softmax y NO constituyen evidencia comparativa "
-    "entre familias; el único veredicto significativo es compatibilidad con "
+    "entre familias; el unico veredicto significativo es compatibilidad con "
     "la familia activa."
 )
 FAMILY_INTERPRETATION_NOTE_REALDATA = (
     " Entrada marcada como realdata_surrogate: el embedding viene de ringdown "
     "observado; aunque coincida con una familia del banco, no implica "
-    "dualidad holográfica fuerte."
+    "dualidad holografica fuerte."
 )
 
 
@@ -341,18 +345,18 @@ def set_torch_seed(seed: int = 42):
 
 def resolve_runtime_device(requested_device: str) -> torch.device:
     """
-    Resuelve el dispositivo de ejecución con fallback no intrusivo a CPU.
+    Resuelve el dispositivo de ejecucion con fallback no intrusivo a CPU.
 
     Reglas:
-    - Si se pide CUDA y no está disponible, avisa y cae a CPU.
-    - Si el string de dispositivo es inválido, avisa y cae a CPU.
+    - Si se pide CUDA y no esta disponible, avisa y cae a CPU.
+    - Si el string de dispositivo es invalido, avisa y cae a CPU.
     - Siempre imprime el dispositivo realmente usado.
     """
     requested = (requested_device or "cpu").strip().lower()
 
     if requested.startswith("cuda") and not torch.cuda.is_available():
         print(
-            f"[WARN] Se solicitó --device {requested_device!r}, pero CUDA no está disponible. "
+            f"[WARN] Se solicito --device {requested_device!r}, pero CUDA no esta disponible. "
             "Fallback a cpu."
         )
         resolved = torch.device("cpu")
@@ -363,7 +367,7 @@ def resolve_runtime_device(requested_device: str) -> torch.device:
         resolved = torch.device(requested)
     except Exception as exc:
         print(
-            f"[WARN] Dispositivo inválido {requested_device!r}: {exc}. "
+            f"[WARN] Dispositivo invalido {requested_device!r}: {exc}. "
             "Fallback a cpu."
         )
         resolved = torch.device("cpu")
@@ -374,7 +378,7 @@ def resolve_runtime_device(requested_device: str) -> torch.device:
         device_count = torch.cuda.device_count()
         if resolved.index is not None and resolved.index >= device_count:
             print(
-                f"[WARN] Se solicitó {requested_device!r}, pero solo hay {device_count} "
+                f"[WARN] Se solicito {requested_device!r}, pero solo hay {device_count} "
                 "dispositivos CUDA visibles. Fallback a cpu."
             )
             resolved = torch.device("cpu")
@@ -429,7 +433,7 @@ def build_family_inference_report(
     family_bank_active_families: Optional[List[str]] = None,
     boundary_family_status: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Convierte logits/probabilidades de family en compatibilidad + abstención explícita."""
+    """Convierte logits/probabilidades de family en compatibilidad + abstencion explicita."""
     family_prob_row = np.asarray(family_prob_row, dtype=np.float64)
     family_order = np.argsort(family_prob_row)[::-1]
     top1_idx = int(family_order[0])
@@ -458,13 +462,13 @@ def build_family_inference_report(
     }
     # Ranking restringido a las familias realmente presentes en el banco del
     # checkpoint. Si hay una sola familia activa, los scores para el resto son
-    # artefacto del head y se marcan explícitamente como no comparativos.
+    # artefacto del head y se marcan explicitamente como no comparativos.
     active_set = set(family_bank_active_families or [])
     family_scores_active = (
         {k: v for k, v in family_scores.items() if k in active_set}
         if active_set else dict(family_scores)
     )
-    # Nota epistemológica por evento (texto humano legible).
+    # Nota epistemologica por evento (texto humano legible).
     note_parts = [FAMILY_INTERPRETATION_NOTE_BASE]
     if family_bank_status == "single_family_bank":
         note_parts.append(FAMILY_INTERPRETATION_NOTE_SINGLE_FAMILY)
@@ -797,9 +801,9 @@ def build_feature_vector(boundary_data: Dict[str, Any], operators: List[Dict]) -
     else:
         all_features.extend([float(T), float(T > 1e-10), 0.0, 0.0])
     
-    # 3. Features QNM (3 features): Q0, f1/f0, γ1/γ0
-    # Replaces the 4 Δ operator features, which are 0 for all LIGO data
-    # (no CFT operator spectrum) but non-zero for sandbox — breaking generalization.
+    # 3. Features QNM (3 features): Q0, f1/f0, 1/0
+    # Replaces the 4  operator features, which are 0 for all LIGO data
+    # (no CFT operator spectrum) but non-zero for sandbox  breaking generalization.
     # QNM features are stored as boundary attrs by both 00_compute_sandbox_qnms.py
     # (sandbox) and realdata_ringdown_to_stage02_boundary_dataset.py (LIGO).
     qnm_Q0   = float(boundary_data.get("qnm_Q0",   0.0))
@@ -836,7 +840,7 @@ def build_feature_vector(boundary_data: Dict[str, Any], operators: List[Dict]) -
         d = int(d.ravel()[0]) if d.size > 0 else 4
     all_features.append(float(d))
     
-    # Total: 20 features (V2.5: reemplaza 4 features Δ por 3 features QNM)
+    # Total: 20 features (V2.5: reemplaza 4 features  por 3 features QNM)
     # Correlador: 9 (4 orig + 3 running + 2 stats)
     # Termicos: 4, QNM: 3 (Q0/f1f0/g1g0), Respuesta: 2, Globales: 2
     return np.array(all_features, dtype=np.float32)
@@ -844,19 +848,19 @@ def build_feature_vector(boundary_data: Dict[str, Any], operators: List[Dict]) -
 
 def build_feature_vector_v3(boundary_data: Dict[str, Any], operators: List[Dict]) -> np.ndarray:
     """
-    V3 feature vector — Camino C2 contract (17 features).
+    V3 feature vector  Camino C2 contract (17 features).
 
     Identical to build_feature_vector except the QNM block (qnm_Q0, qnm_f1f0,
     qnm_g1g0) is intentionally absent.  This makes the vector interoperable
-    between the holographic sandbox (Kerr analytical, Q0≈2–7) and the real
-    GWOSC bridge (ESPRIT 250 ms window, Q0≈100–10000) without the 795σ
+    between the holographic sandbox (Kerr analytical, Q027) and the real
+    GWOSC bridge (ESPRIT 250 ms window, Q010010000) without the 795
     extrapolation that killed the V2.5 gate.
 
     Feature ordering (must stay in sync with FEATURE_NAMES_V3 in feature_support.py):
-      0–8:   G2 correlator (9): log_slope, log_curvature, small_x, large_x,
+      08:   G2 correlator (9): log_slope, log_curvature, small_x, large_x,
              slope_UV, slope_IR, slope_running, G2_std, G2_skew
-      9–12:  Thermal (4): temperature, has_horizon, thermal_scale, exponential_decay
-      13–14: Response G_R (2): GR_peak_height, GR_peak_width
+      912:  Thermal (4): temperature, has_horizon, thermal_scale, exponential_decay
+      1314: Response G_R (2): GR_peak_height, GR_peak_width
       15:    central_charge_eff (1)
       16:    d (1)
     """
@@ -968,9 +972,9 @@ class CuerdasDataLoader:
         """
         Accede al grupo `bulk_truth` solo en modo entrenamiento.
 
-        Para geometrías sin bulk_truth (e.g. Kerr sintético) devuelve arrays de ceros
+        Para geometrias sin bulk_truth (e.g. Kerr sintetico) devuelve arrays de ceros
         y has_bulk_truth=False. El loop de entrenamiento debe anular la loss de
-        reconstrucción para esas geometrías.
+        reconstruccion para esas geometrias.
 
         Returns: (A_truth, f_truth, R_truth, z_grid, z_h, family, d, has_bulk_truth)
         """
@@ -981,9 +985,9 @@ class CuerdasDataLoader:
             )
 
         if "bulk_truth" not in f:
-            # Geometría sin dual holográfico conocido (e.g. Kerr).
-            # Devolver placeholder de ceros; el training loop usará has_bulk_truth=False
-            # para omitir la loss de reconstrucción A/f/R.
+            # Geometria sin dual holografico conocido (e.g. Kerr).
+            # Devolver placeholder de ceros; el training loop usara has_bulk_truth=False
+            # para omitir la loss de reconstruccion A/f/R.
             family_attr = f.attrs.get("family", b"unknown")
             if isinstance(family_attr, bytes):
                 family_attr = family_attr.decode("utf-8")
@@ -1016,25 +1020,33 @@ def build_parser() -> argparse.ArgumentParser:
         description="CUERDAS - Geometria emergente V2.2 (train, inference, experimental finetune hook)"
     )
     parser.add_argument("--data-dir", type=str, default=None,
-                        help="directory con datos HDF5 de geometrías")
+                        help="directory con datos HDF5 de geometrias")
     parser.add_argument("--output-dir", type=str, default=None,
                         help="directory de salida para modelo y predicciones")
     parser.add_argument("--n-epochs", type=int, default=2000,
-                        help="Número de épocas de entrenamiento (solo mode=train)")
+                        help="Numero de epocas de entrenamiento (solo mode=train)")
     parser.add_argument("--device", type=str, default="cpu",
                         help="Dispositivo: 'cpu' o 'cuda'")
     parser.add_argument("--hidden-dim", type=int, default=256,
-                        help="Dimensión oculta de la red")
+                        help="Dimension oculta de la red")
     parser.add_argument("--n-layers", type=int, default=4,
-                        help="Número de capas residuales")
+                        help="Numero de capas residuales")
     parser.add_argument("--batch-size", type=int, default=32,
-                        help="Tamaño de batch")
+                        help="Tamano de batch")
     parser.add_argument("--seed", type=int, default=42,
                         help="Semilla aleatoria")
     parser.add_argument("--verbose", action="store_true", default=True,
                         help="Imprimir progreso detallado")
     parser.add_argument("--lr", type=float, default=LEARNING_RATE,
                         help="Learning rate inicial")
+    parser.add_argument(
+        "--hard-a0-anchor",
+        action="store_true",
+        help=(
+            "Fija A(z0) exactamente en el mean del primer punto del train "
+            "normalizado y deja el resto del perfil como residual escalado."
+        ),
+    )
     parser.add_argument(
         "--mode",
         type=str,
@@ -1070,15 +1082,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run_finetune_physics_mode(args):
     """
-    Gancho explícito para un futuro ajuste físico autosupervisado.
+    Gancho explicito para un futuro ajuste fisico autosupervisado.
 
-    No debe inferirse de esta ruta que exista hoy validación boundary↔bulk
-    ni una loss física operacional.
+    No debe inferirse de esta ruta que exista hoy validacion boundarybulk
+    ni una loss fisica operacional.
     """
     raise NotImplementedError(
         "finetune_physics not implemented yet; current engine supports only "
         "supervised train (sandbox with bulk_truth) and boundary-only inference. "
-        "No validated physics fine-tuning or boundary↔bulk consistency loop is available yet."
+        "No validated physics fine-tuning or boundarybulk consistency loop is available yet."
     )
 
 
@@ -1242,6 +1254,13 @@ class EmergentGeometryNet(nn.Module):
         
         # ClasificaciAfAE'A+aEUR(TM)AfaEURsA,A3n de family
         self.decoder_family = nn.Linear(hidden_dim, n_families)
+
+        # Configuracion opcional: anclar exactamente A(z0) en espacio normalizado.
+        self.hard_a0_anchor_enabled = False
+        self.hard_a0_ref_norm = 0.0
+        self.hard_a0_anchor_space = "disabled"
+        self.hard_a0_ref_policy = "none"
+        self.hard_a0_ref_scope = "none"
         
         self._init_weights()
     
@@ -1254,13 +1273,72 @@ class EmergentGeometryNet(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
         
-        # InicializaciAfAE'A+aEUR(TM)AfaEURsA,A3n especial para decoders: Outputs: cerca de 0
-        for decoder in [self.decoder_A, self.decoder_f, self.decoder_zh]:
+        # Init especial solo para decoder_zh. Fix B2: el gain=0.1 en las cabezas
+        # A y f dejaba su ultima capa en la escala del init (std ~3e-3) y
+        # A_r2 nunca cruzaba 0 (~2000 epochs), con A_pred colapsado a A_mean.
+        # decoder_zh se mantiene amortiguado porque zh es escalar acotado.
+        for decoder in [self.decoder_zh]:
             if isinstance(decoder, nn.Sequential):
                 last_layer = decoder[-1]
                 if isinstance(last_layer, nn.Linear):
                     nn.init.xavier_normal_(last_layer.weight, gain=0.1)
                     nn.init.zeros_(last_layer.bias)
+
+    def apply_empirical_prior_init(
+        self,
+        Y_A_norm: np.ndarray,
+        Y_f_norm: np.ndarray,
+        z_grid: Optional[np.ndarray] = None,
+    ):
+        # Fix B2: sobre el sandbox AdS-GKPW el target A(z)=-log(z) es identico
+        # entre eventos (std e-18) y f(z) tiene un perfil medio bien definido.
+        # Con el init a cero de los bias la red converge al predictor constante
+        # A_pred=A_mean (loss Huber ~0.59, coincide con la observada). Inicializar
+        # el bias de la ultima capa al perfil medio normalizado elimina ese
+        # minimo local: el modelo arranca en el predictor mean-per-z y aprende
+        # desviaciones respecto a el.
+        A_mean_z_np = Y_A_norm.mean(axis=0).astype(np.float32)
+        A_mean_z = torch.from_numpy(A_mean_z_np)
+        f_mean_z = torch.from_numpy(Y_f_norm.mean(axis=0).astype(np.float32))
+        with torch.no_grad():
+            last_A = self.decoder_A[-1]
+            last_f = self.decoder_f[-1]
+            if self.hard_a0_anchor_enabled and z_grid is not None:
+                z_arr = np.asarray(z_grid, dtype=np.float32).reshape(-1)
+                z0 = float(z_arr[0])
+                z_max = float(z_arr[-1])
+                denom = max(z_max - z0, 1e-8)
+                scale = (z_arr - z0) / denom
+                scale[0] = 0.0
+                A_residual_mean = np.zeros_like(A_mean_z_np)
+                valid = scale > 0.0
+                A_residual_mean[valid] = (
+                    A_mean_z_np[valid] - float(self.hard_a0_ref_norm)
+                ) / scale[valid]
+                # Bajo ancla dura, queremos arrancar en el perfil medio exacto y
+                # evitar que la dependencia espuria en x rompa la condicion UV.
+                last_A.weight.zero_()
+                last_A.bias.copy_(
+                    torch.from_numpy(A_residual_mean).to(last_A.bias.device)
+                )
+            else:
+                last_A.bias.copy_(A_mean_z.to(last_A.bias.device))
+            last_f.bias.copy_(f_mean_z.to(last_f.bias.device))
+
+    def configure_hard_a0_anchor(
+        self,
+        *,
+        enabled: bool,
+        a0_ref_norm: float = 0.0,
+        anchor_space: str = "disabled",
+        ref_policy: str = "none",
+        ref_scope: str = "none",
+    ) -> None:
+        self.hard_a0_anchor_enabled = bool(enabled)
+        self.hard_a0_ref_norm = float(a0_ref_norm)
+        self.hard_a0_anchor_space = str(anchor_space)
+        self.hard_a0_ref_policy = str(ref_policy)
+        self.hard_a0_ref_scope = str(ref_scope)
     
     def forward(self, x: torch.Tensor, z_grid: torch.Tensor = None) -> Dict[str, torch.Tensor]:
         # Normalizacion de entrada
@@ -1276,10 +1354,25 @@ class EmergentGeometryNet(nn.Module):
         h = self.final_norm(h)
         
         # Decoders para campos primarios (A, f)
-        A = self.decoder_A(h)
+        A_raw = self.decoder_A(h)
         f_raw = self.decoder_f(h)
         z_h = self.decoder_zh(h).squeeze(-1)
         family_logits = self.decoder_family(h)
+
+        A = A_raw
+        if self.hard_a0_anchor_enabled:
+            if z_grid is None:
+                raise ValueError(
+                    "HARD_A0_ANCHOR_REQUIRES_Z_GRID: "
+                    "no se puede fijar A(z0) exactamente sin z_grid."
+                )
+            z0 = z_grid[0]
+            z_max = z_grid[-1]
+            denom = torch.clamp(z_max - z0, min=1e-8)
+            scale = (z_grid - z0) / denom
+            scale = scale.to(device=A_raw.device, dtype=A_raw.dtype).clone()
+            scale[0] = 0.0
+            A = self.hard_a0_ref_norm + scale.view(1, -1) * A_raw
         
         # V2.3: R se calcula DETERMINISTICAMENTE desde A,f
         # Esto garantiza consistencia geometrica: R es propiedad de la metrica
@@ -1468,6 +1561,35 @@ def physics_loss_ads_specific(
     return 0.5 * loss_ads_monotonic + 0.5 * loss_f_uv
 
 
+def build_A_uv_weights(z: torch.Tensor) -> torch.Tensor:
+    """
+    Auditoria UV en fixAprior: el error dominante esta en A cerca del boundary.
+    Reponderamos solo la supervision de A en UV y normalizamos a media 1.
+    """
+    weights = torch.ones_like(z)
+    weights = torch.where(z <= A_UV_Z_MAX, torch.full_like(z, A_UV_GAIN), weights)
+    return weights / torch.mean(weights)
+
+
+def compute_A_uv_edge_loss_per(
+    A_pred: torch.Tensor,
+    A_truth: torch.Tensor,
+    z: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Perdida cuadratica explicita solo en el primer tramo UV de A(z).
+
+    La auditoria en fixAprior_uvA mostro que la reponderacion plana de la
+    SmoothL1 sobre z <= 0.2 no corrige el subanclaje del primer punto UV; este
+    termino restaura un gradiente proporcional al error justo en el borde.
+    """
+    edge_mask = z <= A_UV_EDGE_Z_MAX
+    if not torch.any(edge_mask):
+        return torch.zeros(A_pred.shape[0], device=A_pred.device, dtype=A_pred.dtype)
+    delta_edge = A_pred[:, edge_mask] - A_truth[:, edge_mask]
+    return torch.mean(delta_edge ** 2, dim=-1)
+
+
 # ============================================================
 # FUNCIONES DE ENTRENAMIENTO (V2.1 REFACTORIZADO)
 # ============================================================
@@ -1510,7 +1632,8 @@ def train_one_epoch(
     # Acumuladores
     losses = {
         "total": 0.0, "A": 0.0, "f": 0.0, "R": 0.0, 
-        "zh": 0.0, "family": 0.0, "physics": 0.0, "physics_ads": 0.0
+        "zh": 0.0, "family": 0.0, "physics": 0.0, "physics_ads": 0.0,
+        "A_uv_edge": 0.0,
     }
     family_map_inv = {int(v): str(k) for k, v in family_map.items()}
     family_epoch_stats: Dict[str, Dict[str, float]] = {}
@@ -1518,6 +1641,7 @@ def train_one_epoch(
     huber = nn.SmoothL1Loss()
     mse = nn.MSELoss()
     ce = nn.CrossEntropyLoss()
+    a_uv_weights = build_A_uv_weights(z_t).view(1, -1)
     
     for b in range(n_batches):
         start = b * batch_size
@@ -1536,11 +1660,12 @@ def train_one_epoch(
         # V2.3: Pasar z_grid para calcular R desde A,f
         out = model(xb, z_grid=z_t)
 
-        # Perdidas de datos — anular reconstrucción A/f/R para geometrías sin bulk_truth
-        # (e.g. Kerr sintético). bulk_w=0 para esas, 1 para geometrías holográficas.
+        # Perdidas de datos  anular reconstruccion A/f/R para geometrias sin bulk_truth
+        # (e.g. Kerr sintetico). bulk_w=0 para esas, 1 para geometrias holograficas.
         huber_nr = nn.SmoothL1Loss(reduction='none')
         mse_nr   = nn.MSELoss(reduction='none')
-        loss_A_per = huber_nr(out["A"], yA).mean(dim=-1) * bulk_w
+        loss_A_per = (huber_nr(out["A"], yA) * a_uv_weights).mean(dim=-1) * bulk_w
+        loss_A_uv_edge_per = compute_A_uv_edge_loss_per(out["A"], yA, z_t) * bulk_w
         loss_f_per = mse_nr(out["f"], yf).mean(dim=-1) * bulk_w
         loss_R_per = huber_nr(out["R"], yR).mean(dim=-1) * bulk_w
         loss_zh_per = (
@@ -1549,16 +1674,17 @@ def train_one_epoch(
             else huber_nr(out["z_h"], yzh) * bulk_w
         )
         loss_A  = loss_A_per.mean()
+        loss_A_uv_edge = loss_A_uv_edge_per.mean()
         loss_f  = loss_f_per.mean()
         loss_R  = loss_R_per.mean()
         loss_zh = loss_zh_per.mean()
         loss_family = ce(out["family_logits"], yfam)
         
-        # Pérdidas físicas.
-        # physics_generic: solo muestras con bulk_truth (holográficas); Kerr no tiene
-        # dual holográfico y sus A/f reconstruidas no están supervisadas (bulk_w=0),
-        # por lo que regularizarlas con priors AdS sería un prior incorrecto.
-        # physics_ads_specific: ya usa ads_mask=(yfam==ads) → Kerr excluido automáticamente.
+        # Perdidas fisicas.
+        # physics_generic: solo muestras con bulk_truth (holograficas); Kerr no tiene
+        # dual holografico y sus A/f reconstruidas no estan supervisadas (bulk_w=0),
+        # por lo que regularizarlas con priors AdS seria un prior incorrecto.
+        # physics_ads_specific: ya usa ads_mask=(yfam==ads)  Kerr excluido automaticamente.
         holo_mask = bulk_w.bool()
         if holo_mask.any():
             loss_physics = physics_loss_generic(
@@ -1571,6 +1697,7 @@ def train_one_epoch(
 
         supervised_proxy_per = (
             LOSS_WEIGHT_A * loss_A_per +
+            LOSS_WEIGHT_A_UV_EDGE * loss_A_uv_edge_per +
             LOSS_WEIGHT_F * loss_f_per +
             LOSS_WEIGHT_R * loss_R_per +
             LOSS_WEIGHT_ZH * loss_zh_per
@@ -1602,6 +1729,7 @@ def train_one_epoch(
         # PAfAE'A+aEUR(TM)AfaEURsA,A(C)rdida total ponderada
         total = (
             LOSS_WEIGHT_A * loss_A + 
+            LOSS_WEIGHT_A_UV_EDGE * loss_A_uv_edge +
             LOSS_WEIGHT_F * loss_f + 
             LOSS_WEIGHT_R * loss_R +
             LOSS_WEIGHT_ZH * loss_zh + 
@@ -1618,6 +1746,7 @@ def train_one_epoch(
         batch_weight = (end - start) / n_train
         losses["total"] += float(total.item()) * batch_weight
         losses["A"] += float(loss_A.item()) * batch_weight
+        losses["A_uv_edge"] += float(loss_A_uv_edge.item()) * batch_weight
         losses["f"] += float(loss_f.item()) * batch_weight
         losses["R"] += float(loss_R.item()) * batch_weight
         losses["zh"] += float(loss_zh.item()) * batch_weight
@@ -1639,6 +1768,17 @@ def train_one_epoch(
         for fam_name, stats in sorted(family_epoch_stats.items())
     }
     return losses
+
+
+def clone_model_state_dict_to_cpu(model: nn.Module) -> Dict[str, torch.Tensor]:
+    """
+    Clona el state_dict del modelo en CPU para poder conservar snapshots
+    estables del mejor/final estado sin aliasing de tensores.
+    """
+    return {
+        key: value.detach().cpu().clone()
+        for key, value in model.state_dict().items()
+    }
 
 
 @torch.no_grad()
@@ -1806,8 +1946,8 @@ def run_inference_mode(args):
     n_z = ckpt["n_z"]
     hidden_dim = ckpt.get("hidden_dim", 256)
     n_layers = ckpt.get("n_layers", 4)
-    # Fallback: si el checkpoint no tiene family_map, usar el registro canónico.
-    # El registro extiende el mapa original (índices 0-4 idénticos) con Tier A.
+    # Fallback: si el checkpoint no tiene family_map, usar el registro canonico.
+    # El registro extiende el mapa original (indices 0-4 identicos) con Tier A.
     _default_fm = _REGISTRY_FAMILY_MAP if _HAS_FAMILY_REGISTRY else {
         "ads": 0, "lifshitz": 1, "hyperscaling": 2, "deformed": 3, "unknown": 4,
         "kerr": 6,
@@ -1871,8 +2011,23 @@ def run_inference_mode(args):
     ).to(device)
     
     model.load_state_dict(ckpt["model_state_dict"])
+    a0_anchor_config = ckpt.get("a0_anchor_config", {}) or {}
+    if a0_anchor_config.get("A0_HARD_ANCHOR", False):
+        model.configure_hard_a0_anchor(
+            enabled=True,
+            a0_ref_norm=float(a0_anchor_config.get("A0_REF_VALUE_NORM", 0.0)),
+            anchor_space=str(a0_anchor_config.get("A0_ANCHOR_SPACE", "normalized")),
+            ref_policy=str(a0_anchor_config.get("A0_REF_POLICY", "train_mean_first_grid_point")),
+            ref_scope=str(a0_anchor_config.get("A0_REF_SCOPE", "global")),
+        )
     model.eval()
     print("   Modelo cargado correctamente")
+    if a0_anchor_config.get("A0_HARD_ANCHOR", False):
+        print(
+            "   [INFO] A0 hard anchor activo: "
+            f"ref_norm={float(a0_anchor_config.get('A0_REF_VALUE_NORM', 0.0)):.6f}, "
+            f"z0={float(a0_anchor_config.get('A0_REF_Z', z_grid[0])):.6f}"
+        )
     
     # === PREPARAR directoryS DE SALIDA ===
     geom_dir = output_dir / "geometry_emergent"
@@ -1912,7 +2067,7 @@ def run_inference_mode(args):
         with h5py.File(h5_path, "r") as f:
             # Solo carga boundary (bulk_truth bloqueado)
             boundary_data, operators = loader.load_boundary_and_meta(f)
-            # Preservar semántica declarativa del input (no sobreescribir con el clasificador).
+            # Preservar semantica declarativa del input (no sobreescribir con el clasificador).
             def _decode_attr(val, default=""):
                 if val is None:
                     return default
@@ -2060,7 +2215,7 @@ def run_inference_mode(args):
             # Atributos (IO_CONTRACTS_V1)
             family_pred = preds["family_name"]
             f_out.attrs["system_name"] = name
-            # Canónico: 'family' es la semántica declarativa heredada del boundary input.
+            # Canonico: 'family' es la semantica declarativa heredada del boundary input.
             # El clasificador vive SOLO en family_pred / family_best_compatibility_label.
             f_out.attrs["family"] = boundary_family
             if boundary_family_status:
@@ -2210,7 +2365,7 @@ def run_inference_mode(args):
         "feature_contract": inference_feature_contract["label"],
         "n_features": int(n_features),
         "description": (
-            "Geometría emergente inferida desde datos boundary-only "
+            "Geometria emergente inferida desde datos boundary-only "
             "usando modelo entrenado en sandbox"
         ),
         "checkpoint": str(checkpoint_path),
@@ -2293,7 +2448,11 @@ def run_train_mode(args):
     print("=" * 70)
     print(f"  Pesos de loss: A={LOSS_WEIGHT_A}, f={LOSS_WEIGHT_F}, R={LOSS_WEIGHT_R}")
     print(f"                 zh={LOSS_WEIGHT_ZH}, family={LOSS_WEIGHT_FAMILY}")
-    print(f"                 physics={LOSS_WEIGHT_PHYSICS}, ads={LOSS_WEIGHT_PHYSICS_ADS}")
+    print(
+        f"                 physics={LOSS_WEIGHT_PHYSICS}, ads={LOSS_WEIGHT_PHYSICS_ADS}, "
+        f"A_uv_edge={LOSS_WEIGHT_A_UV_EDGE} @ z<={A_UV_EDGE_Z_MAX}"
+    )
+    print(f"                 hard_A0_anchor={bool(args.hard_a0_anchor)}")
     print("=" * 70)
     
     # Cargar manifest (geometries_manifest.json tiene precedencia sobre manifest.json)
@@ -2304,8 +2463,8 @@ def run_train_mode(args):
         raise FileNotFoundError(f"geometries_manifest.json / manifest.json not found en {data_dir}")
     manifest = json.loads(manifest_path.read_text())
     
-    # family_map: fuente canónica desde family_registry.
-    # Si el módulo no está disponible, fallback inline (mismo orden de índices).
+    # family_map: fuente canonica desde family_registry.
+    # Si el modulo no esta disponible, fallback inline (mismo orden de indices).
     if _HAS_FAMILY_REGISTRY:
         family_map = dict(_REGISTRY_FAMILY_MAP)
     else:
@@ -2488,6 +2647,26 @@ def run_train_mode(args):
     print(f"     A: mean={normalizer.A_mean:.3f}, std={normalizer.A_std:.3f}")
     print(f"     f: mean={normalizer.f_mean:.3f}, std={normalizer.f_std:.3f}")
     print(f"     R: mean={normalizer.R_mean:.3f}, std={normalizer.R_std:.3f}")
+
+    a0_anchor_config = {
+        "A0_HARD_ANCHOR": bool(args.hard_a0_anchor),
+        "A0_ANCHOR_SPACE": "normalized" if args.hard_a0_anchor else "disabled",
+        "A0_REF_POLICY": "train_mean_first_grid_point" if args.hard_a0_anchor else "none",
+        "A0_REF_SCOPE": "global" if args.hard_a0_anchor else "none",
+        "A0_REF_VALUE_NORM": (
+            float(np.mean(Y_A_train_norm[:, 0])) if args.hard_a0_anchor else None
+        ),
+        "A0_REF_VALUE_PHYSICAL": (
+            float(np.mean(Y_A_train[:, 0])) if args.hard_a0_anchor else None
+        ),
+        "A0_REF_Z": float(z_grid[0]),
+    }
+    if args.hard_a0_anchor:
+        print(
+            "     A0 hard anchor: "
+            f"ref_norm={a0_anchor_config['A0_REF_VALUE_NORM']:.6f}, "
+            f"z0={a0_anchor_config['A0_REF_Z']:.6f}"
+        )
     
     # Convertir a tensores
     X_train_t = torch.from_numpy(X_train_norm.astype(np.float32)).to(device)
@@ -2522,7 +2701,21 @@ def run_train_mode(args):
         n_families=len(family_map),
         d=d_value,  # V2.3: necesario para calcular R desde A,f
     ).to(device)
-    
+
+    if args.hard_a0_anchor:
+        model.configure_hard_a0_anchor(
+            enabled=True,
+            a0_ref_norm=float(a0_anchor_config["A0_REF_VALUE_NORM"]),
+            anchor_space=str(a0_anchor_config["A0_ANCHOR_SPACE"]),
+            ref_policy=str(a0_anchor_config["A0_REF_POLICY"]),
+            ref_scope=str(a0_anchor_config["A0_REF_SCOPE"]),
+        )
+    # Fix B2: inicializar el bias de la ultima capa de decoder_A/decoder_f
+    # con el perfil medio empirico del training set (normalizado). Necesario
+    # porque con A(z) identica entre eventos, el init-a-cero del bias atrapa
+    # al modelo en el predictor constante A_pred=A_mean.
+    model.apply_empirical_prior_init(Y_A_train_norm, Y_f_train_norm, z_grid=z_grid)
+
     n_params = sum(p.numel() for p in model.parameters())
     print(f"  Parameters: {n_params:,}")
     
@@ -2548,6 +2741,7 @@ def run_train_mode(args):
     
     best_test_A_r2 = -np.inf
     best_epoch = 0
+    best_model_state_dict: Optional[Dict[str, torch.Tensor]] = None
     
     print("\n>> Iniciando entrenamiento...")
     print("-" * 70)
@@ -2583,6 +2777,7 @@ def run_train_mode(args):
             if test_metrics["A_r2"] > best_test_A_r2:
                 best_test_A_r2 = test_metrics["A_r2"]
                 best_epoch = epoch
+                best_model_state_dict = clone_model_state_dict_to_cpu(model)
         
         # Logging
         if args.verbose and (epoch % max(1, args.n_epochs // 20) == 0 or epoch == 1):
@@ -2612,6 +2807,18 @@ def run_train_mode(args):
                     )
     
     print("-" * 70)
+
+    final_model_state_dict = clone_model_state_dict_to_cpu(model)
+    if best_model_state_dict is not None:
+        # Stage 02 selecciona "best" por A_r2 y desde aqui materializa ese
+        # estado, no el ultimo, para alinear checkpoint, summary y outputs.
+        model.load_state_dict(best_model_state_dict)
+        print(
+            "\n   [INFO] Recargando mejor estado para evaluacion/materializacion: "
+            f"epoch {best_epoch} con A_r2={best_test_A_r2:.4f}"
+        )
+    else:
+        best_model_state_dict = final_model_state_dict
     
     # === EVALUACIAfAE'A+aEUR(TM)AfAcAcaEURsA!A...aEURoeN FINAL EN TEST ===
     
@@ -2661,8 +2868,8 @@ def run_train_mode(args):
 
     # === INFERENCIA FINAL SOBRE LA COHORTE COMPLETA (train + test) ===
     # Stage 02 debe materializar geometry_emergent y predictions para TODA la cohorte
-    # declarada en el manifest (N = n_train + n_test), no sólo para la subcohorte de test.
-    # El split se mantiene intacto para las métricas de entrenamiento/validación.
+    # declarada en el manifest (N = n_train + n_test), no solo para la subcohorte de test.
+    # El split se mantiene intacto para las metricas de entrenamiento/validacion.
     all_names = list(train_data["names"]) + list(test_data["names"])
     all_X_list = list(train_data["X"]) + list(test_data["X"])
     all_Y_A = np.stack(list(train_data["Y_A"]) + list(test_data["Y_A"]))
@@ -2688,7 +2895,7 @@ def run_train_mode(args):
         normalizer, device, z_grid=z_t
     )
 
-    print(f"\n>> Materializando cohorte completa: {len(all_names)} geometrías")
+    print(f"\n>> Materializando cohorte completa: {len(all_names)} geometrias")
 
     for i, name in enumerate(all_names):
         family_pred_idx = int(family_pred_all[i])
@@ -2700,10 +2907,10 @@ def run_train_mode(args):
         out_h5_path = geom_dir / f"{name}_emergent.h5"
         with h5py.File(out_h5_path, "w") as f_out:
             f_out.attrs["system_name"] = name
-            # `family` es la semántica canónica (ground truth) preservada
-            # desde stage 01. La predicción del modelo vive en `family_pred`.
-            # No pisar la verdad con la predicción rompe la trazabilidad
-            # semántica en el carril canónico (e.g. ADS/GKPW -> massive_gravity).
+            # `family` es la semantica canonica (ground truth) preservada
+            # desde stage 01. La prediccion del modelo vive en `family_pred`.
+            # No pisar la verdad con la prediccion rompe la trazabilidad
+            # semantica en el carril canonico (e.g. ADS/GKPW -> massive_gravity).
             f_out.attrs["family"] = family_truth_name
             f_out.attrs["family_pred"] = family_pred_name
             f_out.attrs["family_truth"] = family_truth_name
@@ -2754,7 +2961,9 @@ def run_train_mode(args):
     
     model_path = output_dir / "emergent_geometry_model.pt"
     torch.save({
-        "model_state_dict": model.state_dict(),
+        "model_state_dict": clone_model_state_dict_to_cpu(model),
+        "best_model_state_dict": best_model_state_dict,
+        "final_model_state_dict": final_model_state_dict,
         "n_features": X_train.shape[1],
         "n_z": Y_A_train.shape[1],
         "hidden_dim": args.hidden_dim,
@@ -2780,7 +2989,14 @@ def run_train_mode(args):
             "family": LOSS_WEIGHT_FAMILY,
             "physics": LOSS_WEIGHT_PHYSICS,
             "physics_ads": LOSS_WEIGHT_PHYSICS_ADS,
+            "A_uv_edge": LOSS_WEIGHT_A_UV_EDGE,
         },
+        "uv_supervision": {
+            "A_uv_z_max": A_UV_Z_MAX,
+            "A_uv_gain": A_UV_GAIN,
+            "A_uv_edge_z_max": A_UV_EDGE_Z_MAX,
+        },
+        "a0_anchor_config": a0_anchor_config,
         "history": history,
         "best_epoch": best_epoch,
         "best_test_A_r2": best_test_A_r2,
@@ -2808,10 +3024,18 @@ def run_train_mode(args):
             "family": LOSS_WEIGHT_FAMILY,
             "physics": LOSS_WEIGHT_PHYSICS,
             "physics_ads": LOSS_WEIGHT_PHYSICS_ADS,
+            "A_uv_edge": LOSS_WEIGHT_A_UV_EDGE,
         },
+        "uv_supervision": {
+            "A_uv_z_max": A_UV_Z_MAX,
+            "A_uv_gain": A_UV_GAIN,
+            "A_uv_edge_z_max": A_UV_EDGE_Z_MAX,
+        },
+        "a0_anchor": a0_anchor_config,
         "train_metrics": {
             "final_total_loss": final_train_losses.get("total", 0.0),
             "final_A_loss": final_train_losses.get("A", 0.0),
+            "final_A_uv_edge_loss": final_train_losses.get("A_uv_edge", 0.0),
             "final_f_loss": final_train_losses.get("f", 0.0),
             "final_R_loss": final_train_losses.get("R", 0.0),
             "final_zh_loss": final_train_losses.get("zh", 0.0),
@@ -2860,6 +3084,7 @@ def run_train_mode(args):
             "version": "V2.2",
             "n_epochs": args.n_epochs,
             "seed": args.seed,
+            "hard_a0_anchor": bool(args.hard_a0_anchor),
         }
         try:
             manifest_path = write_run_manifest(output_dir, manifest_artifacts, manifest_metadata)
