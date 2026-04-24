@@ -127,7 +127,7 @@ events:
         source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
   - event: GW190519_153544
     ifo: literature
-    z: 0.822
+    z: 0.45
     M_final_Msun: 100.0
     chi_final: 0.79
     modes:
@@ -155,7 +155,7 @@ events:
         source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
   - event: GW190521_074359
     ifo: literature
-    z: 0.352
+    z: 0.21
     M_final_Msun: 72.6
     chi_final: 0.71
     modes:
@@ -239,7 +239,7 @@ events:
         source_paper: Tests of General Relativity with Binary Black Holes from the second LIGO-Virgo Gravitational-Wave Transient Catalog
   - event: GW190910_112807
     ifo: literature
-    z: 0.438
+    z: 0.29
     M_final_Msun: 74.4
     chi_final: 0.69
     modes:
