@@ -97,6 +97,11 @@ OUTPUT_COLUMNS = [
     # extensions for literature uncertainty (downstream scripts ignore them)
     "sigma_freq_hz", "sigma_damping_hz",
     "sigma_M_final_Msun", "sigma_chi_final",
+    # Ruta C: Kerr prediction in physical Hz and standardized residuals
+    "f_kerr_hz", "gamma_kerr_hz",
+    "sigma_f_kerr_hz", "sigma_gamma_kerr_hz",
+    "residual_f", "residual_gamma",
+    "kerr_sigma_source",
 ]
 
 KERR_220_FAIR_THRESHOLD = 0.15
@@ -200,6 +205,66 @@ def row_from_entry(event_name: str, ifo: str,
 
     is_220 = (n == 0) and (kerr_dist is not None) and (kerr_dist < KERR_220_FAIR_THRESHOLD)
 
+    # --- Ruta C: Kerr prediction in physical Hz for this mode ---
+    kerr_target = kerr_theory(chi_f, n)
+    if kerr_target is not None and scale > 0:
+        ore_k, oim_k = kerr_target
+        f_kerr_hz = ore_k / (2.0 * math.pi * scale)
+        gamma_kerr_hz = -oim_k / scale  # oim_k < 0, so gamma > 0
+    else:
+        f_kerr_hz = None
+        gamma_kerr_hz = None
+
+    # Propagate sigma_M and sigma_chi into Kerr prediction uncertainty.
+    # f_kerr ∝ omega_re(chi)/M  →  df/dM = -f_kerr/M  (analytical)
+    # df/dchi from numerical derivative of Berti table.
+    # When sigma_M or sigma_chi are absent: sigma_f_kerr_hz = 0 (conservative
+    # choice: treats Kerr prediction as exact given the point estimate M,chi).
+    sigma_f_kerr_hz = None
+    sigma_gamma_kerr_hz = None
+    kerr_sigma_source = "none"
+    if f_kerr_hz is not None:
+        if sigma_M is not None and sigma_chi is not None:
+            dchi = 1e-3
+            t_hi = kerr_theory(min(chi_f + dchi, 0.99), n)
+            t_lo = kerr_theory(max(chi_f - dchi, 0.0), n)
+            step = (min(chi_f + dchi, 0.99) - max(chi_f - dchi, 0.0))
+            if t_hi is not None and t_lo is not None and step > 0:
+                df_dchi = (t_hi[0] - t_lo[0]) / step / (2.0 * math.pi * scale)
+                dg_dchi = -(t_hi[1] - t_lo[1]) / step / scale
+            else:
+                df_dchi = dg_dchi = 0.0
+            df_dM = -f_kerr_hz / M_f if M_f > 0 else 0.0
+            dg_dM = -gamma_kerr_hz / M_f if (gamma_kerr_hz is not None and M_f > 0) else 0.0
+            sigma_f_kerr_hz = math.sqrt(
+                (df_dchi * float(sigma_chi)) ** 2 + (df_dM * float(sigma_M)) ** 2
+            )
+            sigma_gamma_kerr_hz = math.sqrt(
+                (dg_dchi * float(sigma_chi)) ** 2 + (dg_dM * float(sigma_M)) ** 2
+            )
+            kerr_sigma_source = "propagated"
+        else:
+            # No M/chi uncertainties in YAML: treat Kerr prediction as exact
+            sigma_f_kerr_hz = 0.0
+            sigma_gamma_kerr_hz = 0.0
+            kerr_sigma_source = "point_estimate"
+
+    # Standardized residuals: r = (obs - kerr) / sqrt(sigma_obs^2 + sigma_kerr^2)
+    residual_f = None
+    residual_gamma = None
+    if f_kerr_hz is not None and sigma_f_hz is not None:
+        sigma_f_obs = float(sigma_f_hz)
+        sigma_f_kerr = float(sigma_f_kerr_hz) if sigma_f_kerr_hz is not None else 0.0
+        denom_f = math.sqrt(sigma_f_obs ** 2 + sigma_f_kerr ** 2)
+        if denom_f > 0:
+            residual_f = (freq_hz - f_kerr_hz) / denom_f
+    if gamma_kerr_hz is not None and sigma_damping_hz is not None:
+        sigma_g_obs = float(sigma_damping_hz)
+        sigma_g_kerr = float(sigma_gamma_kerr_hz) if sigma_gamma_kerr_hz is not None else 0.0
+        denom_g = math.sqrt(sigma_g_obs ** 2 + sigma_g_kerr ** 2)
+        if denom_g > 0:
+            residual_gamma = (damping_hz - gamma_kerr_hz) / denom_g
+
     return {
         "event": event_name,
         "ifo": ifo,
@@ -223,6 +288,13 @@ def row_from_entry(event_name: str, ifo: str,
         "sigma_damping_hz": sigma_damping_hz,
         "sigma_M_final_Msun": sigma_M,
         "sigma_chi_final": sigma_chi,
+        "f_kerr_hz": f_kerr_hz,
+        "gamma_kerr_hz": gamma_kerr_hz,
+        "sigma_f_kerr_hz": sigma_f_kerr_hz,
+        "sigma_gamma_kerr_hz": sigma_gamma_kerr_hz,
+        "residual_f": residual_f,
+        "residual_gamma": residual_gamma,
+        "kerr_sigma_source": kerr_sigma_source,
     }
 
 
