@@ -244,8 +244,9 @@ def row_from_entry(event_name: str, ifo: str,
                 dg_dchi = -(t_hi[1] - t_lo[1]) / step / scale_detector
             else:
                 df_dchi = dg_dchi = 0.0
-            df_dM = -f_kerr_hz / M_detector if M_detector > 0 else 0.0
-            dg_dM = -gamma_kerr_hz / M_detector if (gamma_kerr_hz is not None and M_detector > 0) else 0.0
+            # sigma_M is uncertainty on M_source, so df/dM_source = -f_kerr/M_source
+            df_dM = -f_kerr_hz / M_f if M_f > 0 else 0.0
+            dg_dM = -gamma_kerr_hz / M_f if (gamma_kerr_hz is not None and M_f > 0) else 0.0
             # Use whichever sigmas are available; treat absent ones as 0
             s_chi = float(sigma_chi) if sigma_chi is not None else 0.0
             s_M = float(sigma_M) if sigma_M is not None else 0.0
