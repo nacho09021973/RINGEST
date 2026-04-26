@@ -1,0 +1,930 @@
+metadata:
+  cohort: gwtc4_pseobnr_table3
+  created_utc: '2026-04-25T09:22:56+00:00'
+  canonical_yaml_not_modified: data/qnm_events_literature.yml
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  mode: 220
+  paper_dcc: https://dcc-llo.ligo.org/LIGO-P2500067/public
+  data_release_dcc: https://dcc-llo.ligo.org/LIGO-P2600130/public
+  gwosc_api_v2: https://gwosc.org/api/v2
+  qnm_ci_convention: Table 3 reports median with 90% credible intervals; sigma_* here
+    is max(abs(+CI), abs(-CI)) for RINGEST ingestion.
+  pe_sigma_convention: max_abs_upper_lower_error_from_gwosc_api_v2_preferred_parameter_run
+  pe_selection: latest GWOSC event version whose catalog starts with GWTC; fallback
+    latest event version; preferred PE run where available
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  excluded_note: LVK asterisked events are not included under events; see groups.excluded_asterisk
+    and CSV table_status.
+groups:
+  table3_events:
+  - GW150914
+  - GW170104
+  - GW190519_153544
+  - GW190521_074359
+  - GW190630_185205
+  - GW190828_063405
+  - GW190910_112807
+  - GW191109_010717
+  - GW200129_065458
+  - GW200208_130117
+  - GW200224_222234
+  - GW200311_115853
+  - GW230628_231200
+  - GW230914_111401
+  - GW230927_153832
+  - GW231028_153006
+  - GW231102_071736
+  - GW231206_233901
+  - GW231226_101520
+  usable_main:
+  - GW150914
+  - GW170104
+  - GW190519_153544
+  - GW190521_074359
+  - GW190630_185205
+  - GW190828_063405
+  - GW190910_112807
+  - GW200129_065458
+  - GW200224_222234
+  - GW200311_115853
+  - GW230628_231200
+  - GW230914_111401
+  - GW230927_153832
+  - GW231028_153006
+  - GW231102_071736
+  - GW231206_233901
+  - GW231226_101520
+  excluded_asterisk:
+  - GW191109_010717
+  - GW200208_130117
+  already_in_current_yaml:
+  - GW150914
+  - GW170104
+  - GW190519_153544
+  - GW190521_074359
+  - GW190828_063405
+  - GW190910_112807
+  new_for_ringest:
+  - GW190630_185205
+  - GW200129_065458
+  - GW200224_222234
+  - GW200311_115853
+  - GW230628_231200
+  - GW230914_111401
+  - GW230927_153832
+  - GW231028_153006
+  - GW231102_071736
+  - GW231206_233901
+  - GW231226_101520
+  no_verificado:
+  - GW230628_231200
+  - GW230914_111401
+  - GW230927_153832
+  - GW231028_153006
+  - GW231102_071736
+  - GW231206_233901
+  - GW231226_101520
+events:
+- event: GW150914
+  ifo: literature
+  z: 0.1
+  M_final_Msun: 61.5
+  chi_final: 0.68
+  sigma_M_final_Msun: 3.4
+  sigma_chi_final: 0.05
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW150914
+  gwosc_event_version: GW150914-v4
+  gwosc_event_version_catalog: GWTC-2.1-confident
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW150914-v4/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW150914-v4/parameters
+  pe_parameter_run: GWTC-1-confident_GW150914_R2_pe_combined
+  pe_waveform_family: C01:Mixed
+  pe_status: OK
+  pe_missing_fields: []
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 71.7
+  table3_detector_frame_sigma_M_final_Msun: 12.6
+  table3_pseobnr_chi_f: 0.76
+  table3_pseobnr_sigma_chi_f: 0.23
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 253.3
+    sigma_f_hz: 17.9
+    f_hz_ci_plus: 17.9
+    f_hz_ci_minus: 12.9
+    tau_ms: 4.51
+    sigma_tau_ms: 1.41
+    tau_ms_ci_plus: 1.41
+    tau_ms_ci_minus: 1.11
+    delta_f_220: 0.02
+    sigma_delta_f_220: 0.1
+    delta_f_220_ci_plus: 0.1
+    delta_f_220_ci_minus: 0.07
+    delta_tau_220: 0.1
+    sigma_delta_tau_220: 0.35
+    delta_tau_220_ci_plus: 0.35
+    delta_tau_220_ci_minus: 0.28
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW170104
+  ifo: literature
+  z: 0.22
+  M_final_Msun: 47.5
+  chi_final: 0.67
+  sigma_M_final_Msun: 4.5
+  sigma_chi_final: 0.08
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW170104
+  gwosc_event_version: GW170104-v3
+  gwosc_event_version_catalog: GWTC-2.1-confident
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW170104-v3/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW170104-v3/parameters
+  pe_parameter_run: GWTC-1-confident_GW170104_R2_pe_combined
+  pe_waveform_family: C01:Mixed
+  pe_status: OK
+  pe_missing_fields: []
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 71.6
+  table3_detector_frame_sigma_M_final_Msun: 22.0
+  table3_pseobnr_chi_f: 0.86
+  table3_pseobnr_sigma_chi_f: 0.43
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 284.8
+    sigma_f_hz: 36.8
+    f_hz_ci_plus: 25.3
+    f_hz_ci_minus: 36.8
+    tau_ms: 4.91
+    sigma_tau_ms: 3.58
+    tau_ms_ci_plus: 3.58
+    tau_ms_ci_minus: 2.29
+    delta_f_220: -0.02
+    sigma_delta_f_220: 0.16
+    delta_f_220_ci_plus: 0.16
+    delta_f_220_ci_minus: 0.14
+    delta_tau_220: 0.43
+    sigma_delta_tau_220: 0.94
+    delta_tau_220_ci_plus: 0.94
+    delta_tau_220_ci_minus: 0.67
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW190519_153544
+  ifo: literature
+  z: 0.45
+  M_final_Msun: 100.0
+  chi_final: 0.79
+  sigma_M_final_Msun: 13.0
+  sigma_chi_final: 0.12
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW190519_153544
+  gwosc_event_version: GW190519_153544-v2
+  gwosc_event_version_catalog: GWTC-2.1-confident
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW190519_153544-v2/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190519_153544-v2/parameters
+  pe_parameter_run: GWTC-2.1-confident_GW190519_153544_R2_pe_combined
+  pe_waveform_family: C01:Mixed
+  pe_status: OK
+  pe_missing_fields: []
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 142.4
+  table3_detector_frame_sigma_M_final_Msun: 36.5
+  table3_pseobnr_chi_f: 0.7
+  table3_pseobnr_sigma_chi_f: 0.45
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 121.7
+    sigma_f_hz: 14.3
+    f_hz_ci_plus: 11.8
+    f_hz_ci_minus: 14.3
+    tau_ms: 8.55
+    sigma_tau_ms: 4.75
+    tau_ms_ci_plus: 4.75
+    tau_ms_ci_minus: 2.9
+    delta_f_220: -0.15
+    sigma_delta_f_220: 0.19
+    delta_f_220_ci_plus: 0.19
+    delta_f_220_ci_minus: 0.13
+    delta_tau_220: 0.2
+    sigma_delta_tau_220: 0.56
+    delta_tau_220_ci_plus: 0.56
+    delta_tau_220_ci_minus: 0.39
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW190521_074359
+  ifo: literature
+  z: 0.21
+  M_final_Msun: 72.6
+  chi_final: 0.71
+  sigma_M_final_Msun: 6.5
+  sigma_chi_final: 0.06
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW190521_074359
+  gwosc_event_version: GW190521_074359-v2
+  gwosc_event_version_catalog: GWTC-2.1-confident
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW190521_074359-v2/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190521_074359-v2/parameters
+  pe_parameter_run: GWTC-2.1-confident_GW190521_074359_R2_pe_combined
+  pe_waveform_family: C01:Mixed
+  pe_status: OK
+  pe_missing_fields: []
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 87.8
+  table3_detector_frame_sigma_M_final_Msun: 17.8
+  table3_pseobnr_chi_f: 0.75
+  table3_pseobnr_sigma_chi_f: 0.3
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 204.0
+    sigma_f_hz: 24.4
+    f_hz_ci_plus: 24.4
+    f_hz_ci_minus: 12.7
+    tau_ms: 5.49
+    sigma_tau_ms: 1.9
+    tau_ms_ci_plus: 1.9
+    tau_ms_ci_minus: 1.53
+    delta_f_220: 0.06
+    sigma_delta_f_220: 0.19
+    delta_f_220_ci_plus: 0.19
+    delta_f_220_ci_minus: 0.1
+    delta_tau_220: -0.04
+    sigma_delta_tau_220: 0.37
+    delta_tau_220_ci_plus: 0.37
+    delta_tau_220_ci_minus: 0.28
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW190630_185205
+  ifo: literature
+  z: 0.18
+  M_final_Msun: 56.6
+  chi_final: 0.7
+  sigma_M_final_Msun: 4.5
+  sigma_chi_final: 0.07
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW190630_185205
+  gwosc_event_version: GW190630_185205-v2
+  gwosc_event_version_catalog: GWTC-2.1-confident
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW190630_185205-v2/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190630_185205-v2/parameters
+  pe_parameter_run: GWTC-2.1-confident_GW190630_185205_R2_pe_combined
+  pe_waveform_family: C01:Mixed
+  pe_status: OK
+  pe_missing_fields: []
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 69.1
+  table3_detector_frame_sigma_M_final_Msun: 18.1
+  table3_pseobnr_chi_f: 0.69
+  table3_pseobnr_sigma_chi_f: 0.53
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 247.6
+    sigma_f_hz: 49.4
+    f_hz_ci_plus: 32.5
+    f_hz_ci_minus: 49.4
+    tau_ms: 3.81
+    sigma_tau_ms: 2.49
+    tau_ms_ci_plus: 2.49
+    tau_ms_ci_minus: 1.79
+    delta_f_220: -0.06
+    sigma_delta_f_220: 0.19
+    delta_f_220_ci_plus: 0.14
+    delta_f_220_ci_minus: 0.19
+    delta_tau_220: -0.04
+    sigma_delta_tau_220: 0.62
+    delta_tau_220_ci_plus: 0.62
+    delta_tau_220_ci_minus: 0.46
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW190828_063405
+  ifo: literature
+  z: 0.38
+  M_final_Msun: 54.3
+  chi_final: 0.74
+  sigma_M_final_Msun: 7.3
+  sigma_chi_final: 0.07
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW190828_063405
+  gwosc_event_version: GW190828_063405-v2
+  gwosc_event_version_catalog: GWTC-2.1-confident
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW190828_063405-v2/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190828_063405-v2/parameters
+  pe_parameter_run: GWTC-2.1-confident_GW190828_063405_R2_pe_combined
+  pe_waveform_family: C01:Mixed
+  pe_status: OK
+  pe_missing_fields: []
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 84.6
+  table3_detector_frame_sigma_M_final_Msun: 19.7
+  table3_pseobnr_chi_f: 0.9
+  table3_pseobnr_sigma_chi_f: 0.26
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 252.4
+    sigma_f_hz: 20.3
+    f_hz_ci_plus: 20.3
+    f_hz_ci_minus: 18.2
+    tau_ms: 6.41
+    sigma_tau_ms: 2.84
+    tau_ms_ci_plus: 2.84
+    tau_ms_ci_minus: 2.7
+    delta_f_220: 0.1
+    sigma_delta_f_220: 0.13
+    delta_f_220_ci_plus: 0.13
+    delta_f_220_ci_minus: 0.12
+    delta_tau_220: 0.17
+    sigma_delta_tau_220: 0.56
+    delta_tau_220_ci_plus: 0.56
+    delta_tau_220_ci_minus: 0.48
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW190910_112807
+  ifo: literature
+  z: 0.29
+  M_final_Msun: 74.4
+  chi_final: 0.69
+  sigma_M_final_Msun: 8.6
+  sigma_chi_final: 0.08
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW190910_112807
+  gwosc_event_version: GW190910_112807-v2
+  gwosc_event_version_catalog: GWTC-2.1-confident
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW190910_112807-v2/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190910_112807-v2/parameters
+  pe_parameter_run: GWTC-2.1-confident_GW190910_112807_R2_pe_combined
+  pe_waveform_family: C01:Mixed
+  pe_status: OK
+  pe_missing_fields: []
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 123.2
+  table3_detector_frame_sigma_M_final_Msun: 19.6
+  table3_pseobnr_chi_f: 0.9
+  table3_pseobnr_sigma_chi_f: 0.12
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 174.5
+    sigma_f_hz: 12.2
+    f_hz_ci_plus: 12.2
+    f_hz_ci_minus: 8.4
+    tau_ms: 9.49
+    sigma_tau_ms: 3.46
+    tau_ms_ci_plus: 3.46
+    tau_ms_ci_minus: 2.82
+    delta_f_220: 0.01
+    sigma_delta_f_220: 0.13
+    delta_f_220_ci_plus: 0.13
+    delta_f_220_ci_minus: 0.1
+    delta_tau_220: 0.61
+    sigma_delta_tau_220: 0.63
+    delta_tau_220_ci_plus: 0.63
+    delta_tau_220_ci_minus: 0.5
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW200129_065458
+  ifo: literature
+  z: 0.18
+  M_final_Msun: 60.2
+  chi_final: 0.73
+  sigma_M_final_Msun: 4.1
+  sigma_chi_final: 0.06
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW200129_065458
+  gwosc_event_version: GW200129_065458-v1
+  gwosc_event_version_catalog: GWTC-3-confident
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW200129_065458-v1/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW200129_065458-v1/parameters
+  pe_parameter_run: GWTC-3-confident_GW200129_065458_R2_pe_combined
+  pe_waveform_family: C01:Mixed
+  pe_status: OK
+  pe_missing_fields: []
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 77.3
+  table3_detector_frame_sigma_M_final_Msun: 12.3
+  table3_pseobnr_chi_f: 0.81
+  table3_pseobnr_sigma_chi_f: 0.25
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 247.6
+    sigma_f_hz: 16.8
+    f_hz_ci_plus: 12.5
+    f_hz_ci_minus: 16.8
+    tau_ms: 5.09
+    sigma_tau_ms: 1.72
+    tau_ms_ci_plus: 1.72
+    tau_ms_ci_minus: 1.32
+    delta_f_220: -0.01
+    sigma_delta_f_220: 0.08
+    delta_f_220_ci_plus: 0.06
+    delta_f_220_ci_minus: 0.08
+    delta_tau_220: 0.16
+    sigma_delta_tau_220: 0.38
+    delta_tau_220_ci_plus: 0.38
+    delta_tau_220_ci_minus: 0.28
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW200224_222234
+  ifo: literature
+  z: 0.32
+  M_final_Msun: 68.7
+  chi_final: 0.73
+  sigma_M_final_Msun: 6.7
+  sigma_chi_final: 0.07
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW200224_222234
+  gwosc_event_version: GW200224_222234-v1
+  gwosc_event_version_catalog: GWTC-3-confident
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW200224_222234-v1/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW200224_222234-v1/parameters
+  pe_parameter_run: GWTC-3-confident_GW200224_222234_R2_pe_combined
+  pe_waveform_family: C01:Mixed
+  pe_status: OK
+  pe_missing_fields: []
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 100.9
+  table3_detector_frame_sigma_M_final_Msun: 17.5
+  table3_pseobnr_chi_f: 0.84
+  table3_pseobnr_sigma_chi_f: 0.23
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 195.8
+    sigma_f_hz: 11.0
+    f_hz_ci_plus: 11.0
+    f_hz_ci_minus: 10.7
+    tau_ms: 6.89
+    sigma_tau_ms: 2.57
+    tau_ms_ci_plus: 2.57
+    tau_ms_ci_minus: 1.99
+    delta_f_220: 0.01
+    sigma_delta_f_220: 0.15
+    delta_f_220_ci_plus: 0.15
+    delta_f_220_ci_minus: 0.12
+    delta_tau_220: 0.22
+    sigma_delta_tau_220: 0.48
+    delta_tau_220_ci_plus: 0.48
+    delta_tau_220_ci_minus: 0.34
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW200311_115853
+  ifo: literature
+  z: 0.23
+  M_final_Msun: 59.0
+  chi_final: 0.69
+  sigma_M_final_Msun: 4.8
+  sigma_chi_final: 0.08
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW200311_115853
+  gwosc_event_version: GW200311_115853-v1
+  gwosc_event_version_catalog: GWTC-3-confident
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW200311_115853-v1/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW200311_115853-v1/parameters
+  pe_parameter_run: GWTC-3-confident_GW200311_115853_R2_pe_combined
+  pe_waveform_family: C01:Mixed
+  pe_status: OK
+  pe_missing_fields: []
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 80.0
+  table3_detector_frame_sigma_M_final_Msun: 26.5
+  table3_pseobnr_chi_f: 0.81
+  table3_pseobnr_sigma_chi_f: 0.43
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 239.8
+    sigma_f_hz: 23.1
+    f_hz_ci_plus: 23.1
+    f_hz_ci_minus: 18.9
+    tau_ms: 5.24
+    sigma_tau_ms: 6.17
+    tau_ms_ci_plus: 6.17
+    tau_ms_ci_minus: 2.07
+    delta_f_220: 0.02
+    sigma_delta_f_220: 0.17
+    delta_f_220_ci_plus: 0.17
+    delta_f_220_ci_minus: 0.09
+    delta_tau_220: 0.15
+    sigma_delta_tau_220: 1.51
+    delta_tau_220_ci_plus: 1.51
+    delta_tau_220_ci_minus: 0.45
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW230628_231200
+  ifo: literature
+  z: 0.4
+  M_final_Msun: 56.5
+  chi_final: null
+  sigma_M_final_Msun: 8.1
+  sigma_chi_final: null
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW230628_231200
+  gwosc_event_version: GW230628_231200-v1
+  gwosc_event_version_catalog: GWTC-4.0
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW230628_231200-v1/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW230628_231200-v1/parameters
+  pe_parameter_run: GWTC-4.0_GW230628_231200_C00:Mixed_RW2_PE
+  pe_waveform_family: C00:Mixed
+  pe_status: NO_VERIFICADO
+  pe_missing_fields:
+  - final_spin
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 93.1
+  table3_detector_frame_sigma_M_final_Msun: 14.4
+  table3_pseobnr_chi_f: 0.88
+  table3_pseobnr_sigma_chi_f: 0.15
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 224.2
+    sigma_f_hz: 13.2
+    f_hz_ci_plus: 12.8
+    f_hz_ci_minus: 13.2
+    tau_ms: 6.81
+    sigma_tau_ms: 2.14
+    tau_ms_ci_plus: 2.14
+    tau_ms_ci_minus: 1.95
+    delta_f_220: 0.08
+    sigma_delta_f_220: 0.17
+    delta_f_220_ci_plus: 0.17
+    delta_f_220_ci_minus: 0.11
+    delta_tau_220: 0.31
+    sigma_delta_tau_220: 0.47
+    delta_tau_220_ci_plus: 0.47
+    delta_tau_220_ci_minus: 0.38
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW230914_111401
+  ifo: literature
+  z: 0.47
+  M_final_Msun: 90.9
+  chi_final: null
+  sigma_M_final_Msun: 14.0
+  sigma_chi_final: null
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW230914_111401
+  gwosc_event_version: GW230914_111401-v1
+  gwosc_event_version_catalog: GWTC-4.0
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW230914_111401-v1/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW230914_111401-v1/parameters
+  pe_parameter_run: GWTC-4.0_GW230914_111401_C00:Mixed+XO4a_RW4_PE
+  pe_waveform_family: C00:Mixed+XO4a
+  pe_status: NO_VERIFICADO
+  pe_missing_fields:
+  - final_spin
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 147.6
+  table3_detector_frame_sigma_M_final_Msun: 33.0
+  table3_pseobnr_chi_f: 0.75
+  table3_pseobnr_sigma_chi_f: 0.38
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 122.1
+    sigma_f_hz: 8.2
+    f_hz_ci_plus: 8.2
+    f_hz_ci_minus: 7.9
+    tau_ms: 9.14
+    sigma_tau_ms: 3.78
+    tau_ms_ci_plus: 3.78
+    tau_ms_ci_minus: 2.97
+    delta_f_220: -0.12
+    sigma_delta_f_220: 0.15
+    delta_f_220_ci_plus: 0.15
+    delta_f_220_ci_minus: 0.11
+    delta_tau_220: 0.26
+    sigma_delta_tau_220: 0.47
+    delta_tau_220_ci_plus: 0.47
+    delta_tau_220_ci_minus: 0.4
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW230927_153832
+  ifo: literature
+  z: 0.23
+  M_final_Msun: 36.5
+  chi_final: null
+  sigma_M_final_Msun: 3.1
+  sigma_chi_final: null
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW230927_153832
+  gwosc_event_version: GW230927_153832-v1
+  gwosc_event_version_catalog: GWTC-4.0
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW230927_153832-v1/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW230927_153832-v1/parameters
+  pe_parameter_run: GWTC-4.0_GW230927_153832_C00:Mixed+XO4a_RW4_PE
+  pe_waveform_family: C00:Mixed+XO4a
+  pe_status: NO_VERIFICADO
+  pe_missing_fields:
+  - final_spin
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 53.1
+  table3_detector_frame_sigma_M_final_Msun: 10.3
+  table3_pseobnr_chi_f: 0.85
+  table3_pseobnr_sigma_chi_f: 0.24
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 375.6
+    sigma_f_hz: 26.5
+    f_hz_ci_plus: 26.5
+    f_hz_ci_minus: 21.9
+    tau_ms: 3.66
+    sigma_tau_ms: 1.24
+    tau_ms_ci_plus: 1.24
+    tau_ms_ci_minus: 1.16
+    delta_f_220: -0.01
+    sigma_delta_f_220: 0.09
+    delta_f_220_ci_plus: 0.09
+    delta_f_220_ci_minus: 0.07
+    delta_tau_220: 0.35
+    sigma_delta_tau_220: 0.45
+    delta_tau_220_ci_plus: 0.45
+    delta_tau_220_ci_minus: 0.43
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW231028_153006
+  ifo: literature
+  z: 0.67
+  M_final_Msun: 144.0
+  chi_final: null
+  sigma_M_final_Msun: 27.0
+  sigma_chi_final: null
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW231028_153006
+  gwosc_event_version: GW231028_153006-v1
+  gwosc_event_version_catalog: GWTC-4.0
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW231028_153006-v1/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW231028_153006-v1/parameters
+  pe_parameter_run: GWTC-4.0_GW231028_153006_C00:Mixed+XO4a_RW4_PE
+  pe_waveform_family: C00:Mixed+XO4a
+  pe_status: NO_VERIFICADO
+  pe_missing_fields:
+  - final_spin
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 226.2
+  table3_detector_frame_sigma_M_final_Msun: 42.6
+  table3_pseobnr_chi_f: 0.73
+  table3_pseobnr_sigma_chi_f: 0.34
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 78.5
+    sigma_f_hz: 4.5
+    f_hz_ci_plus: 3.8
+    f_hz_ci_minus: 4.5
+    tau_ms: 13.9
+    sigma_tau_ms: 5.25
+    tau_ms_ci_plus: 5.25
+    tau_ms_ci_minus: 3.73
+    delta_f_220: -0.23
+    sigma_delta_f_220: 0.19
+    delta_f_220_ci_plus: 0.19
+    delta_f_220_ci_minus: 0.11
+    delta_tau_220: 0.17
+    sigma_delta_tau_220: 0.32
+    delta_tau_220_ci_plus: 0.32
+    delta_tau_220_ci_minus: 0.28
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW231102_071736
+  ifo: literature
+  z: 0.63
+  M_final_Msun: 98.0
+  chi_final: null
+  sigma_M_final_Msun: 19.0
+  sigma_chi_final: null
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW231102_071736
+  gwosc_event_version: GW231102_071736-v1
+  gwosc_event_version_catalog: GWTC-4.0
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW231102_071736-v1/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW231102_071736-v1/parameters
+  pe_parameter_run: GWTC-4.0_GW231102_071736_C00:Mixed+XO4a_RW4_PE
+  pe_waveform_family: C00:Mixed+XO4a
+  pe_status: NO_VERIFICADO
+  pe_missing_fields:
+  - final_spin
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 187.7
+  table3_detector_frame_sigma_M_final_Msun: 49.5
+  table3_pseobnr_chi_f: 0.86
+  table3_pseobnr_sigma_chi_f: 0.3
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 108.1
+    sigma_f_hz: 11.5
+    f_hz_ci_plus: 11.5
+    f_hz_ci_minus: 6.4
+    tau_ms: 13.18
+    sigma_tau_ms: 5.67
+    tau_ms_ci_plus: 5.67
+    tau_ms_ci_minus: 5.32
+    delta_f_220: 0.25
+    sigma_delta_f_220: 0.32
+    delta_f_220_ci_plus: 0.32
+    delta_f_220_ci_minus: 0.27
+    delta_tau_220: 0.02
+    sigma_delta_tau_220: 0.44
+    delta_tau_220_ci_plus: 0.44
+    delta_tau_220_ci_minus: 0.35
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW231206_233901
+  ifo: literature
+  z: 0.28
+  M_final_Msun: 63.1
+  chi_final: null
+  sigma_M_final_Msun: 5.0
+  sigma_chi_final: null
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW231206_233901
+  gwosc_event_version: GW231206_233901-v1
+  gwosc_event_version_catalog: GWTC-4.0
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW231206_233901-v1/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW231206_233901-v1/parameters
+  pe_parameter_run: GWTC-4.0_GW231206_233901_C00:Mixed_RW2_PE
+  pe_waveform_family: C00:Mixed
+  pe_status: NO_VERIFICADO
+  pe_missing_fields:
+  - final_spin
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 81.5
+  table3_detector_frame_sigma_M_final_Msun: 17.7
+  table3_pseobnr_chi_f: 0.65
+  table3_pseobnr_sigma_chi_f: 0.4
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 203.5
+    sigma_f_hz: 17.9
+    f_hz_ci_plus: 17.9
+    f_hz_ci_minus: 13.4
+    tau_ms: 4.8
+    sigma_tau_ms: 1.87
+    tau_ms_ci_plus: 1.87
+    tau_ms_ci_minus: 1.34
+    delta_f_220: -0.03
+    sigma_delta_f_220: 0.12
+    delta_f_220_ci_plus: 0.12
+    delta_f_220_ci_minus: 0.09
+    delta_tau_220: 0.01
+    sigma_delta_tau_220: 0.36
+    delta_tau_220_ci_plus: 0.36
+    delta_tau_220_ci_minus: 0.28
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3
+- event: GW231226_101520
+  ifo: literature
+  z: 0.23
+  M_final_Msun: 71.4
+  chi_final: null
+  sigma_M_final_Msun: 3.8
+  sigma_chi_final: null
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+  source_table: Table 3
+  method: pSEOBNR
+  gwosc_event_endpoint: https://gwosc.org/api/v2/events/GW231226_101520
+  gwosc_event_version: GW231226_101520-v1
+  gwosc_event_version_catalog: GWTC-4.0
+  gwosc_pe_endpoint: https://gwosc.org/api/v2/event-versions/GW231226_101520-v1/parameters
+  pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW231226_101520-v1/parameters
+  pe_parameter_run: GWTC-4.0_GW231226_101520_C00:Mixed+XO4a_RW4_PE
+  pe_waveform_family: C00:Mixed+XO4a
+  pe_status: NO_VERIFICADO
+  pe_missing_fields:
+  - final_spin
+  mass_frame_note: Table 3 mass is detector-frame (1+z)M_f; YAML uses source-frame
+    M_final_Msun from GWOSC PE.
+  table3_detector_frame_M_final_Msun: 92.0
+  table3_detector_frame_sigma_M_final_Msun: 12.2
+  table3_pseobnr_chi_f: 0.73
+  table3_pseobnr_sigma_chi_f: 0.18
+  modes:
+  - l: 2
+    m: 2
+    n: 0
+    mode: 220
+    method: pSEOBNR
+    f_hz: 192.3
+    sigma_f_hz: 8.2
+    f_hz_ci_plus: 8.2
+    f_hz_ci_minus: 7.1
+    tau_ms: 5.66
+    sigma_tau_ms: 1.26
+    tau_ms_ci_plus: 1.26
+    tau_ms_ci_minus: 1.06
+    delta_f_220: 0.02
+    sigma_delta_f_220: 0.14
+    delta_f_220_ci_plus: 0.14
+    delta_f_220_ci_minus: 0.07
+    delta_tau_220: 0.04
+    sigma_delta_tau_220: 0.25
+    delta_tau_220_ci_plus: 0.25
+    delta_tau_220_ci_minus: 0.2
+    source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants'
+    source_table: Table 3

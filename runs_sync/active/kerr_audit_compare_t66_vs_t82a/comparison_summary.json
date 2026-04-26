@@ -1,0 +1,168 @@
+{
+  "created_utc": "2026-04-25T09:50:31+00:00",
+  "inputs": {
+    "t66_qnm": "runs_sync/active/kerr_audit_20260424_t66_sigmas/qnm_dataset.csv",
+    "t66_audit": "runs_sync/active/kerr_audit_20260424_t66_sigmas/kerr_audit_table.csv",
+    "t82_qnm": "runs_sync/active/kerr_audit_gwtc4_pseobnr_t82a_verified/qnm_dataset.csv",
+    "t82_audit": "runs_sync/active/kerr_audit_gwtc4_pseobnr_t82a_verified/kerr_audit_table.csv",
+    "event_map": "runs_sync/active/gwtc4_pseobnr_ingest/gwtc4_pseobnr_event_map.csv"
+  },
+  "outputs": {
+    "comparison_overlap_csv": "runs_sync/active/kerr_audit_compare_t66_vs_t82a/comparison_overlap.csv",
+    "comparison_summary_json": "runs_sync/active/kerr_audit_compare_t66_vs_t82a/comparison_summary.json",
+    "comparison_notes_md": "runs_sync/active/kerr_audit_compare_t66_vs_t82a/comparison_notes.md"
+  },
+  "counts": {
+    "t66_qnm_rows": 19,
+    "t66_unique_events": 19,
+    "t66_audit_rows": 19,
+    "t66_verdict_counts": {
+      "marginal": 6,
+      "consistent": 13
+    },
+    "t82a_qnm_rows": 10,
+    "t82a_unique_events": 10,
+    "t82a_audit_rows": 10,
+    "t82a_verdict_counts": {
+      "consistent": 10
+    },
+    "overlap_events": 6,
+    "t82a_new_vs_t66_entered": 4,
+    "t66_only_events": 13,
+    "event_map_new_for_ringest_all": 11,
+    "event_map_new_for_ringest_entered_t82a": 4,
+    "event_map_new_for_ringest_blocked_t82a": 7
+  },
+  "events": {
+    "overlap": [
+      "GW150914",
+      "GW170104",
+      "GW190519_153544",
+      "GW190521_074359",
+      "GW190828_063405",
+      "GW190910_112807"
+    ],
+    "t82a_new_vs_t66_entered": [
+      "GW190630_185205",
+      "GW200129_065458",
+      "GW200224_222234",
+      "GW200311_115853"
+    ],
+    "t66_only": [
+      "GW170814",
+      "GW170823",
+      "GW190408_181802",
+      "GW190421_213856",
+      "GW190503_185404",
+      "GW190512_180714",
+      "GW190513_205428",
+      "GW190521",
+      "GW190602_175927",
+      "GW190706_222641",
+      "GW190708_232457",
+      "GW190727_060333",
+      "GW190915_235702"
+    ],
+    "event_map_new_for_ringest_all": [
+      "GW190630_185205",
+      "GW200129_065458",
+      "GW200224_222234",
+      "GW200311_115853",
+      "GW230628_231200",
+      "GW230914_111401",
+      "GW230927_153832",
+      "GW231028_153006",
+      "GW231102_071736",
+      "GW231206_233901",
+      "GW231226_101520"
+    ],
+    "event_map_new_for_ringest_entered_t82a": [
+      "GW190630_185205",
+      "GW200129_065458",
+      "GW200224_222234",
+      "GW200311_115853"
+    ],
+    "event_map_new_for_ringest_blocked_t82a": [
+      "GW230628_231200",
+      "GW230914_111401",
+      "GW230927_153832",
+      "GW231028_153006",
+      "GW231102_071736",
+      "GW231206_233901",
+      "GW231226_101520"
+    ]
+  },
+  "residual_change_by_max_abs": {
+    "improved_count": 4,
+    "worsened_count": 2,
+    "unchanged_count": 0,
+    "improved_events": [
+      {
+        "event": "GW150914",
+        "delta_max_abs_residual": -0.951451,
+        "max_abs_residual_t66": 1.682525,
+        "max_abs_residual_t82a": 0.731074,
+        "verdict_t66": "marginal",
+        "verdict_t82a": "consistent"
+      },
+      {
+        "event": "GW170104",
+        "delta_max_abs_residual": -0.736445,
+        "max_abs_residual_t66": 1.015058,
+        "max_abs_residual_t82a": 0.278614,
+        "verdict_t66": "marginal",
+        "verdict_t82a": "consistent"
+      },
+      {
+        "event": "GW190521_074359",
+        "delta_max_abs_residual": -0.714134,
+        "max_abs_residual_t66": 1.323672,
+        "max_abs_residual_t82a": 0.609538,
+        "verdict_t66": "marginal",
+        "verdict_t82a": "consistent"
+      },
+      {
+        "event": "GW190519_153544",
+        "delta_max_abs_residual": -0.326577,
+        "max_abs_residual_t66": 0.788284,
+        "max_abs_residual_t82a": 0.461706,
+        "verdict_t66": "consistent",
+        "verdict_t82a": "consistent"
+      }
+    ],
+    "worsened_events": [
+      {
+        "event": "GW190910_112807",
+        "delta_max_abs_residual": 0.074264,
+        "max_abs_residual_t66": 0.854754,
+        "max_abs_residual_t82a": 0.929017,
+        "verdict_t66": "consistent",
+        "verdict_t82a": "consistent"
+      },
+      {
+        "event": "GW190828_063405",
+        "delta_max_abs_residual": 0.021961,
+        "max_abs_residual_t66": 0.799222,
+        "max_abs_residual_t82a": 0.821184,
+        "verdict_t66": "consistent",
+        "verdict_t82a": "consistent"
+      }
+    ]
+  },
+  "overlap_metric_summary": {
+    "mean_delta_f_hz": 2.45,
+    "mean_delta_tau_ms": 1.01,
+    "mean_delta_max_abs_residual": -0.43873,
+    "median_delta_max_abs_residual": -0.520355,
+    "mean_delta_residual_norm": -0.516358
+  },
+  "special_notes": [
+    {
+      "run": "t82a",
+      "event": "GW190519_153544",
+      "note": "appears in qnm_dataset.csv but not qnm_dataset_220.csv",
+      "kerr_220_distance": 0.153953970977678
+    }
+  ],
+  "interpretation_guardrail": "Small-N comparison; residual changes reflect different literature/pSEOBNR inputs and PE values, not a strong physics claim."
+}
