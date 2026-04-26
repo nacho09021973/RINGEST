@@ -1,0 +1,627 @@
+{
+  "artifact": "T9.1 GWOSC population metadata enrichment",
+  "chi_p_available_events": [],
+  "chi_p_covers_at_least_80_percent": false,
+  "chi_p_event_fraction": 0.0,
+  "events_consulted": [
+    "GW150914",
+    "GW170104",
+    "GW170814",
+    "GW170823",
+    "GW190408_181802",
+    "GW190421_213856",
+    "GW190503_185404",
+    "GW190512_180714",
+    "GW190513_205428",
+    "GW190519_153544",
+    "GW190521",
+    "GW190521_074359",
+    "GW190602_175927",
+    "GW190630_185205",
+    "GW190706_222641",
+    "GW190708_232457",
+    "GW190727_060333",
+    "GW190828_063405",
+    "GW190910_112807",
+    "GW190915_235702",
+    "GW200129_065458",
+    "GW200224_222234",
+    "GW200311_115853"
+  ],
+  "events_with_incomplete_metadata": [],
+  "field_coverage": {
+    "FAR": {
+      "event_fraction": 1.0,
+      "events": 23,
+      "row_fraction": 1.0,
+      "rows": 29
+    },
+    "M_total_source": {
+      "event_fraction": 1.0,
+      "events": 23,
+      "row_fraction": 1.0,
+      "rows": 29
+    },
+    "chi_eff": {
+      "event_fraction": 1.0,
+      "events": 23,
+      "row_fraction": 1.0,
+      "rows": 29
+    },
+    "chi_p": {
+      "event_fraction": 0.0,
+      "events": 0,
+      "row_fraction": 0.0,
+      "rows": 0
+    },
+    "mass_1_source": {
+      "event_fraction": 1.0,
+      "events": 23,
+      "row_fraction": 1.0,
+      "rows": 29
+    },
+    "mass_2_source": {
+      "event_fraction": 1.0,
+      "events": 23,
+      "row_fraction": 1.0,
+      "rows": 29
+    },
+    "network_matched_filter_snr": {
+      "event_fraction": 1.0,
+      "events": 23,
+      "row_fraction": 1.0,
+      "rows": 29
+    },
+    "network_snr": {
+      "event_fraction": 0.0,
+      "events": 0,
+      "row_fraction": 0.0,
+      "rows": 0
+    },
+    "network_snr_any": {
+      "event_fraction": 1.0,
+      "events": 23,
+      "row_fraction": 1.0,
+      "rows": 29
+    },
+    "p_astro": {
+      "event_fraction": 1.0,
+      "events": 23,
+      "row_fraction": 1.0,
+      "rows": 29
+    },
+    "p_astro_or_FAR": {
+      "event_fraction": 1.0,
+      "events": 23,
+      "row_fraction": 1.0,
+      "rows": 29
+    },
+    "q": {
+      "event_fraction": 1.0,
+      "events": 23,
+      "row_fraction": 1.0,
+      "rows": 29
+    },
+    "redshift": {
+      "event_fraction": 1.0,
+      "events": 23,
+      "row_fraction": 1.0,
+      "rows": 29
+    }
+  },
+  "generated_utc": "2026-04-26T09:01:49.770850+00:00",
+  "gwosc_api_base": "https://gwosc.org/api/v2",
+  "input_file": "runs_sync/active/kerr_population_tail_t9/t9_base_residual_table.csv",
+  "metadata_status_counts_by_event": {
+    "SOURCE_OK": 23
+  },
+  "n_input_rows": 29,
+  "n_unique_events": 23,
+  "outputs": {
+    "coverage_json": "runs_sync/active/kerr_population_tail_t9/population_metadata_coverage.json",
+    "notes_md": "runs_sync/active/kerr_population_tail_t9/population_metadata_notes.md",
+    "table_csv": "runs_sync/active/kerr_population_tail_t9/population_metadata_table.csv"
+  },
+  "query_errors": {},
+  "recommendation_for_T9_2_chi_p": "PARK_CHI_P",
+  "selected_sources_by_event": {
+    "GW150914": {
+      "gwosc_catalogs": [
+        "O1_O2-Preliminary",
+        "O1_O2-Preliminary",
+        "GWTC-1-confident",
+        "GWTC-2.1-confident"
+      ],
+      "gwosc_versions": [
+        "GW150914-v1",
+        "GW150914-v2",
+        "GW150914-v3",
+        "GW150914-v4"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-1-confident_GW150914_R2_pe_combined",
+      "pe_version_source": "GW150914-v4",
+      "search_catalog_source": "GWTC-1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "gwtc1_gstlal_GW150914",
+      "search_version_source": "GW150914-v3",
+      "version_errors": []
+    },
+    "GW170104": {
+      "gwosc_catalogs": [
+        "O1_O2-Preliminary",
+        "GWTC-1-confident",
+        "GWTC-2.1-confident"
+      ],
+      "gwosc_versions": [
+        "GW170104-v1",
+        "GW170104-v2",
+        "GW170104-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-1-confident_GW170104_R2_pe_combined",
+      "pe_version_source": "GW170104-v3",
+      "search_catalog_source": "GWTC-1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "gwtc1_gstlal_GW170104",
+      "search_version_source": "GW170104-v2",
+      "version_errors": []
+    },
+    "GW170814": {
+      "gwosc_catalogs": [
+        "O1_O2-Preliminary",
+        "O1_O2-Preliminary",
+        "GWTC-1-confident",
+        "GWTC-2.1-confident"
+      ],
+      "gwosc_versions": [
+        "GW170814-v1",
+        "GW170814-v2",
+        "GW170814-v3",
+        "GW170814-v4"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-1-confident_GW170814_R2_pe_combined",
+      "pe_version_source": "GW170814-v4",
+      "search_catalog_source": "GWTC-1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "gwtc1_gstlal_GW170814",
+      "search_version_source": "GW170814-v3",
+      "version_errors": []
+    },
+    "GW170823": {
+      "gwosc_catalogs": [
+        "GWTC-1-confident",
+        "GWTC-2.1-confident"
+      ],
+      "gwosc_versions": [
+        "GW170823-v1",
+        "GW170823-v2"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-1-confident_GW170823_R2_pe_combined",
+      "pe_version_source": "GW170823-v2",
+      "search_catalog_source": "GWTC-1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "gwtc1_gstlal_GW170823",
+      "search_version_source": "GW170823-v1",
+      "version_errors": []
+    },
+    "GW190408_181802": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident",
+        "IAS-O3a"
+      ],
+      "gwosc_versions": [
+        "GW190408_181802-v1",
+        "GW190408_181802-v2",
+        "GW190408_181802-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190408_181802_R2_pe_combined",
+      "pe_version_source": "GW190408_181802-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190408_181802",
+      "search_version_source": "GW190408_181802-v2",
+      "version_errors": []
+    },
+    "GW190421_213856": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident",
+        "IAS-O3a"
+      ],
+      "gwosc_versions": [
+        "GW190421_213856-v1",
+        "GW190421_213856-v2",
+        "GW190421_213856-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190421_213856_R2_pe_combined",
+      "pe_version_source": "GW190421_213856-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190421_213856",
+      "search_version_source": "GW190421_213856-v2",
+      "version_errors": []
+    },
+    "GW190503_185404": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident",
+        "IAS-O3a"
+      ],
+      "gwosc_versions": [
+        "GW190503_185404-v1",
+        "GW190503_185404-v2",
+        "GW190503_185404-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190503_185404_R2_pe_combined",
+      "pe_version_source": "GW190503_185404-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190503_185404",
+      "search_version_source": "GW190503_185404-v2",
+      "version_errors": []
+    },
+    "GW190512_180714": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident",
+        "IAS-O3a"
+      ],
+      "gwosc_versions": [
+        "GW190512_180714-v1",
+        "GW190512_180714-v2",
+        "GW190512_180714-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190512_180714_R2_pe_combined",
+      "pe_version_source": "GW190512_180714-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190512_180714",
+      "search_version_source": "GW190512_180714-v2",
+      "version_errors": []
+    },
+    "GW190513_205428": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident",
+        "IAS-O3a"
+      ],
+      "gwosc_versions": [
+        "GW190513_205428-v1",
+        "GW190513_205428-v2",
+        "GW190513_205428-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190513_205428_R2_pe_combined",
+      "pe_version_source": "GW190513_205428-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190513_205428",
+      "search_version_source": "GW190513_205428-v2",
+      "version_errors": []
+    },
+    "GW190519_153544": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident",
+        "IAS-O3a"
+      ],
+      "gwosc_versions": [
+        "GW190519_153544-v1",
+        "GW190519_153544-v2",
+        "GW190519_153544-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190519_153544_R2_pe_combined",
+      "pe_version_source": "GW190519_153544-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190519_153544",
+      "search_version_source": "GW190519_153544-v2",
+      "version_errors": []
+    },
+    "GW190521": {
+      "gwosc_catalogs": [
+        "O3_Discovery_Papers",
+        "O3_Discovery_Papers",
+        "GWTC-2",
+        "GWTC-2.1-confident"
+      ],
+      "gwosc_versions": [
+        "GW190521-v1",
+        "GW190521-v2",
+        "GW190521-v3",
+        "GW190521-v4"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190521_R2_pe_combined",
+      "pe_version_source": "GW190521-v4",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190521",
+      "search_version_source": "GW190521-v4",
+      "version_errors": []
+    },
+    "GW190521_074359": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident",
+        "IAS-O3a"
+      ],
+      "gwosc_versions": [
+        "GW190521_074359-v1",
+        "GW190521_074359-v2",
+        "GW190521_074359-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190521_074359_R2_pe_combined",
+      "pe_version_source": "GW190521_074359-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190521_074359",
+      "search_version_source": "GW190521_074359-v2",
+      "version_errors": []
+    },
+    "GW190602_175927": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident",
+        "IAS-O3a"
+      ],
+      "gwosc_versions": [
+        "GW190602_175927-v1",
+        "GW190602_175927-v2",
+        "GW190602_175927-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190602_175927_R2_pe_combined",
+      "pe_version_source": "GW190602_175927-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190602_175927",
+      "search_version_source": "GW190602_175927-v2",
+      "version_errors": []
+    },
+    "GW190630_185205": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident"
+      ],
+      "gwosc_versions": [
+        "GW190630_185205-v1",
+        "GW190630_185205-v2"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190630_185205_R2_pe_combined",
+      "pe_version_source": "GW190630_185205-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190630_185205",
+      "search_version_source": "GW190630_185205-v2",
+      "version_errors": []
+    },
+    "GW190706_222641": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident",
+        "IAS-O3a"
+      ],
+      "gwosc_versions": [
+        "GW190706_222641-v1",
+        "GW190706_222641-v2",
+        "GW190706_222641-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190706_222641_R2_pe_combined",
+      "pe_version_source": "GW190706_222641-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190706_222641",
+      "search_version_source": "GW190706_222641-v2",
+      "version_errors": []
+    },
+    "GW190708_232457": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident"
+      ],
+      "gwosc_versions": [
+        "GW190708_232457-v1",
+        "GW190708_232457-v2"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190708_232457_R2_pe_combined",
+      "pe_version_source": "GW190708_232457-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190708_232457",
+      "search_version_source": "GW190708_232457-v2",
+      "version_errors": []
+    },
+    "GW190727_060333": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident",
+        "IAS-O3a"
+      ],
+      "gwosc_versions": [
+        "GW190727_060333-v1",
+        "GW190727_060333-v2",
+        "GW190727_060333-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190727_060333_R2_pe_combined",
+      "pe_version_source": "GW190727_060333-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190727_060333",
+      "search_version_source": "GW190727_060333-v2",
+      "version_errors": []
+    },
+    "GW190828_063405": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident",
+        "IAS-O3a"
+      ],
+      "gwosc_versions": [
+        "GW190828_063405-v1",
+        "GW190828_063405-v2",
+        "GW190828_063405-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190828_063405_R2_pe_combined",
+      "pe_version_source": "GW190828_063405-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190828_063405",
+      "search_version_source": "GW190828_063405-v2",
+      "version_errors": []
+    },
+    "GW190910_112807": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident"
+      ],
+      "gwosc_versions": [
+        "GW190910_112807-v1",
+        "GW190910_112807-v2"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190910_112807_R2_pe_combined",
+      "pe_version_source": "GW190910_112807-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190910_112807",
+      "search_version_source": "GW190910_112807-v2",
+      "version_errors": []
+    },
+    "GW190915_235702": {
+      "gwosc_catalogs": [
+        "GWTC-2",
+        "GWTC-2.1-confident",
+        "IAS-O3a"
+      ],
+      "gwosc_versions": [
+        "GW190915_235702-v1",
+        "GW190915_235702-v2",
+        "GW190915_235702-v3"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-2.1-confident",
+      "pe_pipeline_source": "lalinference",
+      "pe_result_source": "GWTC-2.1-confident_GW190915_235702_R2_pe_combined",
+      "pe_version_source": "GW190915_235702-v2",
+      "search_catalog_source": "GWTC-2.1-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-2.1-confident_gstlal_GW190915_235702",
+      "search_version_source": "GW190915_235702-v2",
+      "version_errors": []
+    },
+    "GW200129_065458": {
+      "gwosc_catalogs": [
+        "GWTC-3-confident"
+      ],
+      "gwosc_versions": [
+        "GW200129_065458-v1"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-3-confident",
+      "pe_pipeline_source": "bilby",
+      "pe_result_source": "GWTC-3-confident_GW200129_065458_R2_pe_combined",
+      "pe_version_source": "GW200129_065458-v1",
+      "search_catalog_source": "GWTC-3-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-3-confident_gstlal_GW200129_065458",
+      "search_version_source": "GW200129_065458-v1",
+      "version_errors": []
+    },
+    "GW200224_222234": {
+      "gwosc_catalogs": [
+        "GWTC-3-confident"
+      ],
+      "gwosc_versions": [
+        "GW200224_222234-v1"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-3-confident",
+      "pe_pipeline_source": "bilby",
+      "pe_result_source": "GWTC-3-confident_GW200224_222234_R2_pe_combined",
+      "pe_version_source": "GW200224_222234-v1",
+      "search_catalog_source": "GWTC-3-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-3-confident_gstlal_GW200224_222234",
+      "search_version_source": "GW200224_222234-v1",
+      "version_errors": []
+    },
+    "GW200311_115853": {
+      "gwosc_catalogs": [
+        "GWTC-3-confident"
+      ],
+      "gwosc_versions": [
+        "GW200311_115853-v1"
+      ],
+      "metadata_status": "SOURCE_OK",
+      "pe_catalog_source": "GWTC-3-confident",
+      "pe_pipeline_source": "bilby",
+      "pe_result_source": "GWTC-3-confident_GW200311_115853_R2_pe_combined",
+      "pe_version_source": "GW200311_115853-v1",
+      "search_catalog_source": "GWTC-3-confident",
+      "search_pipeline_source": "gstlal",
+      "search_result_source": "GWTC-3-confident_gstlal_GW200311_115853",
+      "search_version_source": "GW200311_115853-v1",
+      "version_errors": []
+    }
+  },
+  "selection_policy": {
+    "detection_metadata": "Use p_astro/FAR only from pipeline_type=search results. Prefer the same selected catalog when available; otherwise use the highest-ranked search catalog with deterministic pipeline priority gstlal > pycbc_bbh > pycbc > pycbc_broad > pycbc_allsky > pycbc_highmass > mbta > cwb.",
+    "metadata_status": "SOURCE_OK requires mass_1_source, mass_2_source, chi_eff, redshift, derived M_total_source/q, any network SNR, and p_astro or FAR. chi_p is tracked separately and does not make all rows PARTIAL by itself.",
+    "population_metadata": "Preferred PE result from highest-ranked official GWTC/confident catalog available; IAS only fallback when no official catalog is available.",
+    "snr_metadata": "Use network_matched_filter_snr/network_snr from selected PE if present; otherwise allow selected search result."
+  }
+}
