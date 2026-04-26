@@ -1,0 +1,21 @@
+metadata:
+  cohort: gwtc4_pyring_ds_o4a
+  created_utc: '2026-04-25T10:55:35+00:00'
+  canonical_yaml_not_modified: data/qnm_events_literature.yml
+  source_paper: 'GWTC-4.0 Tests of General Relativity III: Tests of the Remnants -
+    pyRing data release P2600130'
+  source_table: pyRing event_summary_samples/events_summary_file.h5 DS posterior
+  method: pyRing_DS
+  mode: 220
+  qnm_source: runs_sync/active/gwtc4_pyring_inspection/extract/pyring/plotting_scripts_and_data/event_summary_samples/events_summary_file.h5
+  gwosc_api_v2: https://gwosc.org/api/v2
+  qnm_interval_convention: median and central 90% interval from DS posterior samples
+  qnm_sigma_convention: central 90% posterior interval converted to effective 1-sigma
+    by max(+CI, -CI)/1.645
+  pe_selection: preferred complete PE if available; otherwise first complete PE; otherwise
+    preferred incomplete PE and PE_INCOMPLETE
+  mass_frame_note: pyRing DS provides f_22/tau_22 only; M_final_Msun, chi_final, z
+    are taken from external GWOSC PE when complete.
+  events_total_in_csv: 22
+  events_source_ok_in_yaml: 0
+events: []

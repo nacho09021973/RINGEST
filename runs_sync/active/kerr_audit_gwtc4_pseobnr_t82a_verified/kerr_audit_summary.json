@@ -1,0 +1,20 @@
+{
+  "n_unique_events": 10,
+  "n_mode_rows": 10,
+  "n_residuals": 20,
+  "kerr_sigma_source": "propagated",
+  "verdict_counts_by_mode": {
+    "consistent": 10
+  },
+  "verdict_counts_by_event": {
+    "consistent": 10
+  },
+  "residual_mean": 0.2341,
+  "residual_std": 0.4053,
+  "ks_stat": 0.3403,
+  "ks_pvalue": 0.0143,
+  "ks_consistent_with_normal": false,
+  "ad_stat": 0.3981,
+  "ad_critical_5pct": 0.721,
+  "ad_consistent_with_normal_5pct": true
+}
