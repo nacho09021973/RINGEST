@@ -1,9 +1,16 @@
+metadata:
+  pe_sigma_convention: max_abs_upper_lower_error_from_gwosc_api_v2_preferred_parameter_run
+  pe_sigma_note: effective symmetric PE uncertainty for Kerr propagation; not QNM/ringdown metadata
 events:
   - event: GW150914
     ifo: H1+L1
     z: 0.090
     M_final_Msun: 63.1
     chi_final: 0.69
+    sigma_M_final_Msun: 3.4
+    sigma_chi_final: 0.05
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW150914-v4/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -18,6 +25,10 @@ events:
     z: 0.200
     M_final_Msun: 48.9
     chi_final: 0.66
+    sigma_M_final_Msun: 4.5
+    sigma_chi_final: 0.08
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW170104-v3/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -32,6 +43,10 @@ events:
     z: 0.124
     M_final_Msun: 53.2
     chi_final: 0.72
+    sigma_M_final_Msun: 3.2
+    sigma_chi_final: 0.07
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW170814-v4/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -46,6 +61,10 @@ events:
     z: 0.342
     M_final_Msun: 65.4
     chi_final: 0.72
+    sigma_M_final_Msun: 9.6
+    sigma_chi_final: 0.10
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW170823-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -60,6 +79,10 @@ events:
     z: 0.243
     M_final_Msun: 41.4
     chi_final: 0.67
+    sigma_M_final_Msun: 3.9
+    sigma_chi_final: 0.07
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190408_181802-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -74,6 +97,10 @@ events:
     z: 0.356
     M_final_Msun: 70.5
     chi_final: 0.66
+    sigma_M_final_Msun: 12.4
+    sigma_chi_final: 0.12
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190421_213856-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -88,6 +115,10 @@ events:
     z: 0.338
     M_final_Msun: 66.5
     chi_final: 0.66
+    sigma_M_final_Msun: 9.4
+    sigma_chi_final: 0.15
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190503_185404-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -102,6 +133,10 @@ events:
     z: 0.170
     M_final_Msun: 34.3
     chi_final: 0.65
+    sigma_M_final_Msun: 4.1
+    sigma_chi_final: 0.07
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190512_180714-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -116,6 +151,10 @@ events:
     z: 0.304
     M_final_Msun: 52.1
     chi_final: 0.71
+    sigma_M_final_Msun: 8.8
+    sigma_chi_final: 0.13
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190513_205428-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -130,6 +169,10 @@ events:
     z: 0.45
     M_final_Msun: 100.0
     chi_final: 0.79
+    sigma_M_final_Msun: 13.0
+    sigma_chi_final: 0.12
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190519_153544-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -144,6 +187,10 @@ events:
     z: 0.825
     M_final_Msun: 147.4
     chi_final: 0.62
+    sigma_M_final_Msun: 40.0
+    sigma_chi_final: 0.23
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190521-v4/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -158,6 +205,10 @@ events:
     z: 0.21
     M_final_Msun: 72.6
     chi_final: 0.71
+    sigma_M_final_Msun: 6.5
+    sigma_chi_final: 0.06
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190521_074359-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -172,6 +223,10 @@ events:
     z: 0.644
     M_final_Msun: 110.5
     chi_final: 0.72
+    sigma_M_final_Msun: 17.9
+    sigma_chi_final: 0.17
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190602_175927-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -186,6 +241,10 @@ events:
     z: 0.786
     M_final_Msun: 107.3
     chi_final: 0.78
+    sigma_M_final_Msun: 25.2
+    sigma_chi_final: 0.19
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190706_222641-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -200,6 +259,10 @@ events:
     z: 0.197
     M_final_Msun: 30.1
     chi_final: 0.68
+    sigma_M_final_Msun: 2.9
+    sigma_chi_final: 0.05
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190708_232457-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -214,6 +277,10 @@ events:
     z: 0.344
     M_final_Msun: 65.4
     chi_final: 0.73
+    sigma_M_final_Msun: 9.5
+    sigma_chi_final: 0.11
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190727_060333-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -228,6 +295,10 @@ events:
     z: 0.362
     M_final_Msun: 54.3
     chi_final: 0.74
+    sigma_M_final_Msun: 7.3
+    sigma_chi_final: 0.07
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190828_063405-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -242,6 +313,10 @@ events:
     z: 0.29
     M_final_Msun: 74.4
     chi_final: 0.69
+    sigma_M_final_Msun: 8.6
+    sigma_chi_final: 0.08
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190910_112807-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2
@@ -256,6 +331,10 @@ events:
     z: 0.290
     M_final_Msun: 54.7
     chi_final: 0.69
+    sigma_M_final_Msun: 6.6
+    sigma_chi_final: 0.09
+    pe_parameter_endpoint: https://gwosc.org/api/v2/event-versions/GW190915_235702-v2/parameters
+    pe_parameter_run: GWTC-2.1-confident preferred C01:Mixed
     modes:
       - l: 2
         m: 2

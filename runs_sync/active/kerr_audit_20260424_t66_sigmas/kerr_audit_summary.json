@@ -1,0 +1,22 @@
+{
+  "n_unique_events": 19,
+  "n_mode_rows": 19,
+  "n_residuals": 38,
+  "kerr_sigma_source": "propagated",
+  "verdict_counts_by_mode": {
+    "marginal": 6,
+    "consistent": 13
+  },
+  "verdict_counts_by_event": {
+    "marginal": 6,
+    "consistent": 13
+  },
+  "residual_mean": 0.6209,
+  "residual_std": 0.4436,
+  "ks_stat": 0.4567,
+  "ks_pvalue": 0.0,
+  "ks_consistent_with_normal": false,
+  "ad_stat": 0.3723,
+  "ad_critical_5pct": 0.736,
+  "ad_consistent_with_normal_5pct": true
+}
