@@ -120,3 +120,9 @@ runs_sync/active/gwtc4_pyring_inspection/**/*.dat
 
 # Off-git pyRing extracted raw data
 /runs_sync/active/gwtc4_pyring_inspection/extract/
+
+# Local Python virtual environments
+.venv/
+.venv-*/
+venv/
+env/
