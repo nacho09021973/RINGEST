@@ -1,0 +1,1 @@
+event,fit_status,source_dir,source_file,available_groups,available_posterior_vars,t0,f_ringdown_hz,f_ringdown_hz_q05,f_ringdown_hz_q95,damping_hz,damping_hz_q05,damping_hz_q95,tau_ms,tau_ms_q05,tau_ms_q95,M_final_Msun,M_final_Msun_q05,M_final_Msun_q95,chi_final,chi_final_q05,chi_final_q95,parser_notes

@@ -3,7 +3,7 @@ tests/test_feature_support.py
 
 Regression tests for the feature support audit and inference gate.
 
-All tests use synthetic data — no real checkpoints or H5 files required.
+All tests use synthetic data  no real checkpoints or H5 files required.
 """
 from __future__ import annotations
 
@@ -67,7 +67,7 @@ class TestTinyStdFlagsQNMAndHorizon(unittest.TestCase):
         for name in ("has_horizon", "qnm_Q0", "qnm_f1f0", "qnm_g1g0"):
             self.sigma[_feature_idx(name)] = 1e-9  # well below TINY_STD_THRESHOLD
 
-        # A plausible feature vector (values don't matter much — std is tiny)
+        # A plausible feature vector (values don't matter much  std is tiny)
         self.x = np.ones(N, dtype=float)
 
     def test_tiny_std_marked_per_feature(self):
@@ -168,7 +168,7 @@ class TestOffSupportG2LargeX(unittest.TestCase):
         self.assertTrue(row.clip_risk_abs_z_gt_10)
 
     def test_verdict_fail_at_z_6_because_critical(self):
-        # G2_large_x is critical; |z|=6 > 5 → FAIL
+        # G2_large_x is critical; |z|=6 > 5  FAIL
         report = self._report_with_z(6.0)
         self.assertEqual(report.verdict, "FAIL")
         self.assertIn("G2_large_x", report.critical_features_triggered)
@@ -224,7 +224,7 @@ class TestInferenceGateBlocks(unittest.TestCase):
         self.assertIn("qnm_Q0", report.critical_features_triggered)
 
     def test_blocks_on_any_clip_risk(self):
-        # Non-critical feature but |z| > 10 → FAIL
+        # Non-critical feature but |z| > 10  FAIL
         mu, sigma = _make_normal_stats()
         idx = _feature_idx("G2_log_slope")  # non-critical
         mu[idx] = 0.0
@@ -367,7 +367,7 @@ class TestQnmF1F0SemanticGuardrail(unittest.TestCase):
     """
     The audit must emit a semantic_warning for qnm_f1f0 when the value is
     outside plausible physical bounds (possible pole-ordering inversion).
-    This is a guardrail, not a physics assertion — it does not trigger FAIL
+    This is a guardrail, not a physics assertion  it does not trigger FAIL
     on its own (the verdict depends on other gate rules).
     """
 
@@ -383,7 +383,7 @@ class TestQnmF1F0SemanticGuardrail(unittest.TestCase):
         )
 
     def test_no_warning_in_sane_range(self):
-        # 8.4 is the observed GW150914 value — within [0.5, 20]
+        # 8.4 is the observed GW150914 value  within [0.5, 20]
         report = self._report_with_f1f0(8.4068)
         row = next(r for r in report.rows if r.feature == "qnm_f1f0")
         self.assertIsNone(row.semantic_warning)
@@ -445,12 +445,12 @@ def _load_engine():
 class TestStageLevelHardFail(unittest.TestCase):
     """
     Verify that:
-    - run_inference_mode raises RuntimeError("UNSUPPORTED_FEATURE_REGIME…")
-      when _n_gate_fail > 0 (gate blocked ≥1 system).
-    - run_train_mode raises RuntimeError("TRAIN_FEATURE_SUPPORT_FAIL…")
+    - run_inference_mode raises RuntimeError("UNSUPPORTED_FEATURE_REGIME...")
+      when _n_gate_fail > 0 (gate blocked 1 system).
+    - run_train_mode raises RuntimeError("TRAIN_FEATURE_SUPPORT_FAIL...")
       when audit verdict == "FAIL" (critical feature frozen in train).
 
-    Both tests use synthetic in-memory data — no real checkpoints or H5 files.
+    Both tests use synthetic in-memory data  no real checkpoints or H5 files.
     The RuntimeError propagates to main()'s except block, which sets
     STATUS_ERROR + EXIT_ERROR and writes stage_summary with status=ERROR.
     """
@@ -537,7 +537,7 @@ class TestStageLevelHardFail(unittest.TestCase):
             fail_report = engine.audit_feature_support(
                 feature_vector=np.ones(n_features),
                 X_mean=np.zeros(n_features),
-                X_std=np.full(n_features, 1e-9),   # all tiny → FAIL
+                X_std=np.full(n_features, 1e-9),   # all tiny  FAIL
                 feature_names=list(FEATURE_NAMES_V2_5),
             )
             self.assertEqual(fail_report.verdict, "FAIL")  # sanity-check fixture
@@ -560,7 +560,7 @@ class TestStageLevelHardFail(unittest.TestCase):
     def test_train_raises_on_audit_fail(self):
         """
         Build a minimal synthetic training set where a critical feature
-        (has_horizon, index 10) is constant → X_std_raw[10] = 0.
+        (has_horizon, index 10) is constant  X_std_raw[10] = 0.
         run_train_mode must raise RuntimeError containing
         "TRAIN_FEATURE_SUPPORT_FAIL".
         """
@@ -582,7 +582,7 @@ class TestStageLevelHardFail(unittest.TestCase):
             n_z = 20
             z_grid = np.linspace(0.01, 1.0, n_z).astype(np.float32)
 
-            # Two "known" geometries: has_horizon=0 in both → std=0
+            # Two "known" geometries: has_horizon=0 in both  std=0
             names = ["geo_0", "geo_1"]
             for name in names:
                 h5_path = data_dir / f"{name}.h5"
@@ -646,9 +646,9 @@ class TestStageLevelHardFail(unittest.TestCase):
 
 class TestMainExitCode(unittest.TestCase):
     """
-    Verify that main() calls sys.exit(EXIT_ERROR=3) — not leaves an unhandled
-    exception that Python maps to exit code 1 — when run_inference_mode raises
-    RuntimeError("UNSUPPORTED_FEATURE_REGIME…").
+    Verify that main() calls sys.exit(EXIT_ERROR=3)  not leaves an unhandled
+    exception that Python maps to exit code 1  when run_inference_mode raises
+    RuntimeError("UNSUPPORTED_FEATURE_REGIME...").
 
     The fix: the except block in main() must NOT re-raise after setting
     exit_code = EXIT_ERROR, so the finally block can write the summary and
@@ -689,7 +689,7 @@ class TestMainExitCode(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Tests 8–11: V3 contract (Camino C2 — QNM block removed)
+# Tests 811: V3 contract (Camino C2  QNM block removed)
 # ---------------------------------------------------------------------------
 
 from feature_support import (  # noqa: E402 (after conditional imports above)
@@ -928,7 +928,7 @@ class TestFeatureSupportV3CriticalSetUpdated(unittest.TestCase):
                              f"{name} must not be critical under V3 contract")
 
     def test_gate_fails_on_has_horizon_freeze_v3(self):
-        """has_horizon is still critical in V3 — tiny std must FAIL."""
+        """has_horizon is still critical in V3  tiny std must FAIL."""
         mu, sigma = _make_normal_stats_v3()
         sigma[_feature_idx_v3("has_horizon")] = 1e-9
         x = np.ones(N_V3, dtype=float)
@@ -957,7 +957,7 @@ class TestFeatureSupportV3CriticalSetUpdated(unittest.TestCase):
 class TestTrainFeatureSupportV3PassesWithoutQNMFreeze(unittest.TestCase):
     """
     Under V3, a dataset where qnm_* would have been frozen (all zeros)
-    must NOT cause a FAIL verdict — because qnm_* are absent from the contract.
+    must NOT cause a FAIL verdict  because qnm_* are absent from the contract.
     Under V2_5, the same dataset would have caused FAIL.
     """
 
@@ -992,12 +992,12 @@ class TestTrainFeatureSupportV3PassesWithoutQNMFreeze(unittest.TestCase):
     def test_v2_audit_would_have_failed_same_data(self):
         """
         Confirm the V2_5 equivalent dataset (same layout, qnm cols at zero std)
-        WOULD fail under V2_5 — proving V3 is a genuine fix, not an accidental pass.
+        WOULD fail under V2_5  proving V3 is a genuine fix, not an accidental pass.
         """
         rng = np.random.default_rng(42)
         n = 80
         X_v2 = rng.normal(size=(n, N))  # N=20 (V2_5)
-        # Freeze qnm_* (all zeros → std=0)
+        # Freeze qnm_* (all zeros  std=0)
         for name in ("qnm_Q0", "qnm_f1f0", "qnm_g1g0"):
             X_v2[:, _feature_idx(name)] = 0.0
         result_v2 = audit_train_feature_support(
@@ -1006,7 +1006,7 @@ class TestTrainFeatureSupportV3PassesWithoutQNMFreeze(unittest.TestCase):
             X_std=X_v2.std(axis=0),
         )
         self.assertEqual(result_v2["verdict"], "FAIL",
-                         "V2_5 audit must FAIL with frozen qnm_* — sanity check")
+                         "V2_5 audit must FAIL with frozen qnm_*  sanity check")
 
 
 @unittest.skipUnless(TORCH_AVAILABLE, "torch is not installed; skipping stage 02 integration checks")
@@ -1020,7 +1020,7 @@ class TestInferenceProbeV3ContractNoQNMDependency(unittest.TestCase):
     def test_inference_passes_with_real_like_qnm_values(self):
         """
         Boundary data with qnm_Q0=1124, qnm_f1f0=8.4 (GW150914 regime).
-        Under V3 the gate does not see those values — must not FAIL.
+        Under V3 the gate does not see those values  must not FAIL.
         """
         import json, tempfile, types, torch, h5py
 
@@ -1042,7 +1042,7 @@ class TestInferenceProbeV3ContractNoQNMDependency(unittest.TestCase):
                 bg.create_dataset("x_grid", data=x_grid)
                 bg.create_dataset("G2_scalar", data=g2)
                 bg.attrs["temperature"] = 0.0
-                bg.attrs["qnm_Q0"]   = 1124.9   # GW150914 value — must be ignored by V3
+                bg.attrs["qnm_Q0"]   = 1124.9   # GW150914 value  must be ignored by V3
                 bg.attrs["qnm_f1f0"] = 8.41
                 bg.attrs["qnm_g1g0"] = 1.58
                 bg.attrs["d"]        = 4
@@ -1093,7 +1093,7 @@ class TestInferenceProbeV3ContractNoQNMDependency(unittest.TestCase):
             import h5py as _h5py
             engine.h5py = _h5py
 
-            # Must not raise — gate should PASS because G2/thermal features are in-support
+            # Must not raise  gate should PASS because G2/thermal features are in-support
             # and qnm_* values are invisible to the V3 gate
             try:
                 engine.run_inference_mode(args)
@@ -1157,7 +1157,7 @@ class TestInferenceProbeV3ContractNoQNMDependency(unittest.TestCase):
             try:
                 engine.run_inference_mode(args)
             except RuntimeError:
-                pass  # gate fail is OK for this test — we just check the summary
+                pass  # gate fail is OK for this test  we just check the summary
 
             summary_path = out_dir / "emergent_geometry_summary.json"
             self.assertTrue(summary_path.exists(), "summary JSON must be written")
@@ -1169,7 +1169,7 @@ class TestInferenceProbeV3ContractNoQNMDependency(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Tests 12–16: support_mode permissive_ood (OOD-permissive gate contract)
+# Tests 1216: support_mode permissive_ood (OOD-permissive gate contract)
 # ---------------------------------------------------------------------------
 
 from feature_support import (  # noqa: E402
@@ -1190,9 +1190,9 @@ class TestPermissiveOODModeV3(unittest.TestCase):
     Tests for support_mode='permissive_ood' behavior with V3 features.
 
     Contract:
-    - strict mode (default) fails on G2_large_x OOD → verdict=FAIL
-    - permissive_ood mode allows inference with explicit OOD flag → verdict=OOD_PASS
-    - Clean events pass identically in both modes → verdict=PASS
+    - strict mode (default) fails on G2_large_x OOD  verdict=FAIL
+    - permissive_ood mode allows inference with explicit OOD flag  verdict=OOD_PASS
+    - Clean events pass identically in both modes  verdict=PASS
     - Invalid support_mode raises ValueError
     """
 
@@ -1311,7 +1311,7 @@ class TestPermissiveOODModeV3(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Tests 17–21: support_policy_version V4 (G2_large_x demotion governance)
+# Tests 1721: support_policy_version V4 (G2_large_x demotion governance)
 # ---------------------------------------------------------------------------
 
 from feature_support import (
@@ -1346,7 +1346,7 @@ class TestSupportPolicyV4Demotion(unittest.TestCase):
         self.mu[idx] = 0.0
         self.sigma[idx] = 1.0
         self.x = np.ones(len(FEATURE_NAMES_V3), dtype=float)
-        self.x[idx] = 7.0  # z = 7 > 5 → off-support
+        self.x[idx] = 7.0  # z = 7 > 5  off-support
 
     def test_v3_default_preserved_g2_is_critical(self):
         """V3 (default): G2_large_x should still be CRITICAL and cause FAIL."""
@@ -1472,7 +1472,7 @@ class TestSupportPolicyV4Demotion(unittest.TestCase):
 
 class TestV3ToV4MigrationContract(unittest.TestCase):
     """
-    Contract tests ensuring V3 → V4 migration is clean and auditable.
+    Contract tests ensuring V3  V4 migration is clean and auditable.
 
     Key guarantees:
     1. V3 behavior is unchanged (G2_large_x blocks)

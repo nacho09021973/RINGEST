@@ -27,12 +27,12 @@ CANONICAL_X_MIN: float = DEFAULT_X_MIN
 CANONICAL_X_MAX: float = DEFAULT_X_MAX
 
 # -----------------------------------------------------------------------
-# xmax_6 versioned contract — real-data carril (C2 / stage-02 reopening)
+# xmax_6 versioned contract  real-data carril (C2 / stage-02 reopening)
 #
 # x_max=6.0 was validated over x_max=10.0 for real GWOSC events because
-# ESPRIT-extracted G2 on 250 ms windows reliably covers x∈[0.001, ~5],
+# ESPRIT-extracted G2 on 250 ms windows reliably covers x[0.001, ~5],
 # so extending to 10 forces edge-hold extrapolation that inflates G2_large_x
-# z-scores above the 5σ FAIL threshold.
+# z-scores above the 5 FAIL threshold.
 # Kept inline here so the runtime contract does not depend on historical docs.
 # -----------------------------------------------------------------------
 XMAX6_V1_X_MAX: float = 6.0

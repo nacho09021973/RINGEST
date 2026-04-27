@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # 08_build_holographic_dictionary.py
-# CUERDAS — Bloque C: Atlas holográfico (diccionario geométrico)
+# CUERDAS  Bloque C: Atlas holografico (diccionario geometrico)
 #
 # OBJETIVO
-#   Construir un atlas holográfico interno a partir de la información de geometría
-#   y operadores, organizado por sistema/familia/dimensión:
-#     - Listar operadores relevantes por sistema (nombres, Δ, etiquetas).
-#     - Agregar metadatos de geometría y clasificación (ads, lifshitz, hvlf, ...).
+#   Construir un atlas holografico interno a partir de la informacion de geometria
+#   y operadores, organizado por sistema/familia/dimension:
+#     - Listar operadores relevantes por sistema (nombres, , etiquetas).
+#     - Agregar metadatos de geometria y clasificacion (ads, lifshitz, hvlf, ...).
 #
 # ENTRADAS
 #   - runs/<experiment>/02_emergent_geometry_engine/geometry_emergent/*.h5
@@ -16,11 +16,11 @@
 #     holographic_dictionary_v3_summary.json
 #     stage_summary.json
 #
-# OPCIONAL: CHECKS DE m²L²
-#   - Con flags explícitas, puede calcular m²L² = Δ(Δ-d) como diagnóstico.
-#   - IMPORTANTE: estos cálculos son post-hoc y no entran en entrenamiento.
+# OPCIONAL: CHECKS DE m2L2
+#   - Con flags explicitas, puede calcular m2L2 = (-d) como diagnostico.
+#   - IMPORTANTE: estos calculos son post-hoc y no entran en entrenamiento.
 #
-# RELACIÓN CON OTROS SCRIPTS
+# RELACION CON OTROS SCRIPTS
 #   - Proporciona el "atlas" interno que se cruza con:
 #       * 09_real_data_and_dictionary_contracts.py
 #
@@ -67,9 +67,9 @@ except Exception as exc:
     HAS_PYSR = False
     print(f"Warning: PySR not available or not usable: {exc}")
 
-# ═══════════════════════════════════════════════════════════════════════════
+# 
 # V3 INFRASTRUCTURE - PATCH: Probar stage_utils primero, luego tools.stage_utils
-# ═══════════════════════════════════════════════════════════════════════════
+# 
 HAS_STAGE_UTILS = False
 StageContext = None
 add_standard_arguments = None
@@ -80,7 +80,7 @@ EXIT_ERROR = 3
 STATUS_OK = "OK"
 STATUS_ERROR = "ERROR"
 
-# Intentar import desde raíz primero (nuevo estándar)
+# Intentar import desde raiz primero (nuevo estandar)
 try:
     from stage_utils import (
         EXIT_ERROR, EXIT_OK, STATUS_ERROR, STATUS_OK,
@@ -113,13 +113,13 @@ except ImportError:
 
 
 # =============================================================================
-# ROUTING CONTRACT: Validación y resolución de rutas
+# ROUTING CONTRACT: Validacion y resolucion de rutas
 # =============================================================================
 
 def validate_routing_args(args) -> Tuple[bool, str]:
     """
     Valida que no haya conflictos entre --experiment y --output-summary/--data-dir.
-    Según ROUTING_CONTRACT: --experiment es la fuente de verdad.
+    Segun ROUTING_CONTRACT: --experiment es la fuente de verdad.
     """
     has_run_dir = getattr(args, 'run_dir', None) is not None
     has_experiment = getattr(args, 'experiment', None) is not None
@@ -130,13 +130,13 @@ def validate_routing_args(args) -> Tuple[bool, str]:
         return False, (
             "CONFLICTO: --experiment y --output-summary son mutuamente excluyentes.\n"
             "  --experiment es la fuente de verdad (ROUTING_CONTRACT).\n"
-            "  --output-summary está DEPRECATED.\n"
+            "  --output-summary esta DEPRECATED.\n"
             "  Usa solo --experiment."
         )
     
     if has_output_summary:
         warnings.warn(
-            "--output-summary está DEPRECATED. Usa --experiment en su lugar.",
+            "--output-summary esta DEPRECATED. Usa --experiment en su lugar.",
             DeprecationWarning,
             stacklevel=2
         )
@@ -146,12 +146,12 @@ def validate_routing_args(args) -> Tuple[bool, str]:
 
 def resolve_geometry_dir(args, ctx, run_dir: Optional[Path]) -> Path:
     """
-    Resuelve el directorio de geometrías usando solo rutas contractuales.
+    Resuelve el directorio de geometrias usando solo rutas contractuales.
     """
     if args.data_dir:
         geometry_dir = Path(args.data_dir).resolve()
         if geometry_dir.exists() and geometry_dir.is_dir():
-            print("--data-dir explícito: usando input contractual externo al run actual")
+            print("--data-dir explicito: usando input contractual externo al run actual")
             return geometry_dir
         raise FileNotFoundError(f"Canonical input directory not found: {geometry_dir}")
 
@@ -282,7 +282,7 @@ def _manifest_ref(path: Path, run_root: Optional[Path]) -> str:
 
 
 # =============================================================================
-# FUNCIONES DE ANÁLISIS
+# FUNCIONES DE ANALISIS
 # =============================================================================
 
 def extract_delta_from_correlator(x, G2):
@@ -364,12 +364,12 @@ def check_breitenlohner_freedman_bound(m2L2: float, d: int) -> dict:
 
 def discover_mass_dimension_relation(Deltas, m2L2, d, seed=42):
     """
-    Usa PySR para descubrir la relacion entre Delta y m²L².
+    Usa PySR para descubrir la relacion entre Delta y m2L2.
     Devuelve un dict con:
         - discovered_equation (str)
         - r2 (float)
         - status
-        - holographic_r2 (ajuste si forzamos m²L² = Delta(Delta-d))
+        - holographic_r2 (ajuste si forzamos m2L2 = Delta(Delta-d))
     """
     if not HAS_PYSR:
         return {"status": "pysr_not_available"}
@@ -409,7 +409,7 @@ def discover_mass_dimension_relation(Deltas, m2L2, d, seed=42):
     results["r2"] = float(r2)
     results["status"] = "ok"
 
-    # Comparacion con Delta(Delta-d) (chequeo teórico, no label)
+    # Comparacion con Delta(Delta-d) (chequeo teorico, no label)
     Deltas_flat = Deltas.reshape(-1)
     m2L2_flat = m2L2.reshape(-1)
     valid = ~np.isnan(Deltas_flat) & ~np.isnan(m2L2_flat)
@@ -449,12 +449,12 @@ def discover_mass_dimension_relation(Deltas, m2L2, d, seed=42):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Fase XI: construir diccionario holográfico agrupando por (family, d)"
+        description="Fase XI: construir diccionario holografico agrupando por (family, d)"
     )
     
-    # ═══════════════════════════════════════════════════════════════════════
-    # V3: Argumentos estándar
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
+    # V3: Argumentos estandar
+    # 
     if HAS_STAGE_UTILS and add_standard_arguments:
         add_standard_arguments(parser)
     else:
@@ -468,7 +468,7 @@ def parse_args():
         "--data-dir",
         type=str,
         default=None,
-        help="[DEPRECATED] Directorio con los .h5 de geometría. Usar --experiment.",
+        help="[DEPRECATED] Directorio con los .h5 de geometria. Usar --experiment.",
     )
     parser.add_argument(
         "--output-summary",
@@ -477,7 +477,7 @@ def parse_args():
         help="[DEPRECATED] Fichero JSON de salida. Usar --experiment.",
     )
     
-    # Argumentos específicos del script
+    # Argumentos especificos del script
     parser.add_argument(
         "--mass-source",
         type=str,
@@ -488,7 +488,7 @@ def parse_args():
     parser.add_argument(
         "--compute-m2-from-delta",
         action="store_true",
-        help="(MODO CONTROL, solo con mass_source=hdf5) Si no hay m2L2 en HDF5, calcula m²L² = Delta(Delta-d)",
+        help="(MODO CONTROL, solo con mass_source=hdf5) Si no hay m2L2 en HDF5, calcula m2L2 = Delta(Delta-d)",
     )
     parser.add_argument(
         "--seed",
@@ -512,9 +512,9 @@ def parse_args():
 def main() -> int:
     args = parse_args()
     
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
     # ROUTING CONTRACT: Validar conflictos
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
     ctx = None
     run_dir: Optional[Path] = None
     status = STATUS_OK
@@ -553,16 +553,16 @@ def main() -> int:
         output_file.parent.mkdir(parents=True, exist_ok=True)
 
         print("=" * 70)
-        print("FASE XI - DICCIONARIO HOLOGRÁFICO v3.1 (FIX EMERGENT)")
+        print("FASE XI - DICCIONARIO HOLOGRAFICO v3.1 (FIX EMERGENT)")
         print("=" * 70)
         print(f"Mass source: {args.mass_source.upper()}")
         if args.mass_source == "hdf5":
             print("   MODO CONTROL: Usando ground-truth de HDF5 (Delta_mass_dict)")
             if args.compute_m2_from_delta:
-                print("   -> [CONTROL] Si falta m2L2, se calcula m²L² = Delta(Delta-d)")
+                print("   -> [CONTROL] Si falta m2L2, se calcula m2L2 = Delta(Delta-d)")
         else:
             print("   MODO EMERGENTE: Extrayendo Delta de correladores")
-            print("   -> NO se calcula m²L² en esta fase (solo atlas de Δ)")
+            print("   -> NO se calcula m2L2 en esta fase (solo atlas de )")
         print("=" * 70)
 
         data_by_family_d = defaultdict(
@@ -630,7 +630,7 @@ def main() -> int:
                             m2L2_method = "not_available"
 
                         print(
-                            f"   {name}/{op_name}: Δ={Delta:.3f}, m²L²={m2L2 if m2L2 else 'N/A'} "
+                            f"   {name}/{op_name}: ={Delta:.3f}, m2L2={m2L2 if m2L2 else 'N/A'} "
                             f"[{m2L2_method}]"
                         )
 
@@ -689,7 +689,7 @@ def main() -> int:
 
                         print(
                             f"   {name}/{op_name}: Delta={Delta:.3f} "
-                            f"[emergent, m²L² NO calculado en esta fase]"
+                            f"[emergent, m2L2 NO calculado en esta fase]"
                         )
 
                         geo_result["operators_extracted"].append(
@@ -743,7 +743,7 @@ def main() -> int:
             }
             print(
                 f"   {key}: {n} puntos con m2L2, "
-                f"d={fdata['d']}, {len(fdata['geometries'])} geometrías"
+                f"d={fdata['d']}, {len(fdata['geometries'])} geometrias"
             )
 
         discovery_results = {}
@@ -762,10 +762,10 @@ def main() -> int:
             )
             discovery_results[key] = result
             if result["status"] == "ok":
-                print(f"   Mejor ecuación: {result['discovered_equation']}")
-                print(f"   R²(PySR): {result['r2']:.4f}")
+                print(f"   Mejor ecuacion: {result['discovered_equation']}")
+                print(f"   R2(PySR): {result['r2']:.4f}")
                 if result.get("holographic_r2") is not None:
-                    print(f"   R²(m²L²=Delta(Delta-d)): {result['holographic_r2']:.4f}")
+                    print(f"   R2(m2L2=Delta(Delta-d)): {result['holographic_r2']:.4f}")
             else:
                 print(f"   Status: {result['status']}")
 
@@ -778,9 +778,9 @@ def main() -> int:
             "compute_m2_from_delta": args.compute_m2_from_delta,
             "version": "v3.1_routing_contract",
             "notes": [
-                "v3.1: FIX MODO EMERGENT (no mezcla d ni masas entre geometrías)",
-                "rev.honestidad: en modo emergent no se calcula m²L² en este script; "
-                "las masas deben venir de datos externos (HDF5 u otros módulos).",
+                "v3.1: FIX MODO EMERGENT (no mezcla d ni masas entre geometrias)",
+                "rev.honestidad: en modo emergent no se calcula m2L2 en este script; "
+                "las masas deben venir de datos externos (HDF5 u otros modulos).",
             ],
         }
 

@@ -1,0 +1,28 @@
+{
+  "script": "02c_prepare_community_ringdown_cohort.py",
+  "dataset_csv": "/home/adnac/ringest/runs/qnm_dataset_literature/qnm_dataset.csv",
+  "gwosc_root": "/home/adnac/ringest/data/gwosc_events",
+  "n_input_rows": 19,
+  "n_selected_rows": 18,
+  "events": [
+    "GW150914",
+    "GW170104",
+    "GW170814",
+    "GW170823",
+    "GW190408_181802",
+    "GW190421_213856",
+    "GW190503_185404",
+    "GW190512_180714",
+    "GW190513_205428",
+    "GW190519_153544",
+    "GW190521_074359",
+    "GW190602_175927",
+    "GW190706_222641",
+    "GW190708_232457",
+    "GW190727_060333",
+    "GW190828_063405",
+    "GW190910_112807",
+    "GW190915_235702"
+  ],
+  "csv": "/home/adnac/ringest/runs/community_ringdown_cohort/community_ringdown_cohort.csv"
+}

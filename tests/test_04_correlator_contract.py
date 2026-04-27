@@ -179,7 +179,7 @@ class TestContractSummaryMarksRelaxedMode(unittest.TestCase):
     def test_summary_json_has_n_ringdown_inference_field(self):
         """
         The canonical anchor cohort summary must include the traceability field.
-        (Skipped if file not present — integration test.)
+        (Skipped if file not present  integration test.)
         """
         summary_path = (
             REPO_ROOT

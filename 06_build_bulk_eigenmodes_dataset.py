@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # 06_build_bulk_eigenmodes_dataset.py
-# CUERDAS – Bloque B: Espectro escalar (dataset de modos bulk)
+# CUERDAS  Bloque B: Espectro escalar (dataset de modos bulk)
 #
 # OBJETIVO
-#   Recorrer las geometrías emergentes y construir un dataset honesto de modos bulk:
+#   Recorrer las geometrias emergentes y construir un dataset honesto de modos bulk:
 #     - Llamar a bulk_scalar_solver.py para cada sistema.
 #     - Recopilar pares (Delta_UV, lambda_sl) con metadatos (familia, d, ...).
 #     - Opcionalmente: Extraer Delta desde correladores de frontera.
 #
 # ENTRADAS
 #   - runs/<experiment>/02_emergent_geometry_engine/geometry_emergent/*.h5
-#   - Módulo bulk_scalar_solver.py (o bulk_scalar_solver_v2 si existe)
-#   - Módulo boundary_delta_extractor.py (opcional, para extracción de Delta)
+#   - Modulo bulk_scalar_solver.py (o bulk_scalar_solver_v2 si existe)
+#   - Modulo boundary_delta_extractor.py (opcional, para extraccion de Delta)
 #
 # SALIDAS (V3)
 #   runs/<experiment>/06_build_bulk_eigenmodes_dataset/
@@ -20,10 +20,10 @@
 #     stage_summary.json
 #
 # HONESTIDAD
-#   - No se aplica ninguna fórmula teórica Delta(Delta-d).
-#   - lambda_sl son autovalores Sturm—Liouville, NO masas holográficas por defecto.
-#   - Delta extraído de correladores G2(x) ~ x^(-2Î”) es una MEDICIÓN, no teoría.
-#   - El mapping mode_id â†’ operator se documenta en meta para auditoría.
+#   - No se aplica ninguna formula teorica Delta(Delta-d).
+#   - lambda_sl son autovalores SturmLiouville, NO masas holograficas por defecto.
+#   - Delta extraido de correladores G2(x) ~ x^(-2I) es una MEDICION, no teoria.
+#   - El mapping mode_id a operator se documenta en meta para auditoria.
 #
 # MIGRADO A V3: 2024-12-23
 
@@ -41,9 +41,9 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 import h5py
 import numpy as np
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# 
 # V3 INFRASTRUCTURE
-# ═══════════════════════════════════════════════════════════════════════════════
+# 
 HAS_STAGE_UTILS = False
 StageContext = None
 add_standard_arguments = None
@@ -98,14 +98,14 @@ except ImportError:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description=(
-            "Construir dataset de modos escalares (CSV canónico) a partir de geometrías emergentes. "
-            "Nomenclatura honesta: lambda_sl (autovalores Sturm—Liouville)."
+            "Construir dataset de modos escalares (CSV canonico) a partir de geometrias emergentes. "
+            "Nomenclatura honesta: lambda_sl (autovalores SturmLiouville)."
         )
     )
     
-    # ═══════════════════════════════════════════════════════════════════════════
-    # V3: Argumentos estándar
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
+    # V3: Argumentos estandar
+    # 
     if HAS_STAGE_UTILS:
         add_standard_arguments(p)
     else:
@@ -117,15 +117,15 @@ def parse_args() -> argparse.Namespace:
         "--geometry-dir",
         type=str,
         default=None,
-        help="Directorio con .h5 de geometría emergente (legacy)",
+        help="Directorio con .h5 de geometria emergente (legacy)",
     )
 
-    # Salidas canónicas (legacy - en V3 se usan ctx.stage_dir)
+    # Salidas canonicas (legacy - en V3 se usan ctx.stage_dir)
     p.add_argument(
         "--output-csv",
         type=str,
         default=None,
-        help="CSV canónico (legacy, default: stage_dir/bulk_modes_dataset.csv)",
+        help="CSV canonico (legacy, default: stage_dir/bulk_modes_dataset.csv)",
     )
     p.add_argument(
         "--output-meta",
@@ -146,7 +146,7 @@ def parse_args() -> argparse.Namespace:
         "--n-eigs",
         type=int,
         default=4,
-        help="Número de autovalores/autovectores por geometría (default: 4)",
+        help="Numero de autovalores/autovectores por geometria (default: 4)",
     )
 
     # Datasets dentro del HDF5: por defecto, layout emergent (02)
@@ -169,7 +169,7 @@ def parse_args() -> argparse.Namespace:
         help="Ruta al dataset f(z) dentro del HDF5 (default: f_emergent)",
     )
     
-    # Control de extracción de Delta
+    # Control de extraccion de Delta
     p.add_argument(
         "--delta-uv-source",
         type=str,
@@ -192,7 +192,7 @@ def _decode_if_bytes(x: Any) -> Any:
 
 
 def read_required_attrs(h5_path: Path) -> Dict[str, Any]:
-    """Lee metadatos críticos. No hace defaults silenciosos."""
+    """Lee metadatos criticos. No hace defaults silenciosos."""
     with h5py.File(h5_path, "r") as f:
         # system_name / name
         system_name = _decode_if_bytes(f.attrs.get("system_name", f.attrs.get("name", h5_path.stem)))
@@ -283,16 +283,16 @@ def audit_uv_exponents(uv_list: List[Any], d: int) -> Dict[str, Any]:
     """
     Audita una lista de exponentes UV devuelta por el solver.
 
-    Detecta el colapso a d: ocurre cuando λ_sl ≈ 0 y la fórmula
-    Δ = (d + sqrt(d² + 4λ)) / 2 satura a d en float64.
+    Detecta el colapso a d: ocurre cuando _sl  0 y la formula
+     = (d + sqrt(d2 + 4)) / 2 satura a d en float64.
 
     Devuelve un dict con:
-      - suspicious: bool — True si la lista es sospechosa
-      - reason: str — motivo legible
-      - all_equal_d: bool — todos los valores son float-iguales a d
-      - all_identical: bool — todos los valores son idénticos entre sí
+      - suspicious: bool  True si la lista es sospechosa
+      - reason: str  motivo legible
+      - all_equal_d: bool  todos los valores son float-iguales a d
+      - all_identical: bool  todos los valores son identicos entre si
       - n_values: int
-      - n_equal_d: int — cuántos son iguales a float(d)
+      - n_equal_d: int  cuantos son iguales a float(d)
     """
     if not uv_list:
         return {
@@ -319,7 +319,7 @@ def audit_uv_exponents(uv_list: List[Any], d: int) -> Dict[str, Any]:
 
     n_equal_d = sum(1 for v in finite_vals if v == d_f)
     all_equal_d = n_equal_d == n
-    # Todos idénticos (pero no necesariamente == d)
+    # Todos identicos (pero no necesariamente == d)
     all_identical = len(set(finite_vals)) == 1
 
     suspicious = False
@@ -382,7 +382,7 @@ def build_legacy_json(rows: List[Row]) -> Dict[str, Any]:
         "by_family_d": by_family_d,
         "notes": [
             "Compat JSON: agregado por sistema/family-d.",
-            "lambda_sl son autovalores Sturm—Liouville (NO masas holográficas por defecto).",
+            "lambda_sl son autovalores SturmLiouville (NO masas holograficas por defecto).",
             "Delta_bulk_uv es el exponente UV estimado (de boundary o solver).",
         ],
     }
@@ -391,9 +391,9 @@ def build_legacy_json(rows: List[Row]) -> Dict[str, Any]:
 def main() -> int:
     args = parse_args()
     
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     # V3: Crear StageContext
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     ctx = None
     if HAS_STAGE_UTILS:
         # Inferir experiment si no se proporciona
@@ -416,17 +416,17 @@ def main() -> int:
     # Validar disponibilidad
     if use_boundary and not HAS_BOUNDARY_EXTRACTOR:
         print("[ERROR] --delta-uv-source boundary/both requiere boundary_delta_extractor.py")
-        print("        Copiar el módulo al directorio del proyecto.")
+        print("        Copiar el modulo al directorio del proyecto.")
         if ctx:
             ctx.write_summary(status="ERROR", counts={"error": "boundary_extractor_missing"})
         return 2
     
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     # RESOLVER INPUT (geometry_dir)
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     geom_dir = None
     
-    # Prioridad 1: --geometry-dir explícito
+    # Prioridad 1: --geometry-dir explicito
     if args.geometry_dir:
         geom_dir = Path(args.geometry_dir).resolve()
     
@@ -456,7 +456,7 @@ def main() -> int:
         return 2
     
     if not geom_dir.exists() or not geom_dir.is_dir():
-        print(f"[ERROR] --geometry-dir no es un directorio válido: {geom_dir}")
+        print(f"[ERROR] --geometry-dir no es un directorio valido: {geom_dir}")
         if ctx:
             ctx.write_summary(status="INCOMPLETE", counts={"error": "geometry_dir_not_found"})
         return 2
@@ -468,9 +468,9 @@ def main() -> int:
             ctx.write_summary(status="INCOMPLETE", counts={"error": "no_h5_files"})
         return 2
     
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     # RESOLVER OUTPUTS
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     if ctx:
         out_csv = ctx.stage_dir / "bulk_modes_dataset.csv"
         out_meta = ctx.stage_dir / "bulk_modes_meta.json"
@@ -488,15 +488,15 @@ def main() -> int:
     
     out_json = Path(args.output_json).resolve() if args.output_json else None
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     # BANNER
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     print("=" * 70)
-    print("DATASET BULK EIGENMODES (CSV canónico) – CUERDAS Bloque B")
-    print("Nomenclatura honesta: lambda_sl (autovalores Sturm—Liouville)")
+    print("DATASET BULK EIGENMODES (CSV canonico)  CUERDAS Bloque B")
+    print("Nomenclatura honesta: lambda_sl (autovalores SturmLiouville)")
     print("=" * 70)
-    print(f"Geometrías desde: {geom_dir}")
-    print(f"N_max modos por geometría: {args.n_eigs}")
+    print(f"Geometrias desde: {geom_dir}")
+    print(f"N_max modos por geometria: {args.n_eigs}")
     print(f"Salida CSV:  {out_csv}")
     print(f"Salida META: {out_meta}")
     if out_json:
@@ -510,17 +510,17 @@ def main() -> int:
     failed: List[Dict[str, Any]] = []
     compat_used_keys: Set[str] = set()
     
-    # Estadísticas de fuentes de Delta
+    # Estadisticas de fuentes de Delta
     stats = {
         "boundary_extractions": 0,
         "solver_extractions": 0,
         "no_delta": 0,
         "solver_uv_collapsed": 0,  # sistemas donde uv_exponents colapsa a d
     }
-    # Auditoría UV por sistema
+    # Auditoria UV por sistema
     uv_exponents_audit_by_system: Dict[str, Any] = {}
     
-    # Metadata de boundary extractions (para auditoría)
+    # Metadata de boundary extractions (para auditoria)
     boundary_metadata_by_system: Dict[str, Any] = {}
 
     for h5_path in h5_files:
@@ -545,13 +545,13 @@ def main() -> int:
             try:
                 boundary_deltas = extract_deltas_from_hdf5(h5_path)
                 if boundary_deltas:
-                    ops = ", ".join(f"{k}(Δ={v.Delta:.4f})" for k, v in 
+                    ops = ", ".join(f"{k}(={v.Delta:.4f})" for k, v in 
                                     sorted(boundary_deltas.items(), key=lambda x: x[1].Delta))
                     print(f"   Deltas de boundary: {ops}")
-                    # Guardar metadata para auditoría
+                    # Guardar metadata para auditoria
                     boundary_metadata_by_system[system_name] = get_extraction_metadata(boundary_deltas)
             except Exception as e:
-                print(f"   [WARN] Fallo extracción boundary: {e}")
+                print(f"   [WARN] Fallo extraccion boundary: {e}")
 
         # === PASO 2: Llamar al solver ===
         spec = None
@@ -605,7 +605,7 @@ def main() -> int:
                     print(
                         f"   [WARN] uv_exponents sospechoso ({uv_audit['reason']}): "
                         f"{uv_audit['n_equal_d']}/{uv_audit['n_values']} valores == d={d}. "
-                        f"Delta_UV → None para este sistema."
+                        f"Delta_UV  None para este sistema."
                     )
                     Delta_uv_list_solver = []  # tratar como ausente
                     stats["solver_uv_collapsed"] += 1
@@ -634,12 +634,12 @@ def main() -> int:
             if not np.isfinite(lam_f) or lam_f <= 0:
                 continue
 
-            # === Determinar Delta_UV según --delta-uv-source ===
+            # === Determinar Delta_UV segun --delta-uv-source ===
             Delta_uv: Optional[float] = None
             quality = "ok"
             delta_source = "none"
             
-            # Opción 1: boundary (o both con prioridad boundary)
+            # Opcion 1: boundary (o both con prioridad boundary)
             if use_boundary and boundary_deltas:
                 bnd_delta, bnd_quality = get_delta_for_eigenmode(boundary_deltas, mode_id)
                 if bnd_delta is not None:
@@ -648,14 +648,14 @@ def main() -> int:
                     delta_source = "boundary_correlator"
                     stats["boundary_extractions"] += 1
             
-            # Opción 2: solver (o fallback si boundary no dio resultado)
+            # Opcion 2: solver (o fallback si boundary no dio resultado)
             if Delta_uv is None and use_solver_delta and mode_id < len(Delta_uv_list_solver):
                 dv = Delta_uv_list_solver[mode_id]
                 if dv is not None and isinstance(dv, (int, float)) and np.isfinite(float(dv)):
                     try:
                         dv_f = float(dv)
                         # Guard: rechazar valor si es float-igual a d
-                        # (síntoma de eigenvalor near-zero, no hay información UV real)
+                        # (sintoma de eigenvalor near-zero, no hay informacion UV real)
                         if dv_f == float(d):
                             quality = "uv_missing"
                             delta_source = "none"
@@ -692,17 +692,17 @@ def main() -> int:
             n_added += 1
 
         if n_added == 0:
-            print("   [WARN] Sin modos válidos; se omite sistema.")
+            print("   [WARN] Sin modos validos; se omite sistema.")
         else:
             # Mostrar primer modo
             ex = next((r for r in rows if r.system_name == system_name), None)
             if ex is not None:
-                dv = "(vacío)" if ex.Delta_UV is None else f"{ex.Delta_UV:.6f}"
-                print(f"   OK: {n_added} filas. Ejemplo: λ_sl={ex.lambda_sl:.6f}, Î”={dv} (src={ex.delta_source})")
+                dv = "(vacio)" if ex.Delta_UV is None else f"{ex.Delta_UV:.6f}"
+                print(f"   OK: {n_added} filas. Ejemplo: _sl={ex.lambda_sl:.6f}, I={dv} (src={ex.delta_source})")
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     # ESCRIBIR OUTPUTS
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     write_csv(rows, out_csv)
 
     meta_out = {
@@ -726,10 +726,10 @@ def main() -> int:
         "uv_exponents_audit": uv_exponents_audit_by_system,
         "boundary_extraction_metadata": boundary_metadata_by_system,
         "notes": [
-            "CSV canónico para 07: system_name,family,d,mode_id,lambda_sl,Delta_UV (+ opcionales).",
-            "lambda_sl son autovalores Sturm—Liouville (NO masas por defecto).",
+            "CSV canonico para 07: system_name,family,d,mode_id,lambda_sl,Delta_UV (+ opcionales).",
+            "lambda_sl son autovalores SturmLiouville (NO masas por defecto).",
             "delta_source indica origen: boundary_correlator, solver_uv, o none.",
-            "boundary_extraction_metadata contiene el mapping mode_id â†’ operator para auditoría.",
+            "boundary_extraction_metadata contiene el mapping mode_id a operator para auditoria.",
         ],
     }
 
@@ -740,27 +740,27 @@ def main() -> int:
         out_json.parent.mkdir(parents=True, exist_ok=True)
         out_json.write_text(json.dumps(build_legacy_json(rows), indent=2, ensure_ascii=False))
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     # RESUMEN
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     print("\n" + "=" * 70)
     print("[OK] Dataset bulk-eigenmodes generado")
     print(f"  CSV :  {out_csv}")
     print(f"  META:  {out_meta}")
     if out_json:
         print(f"  JSON:  {out_json}")
-    print(f"\n  ESTADÍSTICAS DE DELTA (fuente: {args.delta_uv_source}):")
+    print(f"\n  ESTADISTICAS DE DELTA (fuente: {args.delta_uv_source}):")
     print(f"    - Desde boundary correlators: {stats['boundary_extractions']}")
     print(f"    - Desde solver UV:            {stats['solver_extractions']}")
     print(f"    - Sin Delta disponible:       {stats['no_delta']}")
     if boundary_metadata_by_system:
-        print(f"\n  AUDITORÍA: mapping mode_id → operator guardado en bulk_modes_meta.json")
+        print(f"\n  AUDITORIA: mapping mode_id  operator guardado en bulk_modes_meta.json")
     if failed:
         print(f"\n  WARN: {len(failed)} sistemas fallaron (ver bulk_modes_meta.json)")
     
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     # V3: Registrar artefactos y escribir summary
-    # ═══════════════════════════════════════════════════════════════════════════
+    # 
     if ctx:
         ctx.record_artifact("bulk_modes_csv", out_csv)
         ctx.record_artifact("bulk_modes_meta", out_meta)

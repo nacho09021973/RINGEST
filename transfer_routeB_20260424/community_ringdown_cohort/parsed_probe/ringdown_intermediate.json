@@ -1,0 +1,8 @@
+{
+  "script": "02d_parse_ringdown_netcdf.py",
+  "input_path": "/home/adnac/ringest/runs/community_ringdown_cohort",
+  "n_files_found": 0,
+  "n_rows_written": 0,
+  "files": [],
+  "csv": "/home/adnac/ringest/runs/community_ringdown_cohort/parsed_probe/ringdown_intermediate.csv"
+}

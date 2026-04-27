@@ -39,7 +39,7 @@ def _load_stage01_helpers() -> Tuple[Any, Any]:
     except AttributeError as exc:
         raise PackTrainingH5Error(
             "Stage 01 no expone _g2_from_gkpw_spectral/_ricci_from_A_f; "
-            "no se puede empaquetar sin duplicar lógica viva."
+            "no se puede empaquetar sin duplicar logica viva."
         ) from exc
 
 
@@ -231,7 +231,7 @@ def _bulk_truth_payload(
         d,
     ).astype(np.float64)
     if not np.all(np.isfinite(R_truth)):
-        raise PackTrainingH5Error("R_truth no finito tras reconstrucción desde A/f")
+        raise PackTrainingH5Error("R_truth no finito tras reconstruccion desde A/f")
     D = d + 1
     G_trace_truth = ((1.0 - D / 2.0) * R_truth).astype(np.float64)
 
@@ -341,7 +341,7 @@ def pack_one(
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description=(
-            "Empaqueta geometrías raw + correlators GKPW en H5 training-ready "
+            "Empaqueta geometrias raw + correlators GKPW en H5 training-ready "
             "para 02_emergent_geometry_engine.py --mode train."
         ),
     )
@@ -361,7 +361,7 @@ def main(argv: List[str] | None = None) -> int:
     gkpw_catalog = _load_gkpw_catalog(args.gkpw_sources)
     names = sorted(set(geometry_catalog) & set(gkpw_catalog))
     if not names:
-        raise PackTrainingH5Error("No hay intersección geometry_name entre geometry-sources y gkpw-sources")
+        raise PackTrainingH5Error("No hay interseccion geometry_name entre geometry-sources y gkpw-sources")
 
     out_dir = Path(args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)

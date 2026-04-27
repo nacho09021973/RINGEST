@@ -1,0 +1,16 @@
+{
+  "script": "02d_parse_ringdown_netcdf.py",
+  "input_path": "/home/adnac/ringest/runs/community_ringdown_cohort/pilot_ringdown",
+  "n_files_found": 7,
+  "n_rows_written": 7,
+  "files": [
+    "/home/adnac/ringest/runs/community_ringdown_cohort/pilot_ringdown/GW150914_ringdown_fit.nc",
+    "/home/adnac/ringest/runs/community_ringdown_cohort/pilot_ringdown/GW170104_ringdown_fit.nc",
+    "/home/adnac/ringest/runs/community_ringdown_cohort/pilot_ringdown/GW170814_ringdown_fit.nc",
+    "/home/adnac/ringest/runs/community_ringdown_cohort/pilot_ringdown/GW170823_ringdown_fit.nc",
+    "/home/adnac/ringest/runs/community_ringdown_cohort/pilot_ringdown/GW190421_213856_ringdown_fit.nc",
+    "/home/adnac/ringest/runs/community_ringdown_cohort/pilot_ringdown/GW190503_185404_ringdown_fit.nc",
+    "/home/adnac/ringest/runs/community_ringdown_cohort/pilot_ringdown/GW190828_063405_ringdown_fit.nc"
+  ],
+  "csv": "/home/adnac/ringest/runs/community_ringdown_cohort/pilot_ringdown_expanded_parsed/ringdown_intermediate.csv"
+}

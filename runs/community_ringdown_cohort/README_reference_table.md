@@ -67,6 +67,15 @@ Artefacto principal: `runs/community_ringdown_cohort/community_ringdown_referenc
 - No rerunear `ringdown` para recuperar estos valores; ya estan congelados en el CSV.
 - Consultar `source_kind`, `source_artifacts` y `notes` antes de promover un evento a uso mas fuerte downstream.
 
+## Adaptador A Ruta B Operativa
+
+- Script: `tools/community_reference_to_qnm_dataset.py`.
+- Input canonico: `runs/community_ringdown_cohort/community_ringdown_reference_table.csv`.
+- Output canonico adaptado: `runs/community_ringdown_cohort/qnm_dataset_community_reference.csv`.
+- Funcion: convertir la tabla comunitaria congelada al esquema `qnm_dataset.csv` que ya consume `realdata_ringdown_to_stage02_boundary_dataset.py`.
+- No rerunea `ringdown`, no invoca `pyRingGW` y no estima valores nuevos: solo deriva campos algebraicos (`omega_re`, `omega_im`, normalizaciones y distancia Kerr-220) desde `f_ringdown_hz`, `damping_hz`, `M_final_Msun` y `chi_final` ya congelados.
+- Campos sin soporte directo en la tabla (`amp_abs`, `relative_rms`) quedan vacios; el bridge ya trata `amp_abs` vacio como amplitud unitaria.
+
 ## Cobertura De Hoy
 
 - Eventos con piloto directo congelado: 1.

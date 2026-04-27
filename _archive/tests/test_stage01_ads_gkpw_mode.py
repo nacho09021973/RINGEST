@@ -184,7 +184,7 @@ class TestStage01AdsGKPWMode(unittest.TestCase):
         rng = np.random.default_rng(123)
         with self.assertRaisesRegex(
             RuntimeError,
-            "lifshitz_boundary_mode=strong aún no implementado",
+            "lifshitz_boundary_mode=strong aun no implementado",
         ):
             self.stage01.generate_boundary_data(
                 self._lifshitz_geo(),

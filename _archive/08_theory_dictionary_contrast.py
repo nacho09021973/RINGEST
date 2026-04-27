@@ -590,7 +590,7 @@ def main() -> int:
     write_manifest(manifest, manifest_path)
 
     print("=" * 70)
-    print("THEORY DICTIONARY CONTRAST  —  Stage 08")
+    print("THEORY DICTIONARY CONTRAST    Stage 08")
     print(f"Script: {SCRIPT_VERSION}")
     print(f"Input root: {input_root}")
     print(f"Output dir: {output_dir}")

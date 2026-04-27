@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-01b_generate_kerr_sandbox.py  —  CUERDAS-MALDACENA  (Stage 01b, v1.0)
+01b_generate_kerr_sandbox.py    CUERDAS-MALDACENA  (Stage 01b, v1.0)
 
 Purpose
 -------
@@ -9,7 +9,7 @@ geometry classifier (02_emergent_geometry_engine.py) in the Kerr family.
 
 Each synthetic geometry corresponds to a binary black-hole merger with
 parameters (M_final [Msun], a/M [dimensionless spin]) drawn from a grid
-or random sample.  Theoretical Kerr QNMs (ℓ=2, m=2, n=0 and n=1) are
+or random sample.  Theoretical Kerr QNMs (l=2, m=2, n=0 and n=1) are
 computed with the `qnm` Python package and converted into surrogate
 boundary embeddings using the same functions as realdata_ringdown_to_stage02_boundary_dataset.py.
 
@@ -18,20 +18,20 @@ Output HDF5 structure
 Each file mirrors the sandbox structure expected by the geometry engine:
 
   <name>.h5
-  ├── attrs: category="known", family="kerr", d=4, name, system_name, operators, M_msun, a_over_M
-  └── boundary/
-      ├── attrs: family="kerr", d=4, qnm_Q0, qnm_f1f0, qnm_g1g0, qnm_n_modes, Delta_mass_dict
-      ├── G2_O1     (n_x,)
-      ├── G_R_real  (n_k, n_omega)
-      ├── G_R_imag  (n_k, n_omega)
-      ├── omega_grid (n_omega,)
-      ├── k_grid    (n_k,)
-      ├── x_grid    (n_x,)
-      ├── temperature (1,)
-      ├── central_charge_eff (1,)
-      └── d         (1,)
+   attrs: category="known", family="kerr", d=4, name, system_name, operators, M_msun, a_over_M
+   boundary/
+       attrs: family="kerr", d=4, qnm_Q0, qnm_f1f0, qnm_g1g0, qnm_n_modes, Delta_mass_dict
+       G2_O1     (n_x,)
+       G_R_real  (n_k, n_omega)
+       G_R_imag  (n_k, n_omega)
+       omega_grid (n_omega,)
+       k_grid    (n_k,)
+       x_grid    (n_x,)
+       temperature (1,)
+       central_charge_eff (1,)
+       d         (1,)
 
-There is NO bulk_truth group — Kerr has no holographic AdS dual.
+There is NO bulk_truth group  Kerr has no holographic AdS dual.
 The geometry engine masks reconstruction losses for has_bulk_truth=False.
 
 Usage
@@ -112,12 +112,12 @@ class KerrQNMCache:
         """
         Return (f0_hz, tau0_s, f1_hz, tau1_s, has_overtone).
 
-        qnm convention: ω = ω_R + i ω_I with ω_I > 0 and ω in units of 1/(M*G/c^3).
-        Physical frequency: f = ω_R / (2π * M * G/c^3) = ω_R / (2π * M_msun * MSUN_S)
-        Physical damping:   γ = ω_I / (M * G/c^3)  →  τ = 1/γ
+        qnm convention:  = _R + i _I with _I > 0 and  in units of 1/(M*G/c^3).
+        Physical frequency: f = _R / (2 * M * G/c^3) = _R / (2 * M_msun * MSUN_S)
+        Physical damping:    = _I / (M * G/c^3)     = 1/
 
-        NOTE: qnm returns dimensionless ω; sign convention varies by version.
-        We take abs(ω_R) and abs(ω_I) to be robust.
+        NOTE: qnm returns dimensionless ; sign convention varies by version.
+        We take abs(_R) and abs(_I) to be robust.
         """
         a_dim = float(np.clip(a_over_M, 1e-4, 0.9999))
         M_s   = float(M_msun) * MSUN_S   # M in seconds
@@ -172,7 +172,7 @@ def _poles_to_gr(
     poles: List[_Pole],
     omega_dom_rads: float,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """GR(ω̃) = Σ aₙ / (ω̃ - w̃ₙ), normalised to unit peak |GR|."""
+    """GR() =  an / ( - wn), normalised to unit peak |GR|."""
     Nw = int(omega_grid_dimless.size)
     if not poles or Nw <= 0:
         return np.zeros((Nw, 1)), np.zeros((Nw, 1))
@@ -200,7 +200,7 @@ def _poles_to_g2(
     poles: List[_Pole],
     omega_dom_rads: float,
 ) -> np.ndarray:
-    """G2(x̃) = |Σ aₙ exp((-γ̃ₙ + iω̃ₙ) x̃)|²,  x̃ = t * omega_dom."""
+    """G2(x) = | an exp((-n + in) x)|2,  x = t * omega_dom."""
     Nx = int(x_grid_dimless.size)
     if not poles or Nx <= 0:
         return np.zeros(Nx, dtype=np.float64)
@@ -229,7 +229,7 @@ def _poles_to_g2(
 def _compute_qnm_features(
     poles: List[_Pole],
 ) -> Tuple[float, float, float]:
-    """Return (Q0, f1/f0, γ1/γ0) from pole list sorted by amplitude."""
+    """Return (Q0, f1/f0, 1/0) from pole list sorted by amplitude."""
     if not poles:
         return 0.0, 0.0, 0.0
 
@@ -270,7 +270,7 @@ def write_kerr_h5(
     """Write a single Kerr boundary HDF5 that matches the sandbox format."""
     omega_dom, gamma_dom = _get_normalization_scales(poles)
 
-    # Dimensionless grids — match sandbox defaults so normalizer sees same range
+    # Dimensionless grids  match sandbox defaults so normalizer sees same range
     lo_omega = 0.1
     hi_omega = 3.0   # dominant pole sits at ~1; overtone at ~0.93-0.99
     omega_grid = np.linspace(lo_omega, hi_omega, n_omega)
@@ -280,7 +280,7 @@ def write_kerr_h5(
 
     x_grid = np.linspace(1e-3, 10.0, n_x)
 
-    # Surrogate G2 (k=0 → spatial G2 at coincident points)
+    # Surrogate G2 (k=0  spatial G2 at coincident points)
     G2 = _poles_to_g2(x_grid, poles, omega_dom)
 
     # Surrogate G_R: evaluated at each k (same poles, shifted by k^2 dispersion toy)
@@ -340,7 +340,7 @@ def write_kerr_h5(
         bg.create_dataset("central_charge_eff", data=np.array([0.0]))
         bg.create_dataset("d",               data=np.array([float(d)]))
 
-        # No bulk_truth group — masked out in train_one_epoch via has_bulk_mask
+        # No bulk_truth group  masked out in train_one_epoch via has_bulk_mask
 
 
 # -------------------------------------------------------------------
@@ -391,7 +391,7 @@ def main() -> int:
     print("KERR SANDBOX GENERATOR (Stage 01b)")
     print(f"Script:  {SCRIPT_VERSION}")
     print(f"Out dir: {out_dir}")
-    print(f"Grid:    {args.n_mass} masses × {args.n_spin} spins = {args.n_mass * args.n_spin} geometries")
+    print(f"Grid:    {args.n_mass} masses  {args.n_spin} spins = {args.n_mass * args.n_spin} geometries")
     print(f"M:       [{args.M_min}, {args.M_max}] Msun")
     print(f"a/M:     [{args.a_min}, {args.a_max}]")
     print("=" * 70)
@@ -405,7 +405,7 @@ def main() -> int:
             f0, tau0, f1, tau1, has_ot = cache.get_qnm(a, M)
 
             if not (np.isfinite(f0) and np.isfinite(tau0) and f0 > 0 and tau0 > 0):
-                print(f"  [WARN] M={M:.1f} a={a:.3f}: invalid QNM ({f0:.1f} Hz, {tau0*1e3:.2f} ms) — skipping")
+                print(f"  [WARN] M={M:.1f} a={a:.3f}: invalid QNM ({f0:.1f} Hz, {tau0*1e3:.2f} ms)  skipping")
                 continue
 
             gamma0 = 1.0 / tau0
@@ -421,8 +421,8 @@ def main() -> int:
             Q0, f1f0, g1g0 = _compute_qnm_features(poles)
             print(
                 f"  [{idx:03d}] M={M:6.1f} Msun  a/M={a:.3f}  "
-                f"f0={f0:.1f} Hz  τ0={tau0*1e3:.2f} ms  "
-                f"Q0={Q0:.2f}  f1/f0={f1f0:.3f}  γ1/γ0={g1g0:.3f}  "
+                f"f0={f0:.1f} Hz  0={tau0*1e3:.2f} ms  "
+                f"Q0={Q0:.2f}  f1/f0={f1f0:.3f}  1/0={g1g0:.3f}  "
                 f"ot={has_ot}"
             )
 

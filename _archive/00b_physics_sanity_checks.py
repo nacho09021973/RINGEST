@@ -1,37 +1,37 @@
 #!/usr/bin/env python3
 """
-00b_physics_sanity_checks.py — Validación Física POST-HOC para CUERDAS-Maldacena
+00b_physics_sanity_checks.py  Validacion Fisica POST-HOC para CUERDAS-Maldacena
 
-╔══════════════════════════════════════════════════════════════════════════════╗
-║  ADVERTENCIA: ESTE SCRIPT ES POST-HOC                                        ║
-║                                                                              ║
-║  Este script NO es un filtro de datos. Genera FLAGS informativos para       ║
-║  auditoría. Los datos que no cumplan relaciones teóricas NO son rechazados. ║
-║                                                                              ║
-║  La separación entre validación IO (00) y validación física (00b) es        ║
-║  DELIBERADA: garantiza que el pipeline de descubrimiento NO asume teoría.   ║
-╚══════════════════════════════════════════════════════════════════════════════╝
 
-PROPÓSITO:
-    Contrastar datos generados por el pipeline con relaciones teóricas CONOCIDAS.
+  ADVERTENCIA: ESTE SCRIPT ES POST-HOC                                        
+                                                                              
+  Este script NO es un filtro de datos. Genera FLAGS informativos para       
+  auditoria. Los datos que no cumplan relaciones teoricas NO son rechazados. 
+                                                                              
+  La separacion entre validacion IO (00) y validacion fisica (00b) es        
+  DELIBERADA: garantiza que el pipeline de descubrimiento NO asume teoria.   
+
+
+PROPOSITO:
+    Contrastar datos generados por el pipeline con relaciones teoricas CONOCIDAS.
     Esto permite detectar:
-    1. Anomalías numéricas (bugs en el solver)
-    2. Sistemas genuinamente no-holográficos (señal real)
-    3. Regímenes donde la teoría estándar no aplica (física nueva)
+    1. Anomalias numericas (bugs en el solver)
+    2. Sistemas genuinamente no-holograficos (senal real)
+    3. Regimenes donde la teoria estandar no aplica (fisica nueva)
 
 RELACIONES VERIFICADAS (todas post-hoc, solo como contraste):
 
-    1. Relación masa-dimensión conforme (AdS/CFT)
-       Δ = d/2 + √(d²/4 + m²R²)
-       Fuente: AGMOO Review, Sección 3.1.2, Ecuación (3.14)
+    1. Relacion masa-dimension conforme (AdS/CFT)
+        = d/2 + (d2/4 + m2R2)
+       Fuente: AGMOO Review, Seccion 3.1.2, Ecuacion (3.14)
        
     2. Cota de estabilidad Breitenlohner-Freedman
-       m²R² ≥ -(d/2)²
-       Fuente: AGMOO Review, Sección 2.2.2, Ecuación (2.42)
+       m2R2  -(d/2)2
+       Fuente: AGMOO Review, Seccion 2.2.2, Ecuacion (2.42)
        
-    3. Límites de unitariedad CFT
-       Δ ≥ (d-2)/2 para escalares
-       Fuente: AGMOO Review, Sección 3.1.3
+    3. Limites de unitariedad CFT
+         (d-2)/2 para escalares
+       Fuente: AGMOO Review, Seccion 3.1.3
 
 USO:
     python 00b_physics_sanity_checks.py --input-csv runs/bulk_eigenmodes/bulk_modes_dataset.csv
@@ -41,8 +41,8 @@ SALIDA:
     JSON con flags por sistema/modo. NUNCA rechaza datos.
 
 Autor: CUERDAS-Maldacena Team
-Versión: 1.0 (2025-12)
-Contrato: POST-HOC ONLY — NO FILTERING
+Version: 1.0 (2025-12)
+Contrato: POST-HOC ONLY  NO FILTERING
 """
 
 from __future__ import annotations
@@ -60,40 +60,40 @@ import pandas as pd
 
 
 # =============================================================================
-# CONSTANTES TEÓRICAS (con citas exactas)
+# CONSTANTES TEORICAS (con citas exactas)
 # =============================================================================
 
 THEORY_REFERENCES = {
     "mass_dimension_relation": {
-        "equation": "Δ = d/2 + √(d²/4 + m²R²)",
+        "equation": " = d/2 + (d2/4 + m2R2)",
         "source": "AGMOO Review",
         "section": "3.1.2",
         "equation_number": "(3.14)",
         "notes": [
-            "Esta es la rama Δ+ (dimensión mayor). Δ- = d/2 - √(...) es la alternativa.",
-            "m²R² corresponde a lambda_sl en nuestra nomenclatura.",
-            "La relación asume AdS puro. Geometrías deformadas pueden desviarse.",
+            "Esta es la rama + (dimension mayor). - = d/2 - (...) es la alternativa.",
+            "m2R2 corresponde a lambda_sl en nuestra nomenclatura.",
+            "La relacion asume AdS puro. Geometrias deformadas pueden desviarse.",
         ],
     },
     "bf_bound": {
-        "equation": "m²R² ≥ -(d/2)²",
+        "equation": "m2R2  -(d/2)2",
         "source": "AGMOO Review",
         "section": "2.2.2",
         "equation_number": "(2.42)",
         "notes": [
-            "La cota BF garantiza estabilidad del vacío AdS.",
-            "Violaciones indican vacío inestable o error numérico.",
-            "En d=4 (CFT 3d): m²R² ≥ -4",
+            "La cota BF garantiza estabilidad del vacio AdS.",
+            "Violaciones indican vacio inestable o error numerico.",
+            "En d=4 (CFT 3d): m2R2  -4",
         ],
     },
     "unitarity_bound": {
-        "equation": "Δ ≥ (d-2)/2",
+        "equation": "  (d-2)/2",
         "source": "AGMOO Review",
         "section": "3.1.3",
         "notes": [
             "Cota de unitariedad para operadores escalares en CFT.",
-            "En d=4 (CFT 3d): Δ ≥ 1",
-            "Operadores con Δ < cota violan unitariedad.",
+            "En d=4 (CFT 3d):   1",
+            "Operadores con  < cota violan unitariedad.",
         ],
     },
 }
@@ -105,14 +105,14 @@ THEORY_REFERENCES = {
 
 @dataclass
 class PhysicsFlag:
-    """Un flag de verificación física (informativo, NO rechaza datos)."""
+    """Un flag de verificacion fisica (informativo, NO rechaza datos)."""
     
     check_name: str       # Nombre del check (e.g., "bf_bound")
     status: str           # "OK", "FLAG", "ANOMALY"
-    message: str          # Descripción legible
-    theory_ref: str       # Referencia teórica (e.g., "AGMOO Eq. 2.42")
-    values: Dict[str, Any] = field(default_factory=dict)  # Valores numéricos relevantes
-    caveats: List[str] = field(default_factory=list)  # Notas sobre por qué el flag puede ser esperado
+    message: str          # Descripcion legible
+    theory_ref: str       # Referencia teorica (e.g., "AGMOO Eq. 2.42")
+    values: Dict[str, Any] = field(default_factory=dict)  # Valores numericos relevantes
+    caveats: List[str] = field(default_factory=list)  # Notas sobre por que el flag puede ser esperado
     
     def is_flagged(self) -> bool:
         return self.status in ("FLAG", "ANOMALY")
@@ -123,7 +123,7 @@ class PhysicsFlag:
 
 @dataclass
 class ModeCheck:
-    """Resultado de verificación para un modo específico."""
+    """Resultado de verificacion para un modo especifico."""
     
     system_name: str
     mode_id: int
@@ -144,7 +144,7 @@ class ModeCheck:
 
 @dataclass
 class PhysicsReport:
-    """Reporte completo de verificación física POST-HOC."""
+    """Reporte completo de verificacion fisica POST-HOC."""
     
     timestamp: str
     input_file: str
@@ -158,24 +158,24 @@ class PhysicsReport:
     # Metadatos de honestidad
     is_post_hoc: bool = True
     rejects_data: bool = False
-    purpose: str = "Contraste con teoría conocida para auditoría"
+    purpose: str = "Contraste con teoria conocida para auditoria"
 
 
 # =============================================================================
-# Detección de régimen (para contextualizar flags)
+# Deteccion de regimen (para contextualizar flags)
 # =============================================================================
 
 def detect_regime_caveats(system_name: str, mode_id: int, family: str) -> List[str]:
     """
-    Detecta si el sistema está en un régimen donde la relación Δ-λ estándar
+    Detecta si el sistema esta en un regimen donde la relacion - estandar
     puede no aplicar. Devuelve lista de caveats informativos.
     
-    La relación Δ = d/2 + √(d²/4 + m²R²) asume:
+    La relacion  = d/2 + (d2/4 + m2R2) asume:
     - AdS puro (sin horizonte)
     - Ground state (modo fundamental)
     - Sin deformaciones
     
-    Desviaciones son ESPERADAS en otros regímenes.
+    Desviaciones son ESPERADAS en otros regimenes.
     """
     caveats = []
     name_lower = system_name.lower()
@@ -184,59 +184,59 @@ def detect_regime_caveats(system_name: str, mode_id: int, family: str) -> List[s
     finite_T_indicators = ["tfinite", "t_finite", "schwarzschild", "horizon", "blackhole", "bh_"]
     if any(ind in name_lower for ind in finite_T_indicators):
         caveats.append(
-            "Sistema con temperatura finita/horizonte: la relación Δ-λ estándar "
-            "asume AdS puro sin horizonte. Desviaciones son físicamente esperadas."
+            "Sistema con temperatura finita/horizonte: la relacion - estandar "
+            "asume AdS puro sin horizonte. Desviaciones son fisicamente esperadas."
         )
     
     # Modos excitados
     if mode_id > 0:
         caveats.append(
-            f"Modo excitado (n={mode_id}): la relación simple Δ-λ aplica principalmente "
-            "al ground state. Modos excitados tienen estructura espectral más compleja."
+            f"Modo excitado (n={mode_id}): la relacion simple - aplica principalmente "
+            "al ground state. Modos excitados tienen estructura espectral mas compleja."
         )
     
-    # Geometrías deformadas
+    # Geometrias deformadas
     deformed_indicators = ["deformed", "lifshitz", "hvlf", "hyperscaling", "anisotropic"]
     if any(ind in name_lower for ind in deformed_indicators) or family.lower() in ["lifshitz", "hvlf", "hyperscaling", "deformed"]:
         caveats.append(
-            f"Geometría deformada (family={family}): la relación Δ-λ estándar es "
-            "específica para AdS puro. Geometrías con exponentes anómalos tienen "
+            f"Geometria deformada (family={family}): la relacion - estandar es "
+            "especifica para AdS puro. Geometrias con exponentes anomalos tienen "
             "relaciones modificadas."
         )
     
-    # Dp-branas no conformales (p ≠ 3)
+    # Dp-branas no conformales (p = 3)
     if family.lower() == "dpbrane" or "brane" in name_lower:
-        # D3-branas (p=3) son conformales (AdS₅), pero otras no
+        # D3-branas (p=3) son conformales (AdS5), pero otras no
         if "d3brane" not in name_lower:
             caveats.append(
                 f"Dp-brana (family={family}): solo las D3-branas tienen dual conformal. "
-                "Otras Dp-branas tienen teorías de gauge no-conformales (AGMOO Sec. 6.1.3). "
-                "La relación Δ-λ estándar no aplica directamente."
+                "Otras Dp-branas tienen teorias de gauge no-conformales (AGMOO Sec. 6.1.3). "
+                "La relacion - estandar no aplica directamente."
             )
     
     # Datos reales / desconocidos
     if family.lower() in ["unknown", "real", "ising3d", "ising_3d"]:
         caveats.append(
-            f"Sistema de tipo '{family}': no hay garantía de que sea holográfico. "
-            "Desviaciones de la relación Δ-λ pueden indicar física no-AdS/CFT."
+            f"Sistema de tipo '{family}': no hay garantia de que sea holografico. "
+            "Desviaciones de la relacion - pueden indicar fisica no-AdS/CFT."
         )
     
     return caveats
 
 
 # =============================================================================
-# Funciones de verificación física
+# Funciones de verificacion fisica
 # =============================================================================
 
 def compute_delta_from_lambda(lambda_sl: float, d: int) -> Tuple[float, float]:
     """
-    Calcula Δ+ y Δ- desde λ_sl usando la relación masa-dimensión.
+    Calcula + y - desde _sl usando la relacion masa-dimension.
     
-    Δ± = d/2 ± √(d²/4 + λ_sl)
+     = d/2  (d2/4 + _sl)
     
-    Donde λ_sl = m²R² (autovalor Sturm-Liouville).
+    Donde _sl = m2R2 (autovalor Sturm-Liouville).
     
-    Fuente: AGMOO Sección 3.1.2, Ecuación (3.14)
+    Fuente: AGMOO Seccion 3.1.2, Ecuacion (3.14)
     
     Returns:
         (Delta_plus, Delta_minus)
@@ -244,7 +244,7 @@ def compute_delta_from_lambda(lambda_sl: float, d: int) -> Tuple[float, float]:
     discriminant = (d / 2.0) ** 2 + lambda_sl
     
     if discriminant < 0:
-        # Discriminante negativo: Δ complejo (inestabilidad)
+        # Discriminante negativo:  complejo (inestabilidad)
         return (np.nan, np.nan)
     
     sqrt_disc = np.sqrt(discriminant)
@@ -256,9 +256,9 @@ def compute_delta_from_lambda(lambda_sl: float, d: int) -> Tuple[float, float]:
 
 def check_bf_bound(lambda_sl: float, d: int) -> PhysicsFlag:
     """
-    Verifica la cota Breitenlohner-Freedman: λ_sl ≥ -(d/2)²
+    Verifica la cota Breitenlohner-Freedman: _sl  -(d/2)2
     
-    Fuente: AGMOO Sección 2.2.2, Ecuación (2.42)
+    Fuente: AGMOO Seccion 2.2.2, Ecuacion (2.42)
     """
     bf_bound = -(d / 2.0) ** 2
     
@@ -266,7 +266,7 @@ def check_bf_bound(lambda_sl: float, d: int) -> PhysicsFlag:
         return PhysicsFlag(
             check_name="bf_bound",
             status="OK",
-            message=f"λ_sl = {lambda_sl:.4f} ≥ {bf_bound:.4f} (cota BF satisfecha)",
+            message=f"_sl = {lambda_sl:.4f}  {bf_bound:.4f} (cota BF satisfecha)",
             theory_ref="AGMOO Sec. 2.2.2, Eq. (2.42)",
             values={"lambda_sl": lambda_sl, "bf_bound": bf_bound, "d": d},
         )
@@ -275,7 +275,7 @@ def check_bf_bound(lambda_sl: float, d: int) -> PhysicsFlag:
         return PhysicsFlag(
             check_name="bf_bound",
             status="FLAG",
-            message=f"λ_sl = {lambda_sl:.4f} < {bf_bound:.4f} (viola cota BF por {margin:.4f})",
+            message=f"_sl = {lambda_sl:.4f} < {bf_bound:.4f} (viola cota BF por {margin:.4f})",
             theory_ref="AGMOO Sec. 2.2.2, Eq. (2.42)",
             values={"lambda_sl": lambda_sl, "bf_bound": bf_bound, "violation": margin, "d": d},
         )
@@ -291,15 +291,15 @@ def check_mass_dimension_relation(
     tolerance: float = 0.1
 ) -> PhysicsFlag:
     """
-    Verifica consistencia con la relación Δ = d/2 + √(d²/4 + m²R²).
+    Verifica consistencia con la relacion  = d/2 + (d2/4 + m2R2).
     
-    Fuente: AGMOO Sección 3.1.2, Ecuación (3.14)
+    Fuente: AGMOO Seccion 3.1.2, Ecuacion (3.14)
     
     Args:
-        lambda_sl: Autovalor Sturm-Liouville (= m²R²)
-        Delta_UV: Dimensión conforme medida desde correladores
-        d: Dimensión del bulk
-        system_name: Nombre del sistema (para detectar régimen)
+        lambda_sl: Autovalor Sturm-Liouville (= m2R2)
+        Delta_UV: Dimension conforme medida desde correladores
+        d: Dimension del bulk
+        system_name: Nombre del sistema (para detectar regimen)
         mode_id: ID del modo (0=ground state)
         family: Familia del sistema
         tolerance: Tolerancia relativa para considerar "consistente"
@@ -307,7 +307,7 @@ def check_mass_dimension_relation(
     if Delta_UV is None or np.isnan(Delta_UV):
         return PhysicsFlag(
             check_name="mass_dimension_relation",
-            status="OK",  # No podemos verificar sin Δ
+            status="OK",  # No podemos verificar sin 
             message="Delta_UV no disponible, check no aplicable",
             theory_ref="AGMOO Sec. 3.1.2, Eq. (3.14)",
             values={"lambda_sl": lambda_sl, "Delta_UV": None, "d": d},
@@ -319,24 +319,24 @@ def check_mass_dimension_relation(
         return PhysicsFlag(
             check_name="mass_dimension_relation",
             status="ANOMALY",
-            message=f"Discriminante negativo: d²/4 + λ_sl = {(d/2)**2 + lambda_sl:.4f} < 0",
+            message=f"Discriminante negativo: d2/4 + _sl = {(d/2)**2 + lambda_sl:.4f} < 0",
             theory_ref="AGMOO Sec. 3.1.2, Eq. (3.14)",
             values={"lambda_sl": lambda_sl, "Delta_UV": Delta_UV, "d": d, "discriminant": (d/2)**2 + lambda_sl},
         )
     
-    # Verificar si Delta_UV coincide con Δ+ o Δ-
+    # Verificar si Delta_UV coincide con + o -
     error_plus = abs(Delta_UV - delta_plus) / max(abs(delta_plus), 1e-10)
     error_minus = abs(Delta_UV - delta_minus) / max(abs(delta_minus), 1e-10) if delta_minus > 0 else float('inf')
     
     min_error = min(error_plus, error_minus)
-    matched_branch = "Δ+" if error_plus <= error_minus else "Δ-"
-    expected = delta_plus if matched_branch == "Δ+" else delta_minus
+    matched_branch = "+" if error_plus <= error_minus else "-"
+    expected = delta_plus if matched_branch == "+" else delta_minus
     
     if min_error <= tolerance:
         return PhysicsFlag(
             check_name="mass_dimension_relation",
             status="OK",
-            message=f"Δ_UV = {Delta_UV:.4f} ≈ {matched_branch} = {expected:.4f} (error {min_error*100:.1f}%)",
+            message=f"_UV = {Delta_UV:.4f}  {matched_branch} = {expected:.4f} (error {min_error*100:.1f}%)",
             theory_ref="AGMOO Sec. 3.1.2, Eq. (3.14)",
             values={
                 "lambda_sl": lambda_sl, 
@@ -349,13 +349,13 @@ def check_mass_dimension_relation(
             },
         )
     else:
-        # Detectar caveats para explicar por qué el flag puede ser esperado
+        # Detectar caveats para explicar por que el flag puede ser esperado
         caveats = detect_regime_caveats(system_name, mode_id, family)
         
         return PhysicsFlag(
             check_name="mass_dimension_relation",
             status="FLAG",
-            message=f"Δ_UV = {Delta_UV:.4f} difiere de Δ+ = {delta_plus:.4f} y Δ- = {delta_minus:.4f} (error mín {min_error*100:.1f}%)",
+            message=f"_UV = {Delta_UV:.4f} difiere de + = {delta_plus:.4f} y - = {delta_minus:.4f} (error min {min_error*100:.1f}%)",
             theory_ref="AGMOO Sec. 3.1.2, Eq. (3.14)",
             values={
                 "lambda_sl": lambda_sl, 
@@ -371,9 +371,9 @@ def check_mass_dimension_relation(
 
 def check_unitarity_bound(Delta_UV: Optional[float], d: int) -> PhysicsFlag:
     """
-    Verifica la cota de unitariedad CFT: Δ ≥ (d-2)/2
+    Verifica la cota de unitariedad CFT:   (d-2)/2
     
-    Fuente: AGMOO Sección 3.1.3
+    Fuente: AGMOO Seccion 3.1.3
     """
     if Delta_UV is None or np.isnan(Delta_UV):
         return PhysicsFlag(
@@ -384,10 +384,10 @@ def check_unitarity_bound(Delta_UV: Optional[float], d: int) -> PhysicsFlag:
             values={"Delta_UV": None, "d": d},
         )
     
-    # d en el bulk = d_CFT + 1, así que d_CFT = d - 1
-    # Cota de unitariedad para escalares: Δ ≥ (d_CFT - 2)/2 = (d - 3)/2
-    # Pero usualmente se expresa como Δ ≥ (d-2)/2 donde d es la dim de la CFT
-    # En nuestra convención, d es dim del bulk, así que la CFT tiene dim d-1
+    # d en el bulk = d_CFT + 1, asi que d_CFT = d - 1
+    # Cota de unitariedad para escalares:   (d_CFT - 2)/2 = (d - 3)/2
+    # Pero usualmente se expresa como   (d-2)/2 donde d es la dim de la CFT
+    # En nuestra convencion, d es dim del bulk, asi que la CFT tiene dim d-1
     d_cft = d - 1
     unitarity_bound = (d_cft - 2) / 2.0
     
@@ -395,7 +395,7 @@ def check_unitarity_bound(Delta_UV: Optional[float], d: int) -> PhysicsFlag:
         return PhysicsFlag(
             check_name="unitarity_bound",
             status="OK",
-            message=f"Δ = {Delta_UV:.4f} ≥ {unitarity_bound:.4f} (unitariedad OK)",
+            message=f" = {Delta_UV:.4f}  {unitarity_bound:.4f} (unitariedad OK)",
             theory_ref="AGMOO Sec. 3.1.3",
             values={"Delta_UV": Delta_UV, "unitarity_bound": unitarity_bound, "d": d, "d_cft": d_cft},
         )
@@ -404,7 +404,7 @@ def check_unitarity_bound(Delta_UV: Optional[float], d: int) -> PhysicsFlag:
         return PhysicsFlag(
             check_name="unitarity_bound",
             status="FLAG",
-            message=f"Δ = {Delta_UV:.4f} < {unitarity_bound:.4f} (viola unitariedad por {violation:.4f})",
+            message=f" = {Delta_UV:.4f} < {unitarity_bound:.4f} (viola unitariedad por {violation:.4f})",
             theory_ref="AGMOO Sec. 3.1.3",
             values={"Delta_UV": Delta_UV, "unitarity_bound": unitarity_bound, "violation": violation, "d": d, "d_cft": d_cft},
         )
@@ -437,7 +437,7 @@ def check_single_mode(row: pd.Series, tolerance: float = 0.1) -> ModeCheck:
     if not np.isnan(lambda_sl):
         mode_check.flags.append(check_bf_bound(lambda_sl, d))
     
-    # Check 2: Relación masa-dimensión
+    # Check 2: Relacion masa-dimension
     if not np.isnan(lambda_sl):
         mode_check.flags.append(check_mass_dimension_relation(
             lambda_sl, Delta_UV, d, 
@@ -463,20 +463,20 @@ def run_physics_checks(
     verbose: bool = True,
 ) -> PhysicsReport:
     """
-    Ejecuta verificaciones físicas POST-HOC sobre un dataset de modos.
+    Ejecuta verificaciones fisicas POST-HOC sobre un dataset de modos.
     
-    IMPORTANTE: Este análisis es POST-HOC. No filtra ni rechaza datos.
+    IMPORTANTE: Este analisis es POST-HOC. No filtra ni rechaza datos.
     """
     
     if verbose:
         print("\n" + "=" * 70)
-        print("CUERDAS-Maldacena — Physics Sanity Checks (POST-HOC)")
+        print("CUERDAS-Maldacena  Physics Sanity Checks (POST-HOC)")
         print("=" * 70)
         print()
-        print("╔══════════════════════════════════════════════════════════════════╗")
-        print("║  NOTA: Este análisis es POST-HOC. NO rechaza datos.             ║")
-        print("║  Los flags son informativos para auditoría.                      ║")
-        print("╚══════════════════════════════════════════════════════════════════╝")
+        print("")
+        print("  NOTA: Este analisis es POST-HOC. NO rechaza datos.             ")
+        print("  Los flags son informativos para auditoria.                      ")
+        print("")
         print()
     
     # Leer CSV
@@ -521,19 +521,19 @@ def run_physics_checks(
     )
     
     if verbose:
-        print("─" * 70)
+        print("" * 70)
         print("RESUMEN")
-        print("─" * 70)
+        print("" * 70)
         print(f"  Total modos:       {report.total_modes}")
         print(f"  Modos OK:          {report.modes_ok}")
         print(f"  Modos con flags:   {report.modes_with_flags}")
         print()
-        print("  Por verificación:")
+        print("  Por verificacion:")
         for check_name, counts in summary_by_check.items():
             print(f"    {check_name}:")
             print(f"      OK: {counts.get('OK', 0)}, FLAG: {counts.get('FLAG', 0)}, ANOMALY: {counts.get('ANOMALY', 0)}")
         
-        # Estadísticas de caveats (flags esperados vs inesperados)
+        # Estadisticas de caveats (flags esperados vs inesperados)
         flags_with_caveats = 0
         flags_without_caveats = 0
         for mc in mode_checks:
@@ -546,35 +546,35 @@ def run_physics_checks(
         
         if flags_with_caveats > 0 or flags_without_caveats > 0:
             print()
-            print("  Análisis de flags:")
-            print(f"    Con contexto (desviación esperada):    {flags_with_caveats}")
+            print("  Analisis de flags:")
+            print(f"    Con contexto (desviacion esperada):    {flags_with_caveats}")
             print(f"    Sin contexto (investigar):             {flags_without_caveats}")
         print()
         
         # Mostrar algunos ejemplos de flags
         flagged_modes = [mc for mc in mode_checks if mc.has_flags]
         if flagged_modes:
-            print("─" * 70)
+            print("" * 70)
             print("EJEMPLOS DE FLAGS (primeros 5)")
-            print("─" * 70)
+            print("" * 70)
             for mc in flagged_modes[:5]:
                 print(f"\n  {mc.system_name} / mode {mc.mode_id} (family={mc.family}, d={mc.d}):")
-                print(f"    λ_sl = {mc.lambda_sl:.6f}, Δ_UV = {mc.Delta_UV}")
+                print(f"    _sl = {mc.lambda_sl:.6f}, _UV = {mc.Delta_UV}")
                 for flag in mc.flags:
                     if flag.is_flagged():
                         print(f"    [{flag.status}] {flag.check_name}: {flag.message}")
                         print(f"           Ref: {flag.theory_ref}")
                         # Mostrar caveats si existen
                         if flag.has_caveats():
-                            print(f"           ⚠ CONTEXTO (desviación puede ser esperada):")
+                            print(f"            CONTEXTO (desviacion puede ser esperada):")
                             for caveat in flag.caveats:
                                 # Wrap long caveats
                                 wrapped = caveat[:80] + "..." if len(caveat) > 80 else caveat
-                                print(f"             • {wrapped}")
+                                print(f"              {wrapped}")
         
         print()
         print("=" * 70)
-        print("[POST-HOC] Verificación completada. NINGÚN dato fue rechazado.")
+        print("[POST-HOC] Verificacion completada. NINGUN dato fue rechazado.")
         print("=" * 70)
     
     return report
@@ -582,15 +582,15 @@ def run_physics_checks(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Verificación Física POST-HOC para CUERDAS-Maldacena",
+        description="Verificacion Fisica POST-HOC para CUERDAS-Maldacena",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 IMPORTANTE:
   Este script es POST-HOC. No rechaza datos.
-  Los flags son informativos para auditoría.
+  Los flags son informativos para auditoria.
   
-  La separación entre validación IO (00) y validación física (00b) es
-  DELIBERADA: garantiza que el pipeline de descubrimiento NO asume teoría.
+  La separacion entre validacion IO (00) y validacion fisica (00b) es
+  DELIBERADA: garantiza que el pipeline de descubrimiento NO asume teoria.
 
 Ejemplos:
   python 00b_physics_sanity_checks.py --input-csv runs/bulk_eigenmodes/bulk_modes_dataset.csv
@@ -614,7 +614,7 @@ Ejemplos:
         "--tolerance",
         type=float,
         default=0.1,
-        help="Tolerancia relativa para relación masa-dimensión (default: 0.1 = 10%%)",
+        help="Tolerancia relativa para relacion masa-dimension (default: 0.1 = 10%%)",
     )
     parser.add_argument(
         "--quiet",
@@ -674,7 +674,7 @@ Ejemplos:
         if not args.quiet:
             print(f"\nReporte guardado en: {output_path}")
     
-    # Siempre exit 0 — NO rechazamos datos
+    # Siempre exit 0  NO rechazamos datos
     sys.exit(0)
 
 

@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """
-07_holo_lambda_dictionary.py  —  CUERDAS-MALDACENA  (Stage 07, v1.0)
+07_holo_lambda_dictionary.py    CUERDAS-MALDACENA  (Stage 07, v1.0)
 
 Learn / validate the holographic dictionary relation:
 
-    λ_sl = Δ(Δ - d)
+    _sl = ( - d)
 
 where:
-    λ_sl   = m²L²  (bulk scalar mass squared, from Stage 06)
-    Δ      = CFT operator dimension
-    d      = empirical AdS dimension (from Stage 06: d where Δ(Δ-d)=m²L²)
+    _sl   = m2L2  (bulk scalar mass squared, from Stage 06)
+          = CFT operator dimension
+    d      = empirical AdS dimension (from Stage 06: d where (-d)=m2L2)
 
 This is the fundamental holographic relation in AdS_{d+1}/CFT_d.
 
 Two discovery modes:
-  1. Gradient Boosting (sklearn) — fast, high R², data-driven
-  2. PySR (optional) — symbolic regression to discover the formula analytically
+  1. Gradient Boosting (sklearn)  fast, high R2, data-driven
+  2. PySR (optional)  symbolic regression to discover the formula analytically
 
 USAGE
 -----
@@ -84,13 +84,13 @@ def load_dataset(csv_path: Path) -> pd.DataFrame:
     for c in required:
         df = df[np.isfinite(df[c].astype(float))]
 
-    # Filter Kerr (lambda_sl would be absent — already excluded in 06)
+    # Filter Kerr (lambda_sl would be absent  already excluded in 06)
     return df.reset_index(drop=True)
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Stage 07 (holo): discover/validate λ_sl = Δ(Δ-d)."
+        description="Stage 07 (holo): discover/validate _sl = (-d)."
     )
     ap.add_argument("--csv",     required=True, help="CSV from 06_holographic_eigenmode_dataset")
     ap.add_argument("--out-dir", required=True, help="Output directory")
@@ -104,13 +104,13 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 70)
-    print("HOLOGRAPHIC LAMBDA-DELTA DICTIONARY  —  Stage 07")
+    print("HOLOGRAPHIC LAMBDA-DELTA DICTIONARY    Stage 07")
     print(f"Script: {SCRIPT_VERSION}")
     print(f"Input:  {args.csv}")
     print(f"Output: {out_dir}")
     print("=" * 70)
 
-    # ── Load data ─────────────────────────────────────────────────────────
+    #  Load data 
     df = load_dataset(Path(args.csv))
     Delta = df["Delta_UV"].values.astype(float)
     d     = df["d"].values.astype(float)
@@ -119,9 +119,9 @@ def main() -> int:
     y     = lam
 
     print(f"\n  Samples: {len(df)}")
-    print(f"  Δ range:    [{Delta.min():.3f}, {Delta.max():.3f}]")
+    print(f"   range:    [{Delta.min():.3f}, {Delta.max():.3f}]")
     print(f"  d values:   {sorted(set(d.astype(int)))}")
-    print(f"  λ_sl range: [{lam.min():.3f}, {lam.max():.3f}]")
+    print(f"  _sl range: [{lam.min():.3f}, {lam.max():.3f}]")
     print(f"  Families:   {df['family'].value_counts().to_dict() if 'family' in df.columns else 'N/A'}")
 
     results: Dict[str, Any] = {
@@ -134,16 +134,16 @@ def main() -> int:
         "lambda_sl_range": [float(lam.min()), float(lam.max())],
     }
 
-    # ── 1. Theory check: Δ(Δ-d) = λ_sl ──────────────────────────────────
-    print("\n>> Theory check: λ_sl = Δ(Δ-d)")
+    #  1. Theory check: (-d) = _sl 
+    print("\n>> Theory check: _sl = (-d)")
     y_theory = Delta * (Delta - d)
     m_theory = compute_metrics(y, y_theory)
     results["theory_check"] = {**m_theory, "formula": "Delta*(Delta-d)"}
-    print(f"   R²={m_theory['r2']:.6f}  MAE={m_theory['mae']:.2e}  MRE={m_theory['mre']:.2e}")
-    print(f"   → Formula VERIFIED ✓ (tautological: d was derived from this relation in Stage 06)")
+    print(f"   R2={m_theory['r2']:.6f}  MAE={m_theory['mae']:.2e}  MRE={m_theory['mre']:.2e}")
+    print(f"    Formula VERIFIED  (tautological: d was derived from this relation in Stage 06)")
 
-    # ── 2. Linear model (features: Δ, d) ──────────────────────────────────
-    print("\n>> Linear model (features: Δ, d)")
+    #  2. Linear model (features: , d) 
+    print("\n>> Linear model (features: , d)")
     pipe_lin = Pipeline([
         ("scaler", StandardScaler()),
         ("model", LinearRegression()),
@@ -154,10 +154,10 @@ def main() -> int:
     results["linear_model"] = {
         **m_lin, "r2_cv": float(cv_lin.mean()), "r2_cv_std": float(cv_lin.std())
     }
-    print(f"   Train R²={m_lin['r2']:.4f}  CV R²={cv_lin.mean():.4f}±{cv_lin.std():.4f}")
+    print(f"   Train R2={m_lin['r2']:.4f}  CV R2={cv_lin.mean():.4f}{cv_lin.std():.4f}")
 
-    # ── 3. Polynomial model (degree 2 — should recover Δ² - dΔ perfectly) ─
-    print("\n>> Polynomial model (degree 2 in Δ, d)")
+    #  3. Polynomial model (degree 2  should recover 2 - d perfectly) 
+    print("\n>> Polynomial model (degree 2 in , d)")
     pipe_poly = Pipeline([
         ("poly",   PolynomialFeatures(degree=2, include_bias=False)),
         ("scaler", StandardScaler()),
@@ -169,11 +169,11 @@ def main() -> int:
     results["polynomial_model"] = {
         **m_poly, "r2_cv": float(cv_poly.mean()), "r2_cv_std": float(cv_poly.std())
     }
-    print(f"   Train R²={m_poly['r2']:.6f}  CV R²={cv_poly.mean():.6f}±{cv_poly.std():.6f}")
-    print(f"   → Poly degree 2 recovers exact formula ✓")
+    print(f"   Train R2={m_poly['r2']:.6f}  CV R2={cv_poly.mean():.6f}{cv_poly.std():.6f}")
+    print(f"    Poly degree 2 recovers exact formula ")
 
-    # ── 4. GBR data-driven model ───────────────────────────────────────────
-    print("\n>> Gradient Boosting (data-driven, features: Δ, d)")
+    #  4. GBR data-driven model 
+    print("\n>> Gradient Boosting (data-driven, features: , d)")
     pipe_gbr = Pipeline([
         ("scaler", StandardScaler()),
         ("model",  GradientBoostingRegressor(n_estimators=300, max_depth=4,
@@ -185,11 +185,11 @@ def main() -> int:
     results["gbr_model"] = {
         **m_gbr, "r2_cv": float(cv_gbr.mean()), "r2_cv_std": float(cv_gbr.std())
     }
-    print(f"   Train R²={m_gbr['r2']:.6f}  CV R²={cv_gbr.mean():.6f}±{cv_gbr.std():.6f}")
+    print(f"   Train R2={m_gbr['r2']:.6f}  CV R2={cv_gbr.mean():.6f}{cv_gbr.std():.6f}")
 
-    # ── 5. Regime analysis ─────────────────────────────────────────────────
+    #  5. Regime analysis 
     print("\n>> Regime analysis")
-    regimes = {"negative (m²<0)": lam < 0, "positive (m²>0)": lam >= 0}
+    regimes = {"negative (m2<0)": lam < 0, "positive (m2>0)": lam >= 0}
     results["regime_analysis"] = {}
     for regime_name, mask in regimes.items():
         n = mask.sum()
@@ -197,9 +197,9 @@ def main() -> int:
             continue
         m_r = compute_metrics(y[mask], y_theory[mask])
         results["regime_analysis"][regime_name] = {**m_r, "n": int(n)}
-        print(f"   {regime_name}: n={n}, R²={m_r['r2']:.6f}, MAE={m_r['mae']:.2e}")
+        print(f"   {regime_name}: n={n}, R2={m_r['r2']:.6f}, MAE={m_r['mae']:.2e}")
 
-    # ── 6. Family analysis ─────────────────────────────────────────────────
+    #  6. Family analysis 
     if "family" in df.columns:
         print("\n>> Family analysis (ground-state modes only)")
         gs_mask = (df["is_ground_state"].values == 1) if "is_ground_state" in df.columns else np.ones(len(df), dtype=bool)
@@ -211,10 +211,10 @@ def main() -> int:
                 continue
             m_f = compute_metrics(y[mask], y_theory[mask])
             results["family_analysis"][fam] = {**m_f, "n": int(n)}
-            print(f"   {fam:15s}: n={n:3d}  Δ=[{Delta[mask].min():.2f},{Delta[mask].max():.2f}]  "
-                  f"λ=[{lam[mask].min():.3f},{lam[mask].max():.3f}]  R²={m_f['r2']:.4f}")
+            print(f"   {fam:15s}: n={n:3d}  =[{Delta[mask].min():.2f},{Delta[mask].max():.2f}]  "
+                  f"=[{lam[mask].min():.3f},{lam[mask].max():.3f}]  R2={m_f['r2']:.4f}")
 
-    # ── 7. PySR (optional) ─────────────────────────────────────────────────
+    #  7. PySR (optional) 
     if args.use_pysr:
         if not HAS_PYSR:
             print("\n[WARN] PySR not installed. Skipping symbolic regression.")
@@ -248,7 +248,7 @@ def main() -> int:
                     "best_equation": best_eq, **m_sr,
                     "n_iterations": args.pysr_iters,
                 }
-                print(f"   R²={m_sr['r2']:.6f}  MAE={m_sr['mae']:.4f}")
+                print(f"   R2={m_sr['r2']:.6f}  MAE={m_sr['mae']:.4f}")
             except Exception as e:
                 print(f"   [WARN] PySR/Julia failed. Skipping symbolic regression: {e}")
                 results["pysr"] = {
@@ -256,22 +256,22 @@ def main() -> int:
                     "reason": f"{type(e).__name__}: {e}",
                 }
 
-    # ── Summary ────────────────────────────────────────────────────────────
+    #  Summary 
     results["summary"] = {
         "formula_verified": m_theory["r2"] > 0.9999,
         "best_cv_r2": max(cv_lin.mean(), cv_poly.mean(), cv_gbr.mean()),
         "conclusion": (
-            "The holographic dictionary λ_sl = Δ(Δ-d) is verified to machine "
-            "precision (R²=1.0). The GBR independently recovers this relation "
-            f"with R²_cv={cv_gbr.mean():.4f} from data alone. A degree-2 "
+            "The holographic dictionary _sl = (-d) is verified to machine "
+            "precision (R2=1.0). The GBR independently recovers this relation "
+            f"with R2_cv={cv_gbr.mean():.4f} from data alone. A degree-2 "
             "polynomial is sufficient to capture the full relation, consistent "
             "with the theoretical quadratic formula."
         ),
         "kerr_analogue": (
             "For Kerr (no holographic dual), the equivalent dictionary is "
-            "(f0_Hz, τ0_ms) → (M_Msun, a/M) via the inverse QNM map "
+            "(f0_Hz, 0_ms)  (M_Msun, a/M) via the inverse QNM map "
             "(see 07K_kerr_qnm_dictionary.py). Spin is recovered exactly "
-            "(R²_cv=1.0) from f1/f0 and Q0. Mass via 2-step: M = α(a/M) / (2π f0 MSUN_S)."
+            "(R2_cv=1.0) from f1/f0 and Q0. Mass via 2-step: M = (a/M) / (2 f0 MSUN_S)."
         ),
     }
 
@@ -280,8 +280,8 @@ def main() -> int:
 
     print("\n" + "=" * 70)
     print("[OK] Holographic dictionary analysis complete")
-    print(f"  Theory verified: R²={m_theory['r2']:.6f} (Δ(Δ-d) = m²L²)")
-    print(f"  GBR data-driven: R²_cv={cv_gbr.mean():.4f}")
+    print(f"  Theory verified: R2={m_theory['r2']:.6f} ((-d) = m2L2)")
+    print(f"  GBR data-driven: R2_cv={cv_gbr.mean():.4f}")
     print(f"  Report: {out_path}")
     print("=" * 70)
     return 0

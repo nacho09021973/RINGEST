@@ -3,18 +3,18 @@ tests/test_agmoo_ads_contract.py
 =================================
 Tests de contrato AGMOO para familia ``ads``.
 
-Cobertura mínima obligatoria:
+Cobertura minima obligatoria:
 
-  1. ads sin metadata del Gate 6 (T=0, no deformación) → ADS_TEMPLATE_ONLY
-  2. ads térmico + correlador no-Witten + sin Gate 6 → ADS_TEMPLATE_ONLY
-  3. Violación explícita de cota BF → ADS_CONTRACT_FAIL
-  4. Familia no-ads → NOT_ADS (validador no rompe nada)
+  1. ads sin metadata del Gate 6 (T=0, no deformacion)  ADS_TEMPLATE_ONLY
+  2. ads termico + correlador no-Witten + sin Gate 6  ADS_TEMPLATE_ONLY
+  3. Violacion explicita de cota BF  ADS_CONTRACT_FAIL
+  4. Familia no-ads  NOT_ADS (validador no rompe nada)
   5. correlator_type se escribe correctamente en metadata generada por Stage 01
 
 Tests adicionales:
-  6. ads_thermal con correlador GEODESIC_APPROXIMATION (repo actual) → ADS_EXPERIMENTAL_TOY_ONLY si Gate 6 está presente
-  7. ads_deformed sin Gate 6 → ADS_TEMPLATE_ONLY
-  8. Todos los gates completos → ADS_HOLOGRAPHIC_STRONG_PASS
+  6. ads_thermal con correlador GEODESIC_APPROXIMATION (repo actual)  ADS_EXPERIMENTAL_TOY_ONLY si Gate 6 esta presente
+  7. ads_deformed sin Gate 6  ADS_TEMPLATE_ONLY
+  8. Todos los gates completos  ADS_HOLOGRAPHIC_STRONG_PASS
   9. classify_ads_geometry retorna los valores correctos
  10. get_correlator_type_for_geometry retorna GEODESIC_APPROXIMATION por defecto
  11. ADS_CLASSIFICATIONS y CORRELATOR_TYPES son frozensets con los valores esperados
@@ -26,7 +26,7 @@ from pathlib import Path
 
 import pytest
 
-# Añadir raíz del repo al path para encontrar los módulos
+# Anadir raiz del repo al path para encontrar los modulos
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
@@ -56,7 +56,7 @@ from tools.validate_agmoo_ads import (
 # ---------------------------------------------------------------------------
 
 def _meta_ads_toy_boundary() -> dict:
-    """ads T=0, sin deformación, sin Gate 6 → ads_toy_boundary."""
+    """ads T=0, sin deformacion, sin Gate 6  ads_toy_boundary."""
     return {
         "family": "ads",
         "d": 3,
@@ -67,7 +67,7 @@ def _meta_ads_toy_boundary() -> dict:
 
 
 def _meta_ads_thermal_no_gate6() -> dict:
-    """ads térmico, correlador geodésico, sin Gate 6."""
+    """ads termico, correlador geodesico, sin Gate 6."""
     return {
         "family": "ads",
         "d": 3,
@@ -82,7 +82,7 @@ def _meta_ads_thermal_no_gate6() -> dict:
 
 
 def _meta_ads_all_gates() -> dict:
-    """ads con todos los gates completos → ADS_HOLOGRAPHIC_STRONG_PASS."""
+    """ads con todos los gates completos  ADS_HOLOGRAPHIC_STRONG_PASS."""
     return {
         "family": "ads",
         "d": 4,
@@ -104,7 +104,7 @@ def _meta_ads_all_gates() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 1. ads T=0 sin Gate 6 → ADS_TEMPLATE_ONLY
+# 1. ads T=0 sin Gate 6  ADS_TEMPLATE_ONLY
 # ---------------------------------------------------------------------------
 
 class TestAdsTemplateOnly:
@@ -151,22 +151,22 @@ class TestAdsTemplateOnly:
 
 
 # ---------------------------------------------------------------------------
-# 2. ads térmico + Gate 6 ausente → ADS_TEMPLATE_ONLY
-#    (la ausencia de Gate 6 bloquea antes que el origen fenomenológico)
+# 2. ads termico + Gate 6 ausente  ADS_TEMPLATE_ONLY
+#    (la ausencia de Gate 6 bloquea antes que el origen fenomenologico)
 #
 # `ADS_THERMAL_TOY_ONLY` queda como estado legacy del registro, pero no debe
-# aparecer como veredicto esperado en la lógica viva.
+# aparecer como veredicto esperado en la logica viva.
 # ---------------------------------------------------------------------------
 
 class TestAdsThermalToyOnly:
-    # -- Regresión crítica: Gate 6 ausente bloquea antes de cualquier lectura experimental --
+    # -- Regresion critica: Gate 6 ausente bloquea antes de cualquier lectura experimental --
 
     def test_thermal_geodesic_no_gate6_gives_template_only(self):
         """
-        REGRESIÓN: ads_thermal + GEODESIC_APPROXIMATION + Gate 6 ausente
-        → ADS_TEMPLATE_ONLY.
+        REGRESION: ads_thermal + GEODESIC_APPROXIMATION + Gate 6 ausente
+         ADS_TEMPLATE_ONLY.
 
-        Gate 6 ausente bloquea cualquier lectura holográfica más fuerte,
+        Gate 6 ausente bloquea cualquier lectura holografica mas fuerte,
         incluyendo cualquier veredicto experimental toy. (contrato sec. 2b)
         """
         meta = _meta_ads_thermal_no_gate6()
@@ -176,7 +176,7 @@ class TestAdsThermalToyOnly:
         )
 
     def test_thermal_toy_phenomenological_no_gate6_gives_template_only(self):
-        """TOY_PHENOMENOLOGICAL + thermal + Gate 6 ausente → ADS_TEMPLATE_ONLY."""
+        """TOY_PHENOMENOLOGICAL + thermal + Gate 6 ausente  ADS_TEMPLATE_ONLY."""
         meta = dict(_meta_ads_thermal_no_gate6())
         meta["correlator_type"] = "TOY_PHENOMENOLOGICAL"
         result = validate_ads_geometry(meta)
@@ -185,16 +185,16 @@ class TestAdsThermalToyOnly:
         )
 
     def test_thermal_witten_no_gate6_gives_template_only(self):
-        """HOLOGRAPHIC_WITTEN_DIAGRAM + thermal + Gate 6 ausente → ADS_TEMPLATE_ONLY."""
+        """HOLOGRAPHIC_WITTEN_DIAGRAM + thermal + Gate 6 ausente  ADS_TEMPLATE_ONLY."""
         meta = dict(_meta_ads_thermal_no_gate6())
         meta["correlator_type"] = "HOLOGRAPHIC_WITTEN_DIAGRAM"
         result = validate_ads_geometry(meta)
         assert result["overall_verdict"] == "ADS_TEMPLATE_ONLY"
 
-    # -- Campos de clasificación se preservan aunque el veredicto sea TEMPLATE_ONLY --
+    # -- Campos de clasificacion se preservan aunque el veredicto sea TEMPLATE_ONLY --
 
     def test_classification_is_ads_thermal_regardless_of_verdict(self):
-        """La clasificación geométrica es ads_thermal independientemente del veredicto."""
+        """La clasificacion geometrica es ads_thermal independientemente del veredicto."""
         meta = _meta_ads_thermal_no_gate6()
         result = validate_ads_geometry(meta)
         assert result["classification"] == "ads_thermal"
@@ -210,7 +210,7 @@ class TestAdsThermalToyOnly:
     def test_thermal_geodesic_with_gate6_gives_experimental_toy_only(self):
         """
         ads_thermal + GEODESIC_APPROXIMATION + Gate 6 PRESENTE
-        → ADS_EXPERIMENTAL_TOY_ONLY.
+         ADS_EXPERIMENTAL_TOY_ONLY.
         En ausencia de ads_pipeline_tier, los H5 legacy se tratan como experimental.
         """
         meta = {
@@ -230,12 +230,12 @@ class TestAdsThermalToyOnly:
         }
         result = validate_ads_geometry(meta)
         assert result["overall_verdict"] == "ADS_EXPERIMENTAL_TOY_ONLY", (
-            f"Gate 6 presente + thermal + GEODESIC → ADS_EXPERIMENTAL_TOY_ONLY, "
+            f"Gate 6 presente + thermal + GEODESIC  ADS_EXPERIMENTAL_TOY_ONLY, "
             f"got {result['overall_verdict']}"
         )
 
     def test_thermal_toy_with_gate6_gives_experimental_toy_only(self):
-        """TOY_PHENOMENOLOGICAL + thermal + Gate 6 presente → ADS_EXPERIMENTAL_TOY_ONLY."""
+        """TOY_PHENOMENOLOGICAL + thermal + Gate 6 presente  ADS_EXPERIMENTAL_TOY_ONLY."""
         meta = {
             "family": "ads",
             "d": 3,
@@ -255,8 +255,8 @@ class TestAdsThermalToyOnly:
 
     def test_ads_d3_tfinite_without_gate6_is_template_only(self):
         """
-        REGRESIÓN: caso ads_d3_Tfinite con z_h=1.0.
-        Gate 6 ausente → ADS_TEMPLATE_ONLY.
+        REGRESION: caso ads_d3_Tfinite con z_h=1.0.
+        Gate 6 ausente  ADS_TEMPLATE_ONLY.
         """
         meta = {
             "family": "ads",
@@ -275,7 +275,7 @@ class TestAdsThermalToyOnly:
 
 
 # ---------------------------------------------------------------------------
-# 3. Violación explícita de cota BF → ADS_CONTRACT_FAIL
+# 3. Violacion explicita de cota BF  ADS_CONTRACT_FAIL
 # ---------------------------------------------------------------------------
 
 class TestAdsContractFail:
@@ -293,7 +293,7 @@ class TestAdsContractFail:
         assert result["overall_verdict"] == "ADS_CONTRACT_FAIL"
 
     def test_operator_with_bf_violation(self):
-        """m²L² < -(d/2)² para d=3: límite es -2.25."""
+        """m2L2 < -(d/2)2 para d=3: limite es -2.25."""
         meta = {
             "family": "ads",
             "d": 3,
@@ -301,7 +301,7 @@ class TestAdsContractFail:
             "deformation": 0.0,
             "correlator_type": "GEODESIC_APPROXIMATION",
             "operators": [
-                {"name": "O1", "m2L2": -3.0},  # -3.0 < -2.25 → BF violada
+                {"name": "O1", "m2L2": -3.0},  # -3.0 < -2.25  BF violada
             ],
         }
         result = validate_ads_geometry(meta)
@@ -309,7 +309,7 @@ class TestAdsContractFail:
         assert result["bf_check"]["pass"] is False
 
     def test_missing_family_gives_contract_fail(self):
-        """Sin campo 'family' en metadata → ADS_CONTRACT_FAIL."""
+        """Sin campo 'family' en metadata  ADS_CONTRACT_FAIL."""
         meta = {
             "family": "ads",
             "d": None,  # d ausente
@@ -321,19 +321,19 @@ class TestAdsContractFail:
         assert result["overall_verdict"] == "ADS_CONTRACT_FAIL"
 
     def test_bf_check_function_directly(self):
-        """check_bf_bound: límite exacto d=3 es m²L² ≥ -2.25."""
-        assert check_bf_bound(-2.25, 3) is True   # exactamente en el límite
+        """check_bf_bound: limite exacto d=3 es m2L2  -2.25."""
+        assert check_bf_bound(-2.25, 3) is True   # exactamente en el limite
         assert check_bf_bound(-2.24, 3) is True   # justo encima
-        assert check_bf_bound(-2.26, 3) is False  # violación
+        assert check_bf_bound(-2.26, 3) is False  # violacion
 
     def test_bf_check_function_d4(self):
-        """check_bf_bound: límite d=4 es m²L² ≥ -4.0."""
+        """check_bf_bound: limite d=4 es m2L2  -4.0."""
         assert check_bf_bound(-4.0, 4) is True
         assert check_bf_bound(-4.01, 4) is False
 
 
 # ---------------------------------------------------------------------------
-# 4. Familia no-ads → NOT_ADS (sin errores)
+# 4. Familia no-ads  NOT_ADS (sin errores)
 # ---------------------------------------------------------------------------
 
 class TestNonAdsFamily:
@@ -366,7 +366,7 @@ class TestNonAdsFamily:
         assert result["toy_provenance"] is None
 
     def test_non_ads_does_not_raise(self):
-        """Validador no lanza excepción para ninguna familia registrada."""
+        """Validador no lanza excepcion para ninguna familia registrada."""
         for family in [
             "ads", "lifshitz", "hyperscaling", "deformed", "dpbrane",
             "unknown", "rn_ads", "gauss_bonnet", "massive_gravity",
@@ -380,13 +380,13 @@ class TestNonAdsFamily:
 
 # ---------------------------------------------------------------------------
 # 5. correlator_type se produce correctamente para la metadata de Stage 01
-#    (verificado a través de family_registry, que es la fuente canónica)
+#    (verificado a traves de family_registry, que es la fuente canonica)
 # ---------------------------------------------------------------------------
 
 class TestCorrelatorTypeInStage01Metadata:
     def test_ads_thermal_correlator_type(self):
         """
-        Para ads térmico, get_correlator_type_for_geometry devuelve
+        Para ads termico, get_correlator_type_for_geometry devuelve
         GEODESIC_APPROXIMATION (el camino real del observable en Stage 01).
         """
         ct = get_correlator_type_for_geometry("ads", use_geodesic=True)
@@ -408,13 +408,13 @@ class TestCorrelatorTypeInStage01Metadata:
 
     def test_non_ads_correlator_type_is_canonical(self):
         """
-        get_correlator_type_for_geometry retorna un valor canónico para
+        get_correlator_type_for_geometry retorna un valor canonico para
         cualquier familia (Stage 01 llama correlator_2pt_geodesic para todas).
         """
         for family in ["ads", "lifshitz", "hyperscaling", "rn_ads", "kerr"]:
             ct = get_correlator_type_for_geometry(family, use_geodesic=True)
             assert ct in CORRELATOR_TYPES, (
-                f"family={family}: '{ct}' no está en CORRELATOR_TYPES"
+                f"family={family}: '{ct}' no esta en CORRELATOR_TYPES"
             )
 
     def test_non_geodesic_gives_toy_phenomenological(self):
@@ -442,11 +442,11 @@ class TestCorrelatorTypeInStage01Metadata:
 class TestRepoCurrentState:
     def test_all_ads_prototypes_are_template_only(self):
         """
-        REGRESIÓN: los prototipos ads actuales del repo (ads_d3_Tfinite, etc.)
+        REGRESION: los prototipos ads actuales del repo (ads_d3_Tfinite, etc.)
         sin Gate 6 deben resultar en ADS_TEMPLATE_ONLY.
 
-        Clasificación geométrica: ads_thermal (correcto).
-        Veredicto holográfico: ADS_TEMPLATE_ONLY (Gate 6 ausente bloquea).
+        Clasificacion geometrica: ads_thermal (correcto).
+        Veredicto holografico: ADS_TEMPLATE_ONLY (Gate 6 ausente bloquea).
         """
         ads_prototypes = [
             {"name": "ads_d3_Tfinite",      "z_h": 1.0, "d": 3, "deformation": 0.0},
@@ -471,7 +471,7 @@ class TestRepoCurrentState:
 
 
 # ---------------------------------------------------------------------------
-# 8. Todos los gates completos → ADS_HOLOGRAPHIC_STRONG_PASS
+# 8. Todos los gates completos  ADS_HOLOGRAPHIC_STRONG_PASS
 # ---------------------------------------------------------------------------
 
 class TestAdsHolographicStrongPass:
@@ -492,7 +492,7 @@ class TestAdsHolographicStrongPass:
 
 
 # ---------------------------------------------------------------------------
-# 8b. Política canonical/experimental
+# 8b. Politica canonical/experimental
 # ---------------------------------------------------------------------------
 
 class TestAdsCanonicalExperimentalPolicy:
@@ -652,7 +652,7 @@ class TestClassifyAdsGeometry:
 
 
 # ---------------------------------------------------------------------------
-# 10 & 11. Constantes canónicas
+# 10 & 11. Constantes canonicas
 # ---------------------------------------------------------------------------
 
 class TestCanonicalConstants:
@@ -700,7 +700,7 @@ class TestCanonicalConstants:
         assert result["overall_verdict"] == "ADS_TEMPLATE_ONLY"
 
     def test_uv_ir_fragile_verdict(self):
-        """Gate UV/IR fragmentado con el resto de gates completos → ADS_UV_IR_FRAGILE."""
+        """Gate UV/IR fragmentado con el resto de gates completos  ADS_UV_IR_FRAGILE."""
         meta = dict(_meta_ads_all_gates())
         meta["uv_source_declared"] = False   # fragile
         result = validate_ads_geometry(meta)

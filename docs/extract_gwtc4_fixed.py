@@ -27,11 +27,11 @@ df = df[['gw_name', 'result_label',
 df = df[np.isfinite(df['final_mass_source_median']) & 
         np.isfinite(df['final_spin_median'])].reset_index(drop=True)
 
-# === CORRECCIÓN DE SIGMAS (siempre positivos) ===
+# === CORRECCION DE SIGMAS (siempre positivos) ===
 df['sigma_M_final_Msun'] = np.abs(df['final_mass_source_upper'] - df['final_mass_source_lower']) / 2
 df['sigma_chi_final']     = np.abs(df['final_spin_upper']     - df['final_spin_lower'])     / 2
 
-# === LIMPIEZA de nombres de análisis ===
+# === LIMPIEZA de nombres de analisis ===
 def clean_method(label):
     if 'SEOBNRv5PHM' in label:
         return 'pSEOBNRv5PHM'
@@ -79,5 +79,5 @@ for event, group in df.groupby('gw_name'):
 with open('GWTC4_remnant_params_FIXED.yaml', 'w', encoding='utf-8') as f:
     yaml.dump(yaml_list, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
-print(f'¡Listo! Se generaron {len(yaml_list)} entradas en GWTC4_remnant_params_FIXED.yaml')
-print('✅ Sigmas siempre positivos y nombres de análisis limpios')
+print(f'Listo! Se generaron {len(yaml_list)} entradas en GWTC4_remnant_params_FIXED.yaml')
+print(' Sigmas siempre positivos y nombres de analisis limpios')

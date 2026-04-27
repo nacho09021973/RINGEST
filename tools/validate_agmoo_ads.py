@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-validate_agmoo_ads.py — Validador AGMOO para familia ``ads``.
+validate_agmoo_ads.py  Validador AGMOO para familia ``ads``.
 
-Consume metadata de una geometría/run ``ads`` y emite un dict/JSON con:
+Consume metadata de una geometria/run ``ads`` y emite un dict/JSON con:
 
   family                  str
-  classification          str   (sub-clasificación ads)
+  classification          str   (sub-clasificacion ads)
   correlator_type         str
   geometry_gate_status    str   PASS | MISSING_FIELDS
   holographic_gate_status str   PASS | MISSING_FIELDS
@@ -59,10 +59,10 @@ except ImportError:
 # Campos de los gates
 # ---------------------------------------------------------------------------
 
-#: Campos requeridos por el Gate geométrico mínimo.
+#: Campos requeridos por el Gate geometrico minimo.
 GEOMETRY_REQUIRED_FIELDS: List[str] = ["family", "d", "z_h"]
 
-#: Campos requeridos por el Gate 6 holográfico.
+#: Campos requeridos por el Gate 6 holografico.
 GATE6_REQUIRED_FIELDS: List[str] = [
     "bulk_field_name",
     "operator_name",
@@ -86,14 +86,14 @@ NON_STRONG_CORRELATOR_TYPES = {
 
 
 # ---------------------------------------------------------------------------
-# Cota de Breitenlöhner-Freedman
+# Cota de Breitenlohner-Freedman
 # ---------------------------------------------------------------------------
 
 def check_bf_bound(m2L2: float, d: int) -> bool:
     """
-    Cota BF para AdS_{d+1}: m²L² ≥ -(d/2)².
+    Cota BF para AdS_{d+1}: m2L2  -(d/2)2.
 
-    Una violación implica inestabilidad taquiónica → ADS_CONTRACT_FAIL.
+    Una violacion implica inestabilidad taquionica  ADS_CONTRACT_FAIL.
     """
     return float(m2L2) >= -((d / 2.0) ** 2)
 
@@ -105,7 +105,7 @@ def check_bf_from_operators(operators: List[Dict], d: int) -> Dict:
     Parameters
     ----------
     operators : list de dicts con claves ``name`` y ``m2L2``
-    d         : dimensión del boundary
+    d         : dimension del boundary
 
     Returns
     -------
@@ -153,9 +153,9 @@ _SENTINEL = object()
 
 def check_geometry_gate(meta: Dict) -> Dict:
     """
-    Comprueba los campos geométricos mínimos (family, d, z_h).
+    Comprueba los campos geometricos minimos (family, d, z_h).
 
-    Nota: z_h = None es un valor válido (T=0, sin horizonte). Se distingue
+    Nota: z_h = None es un valor valido (T=0, sin horizonte). Se distingue
     entre clave ausente del dict y clave presente con valor None.
     Las claves ``family`` y ``d`` deben ser no-None para que el gate pase.
 
@@ -172,7 +172,7 @@ def check_geometry_gate(meta: Dict) -> Dict:
             missing.append(field)
             continue
         if field in ("family", "d") and raw is None:
-            # family y d deben ser no-None (z_h puede ser None: T=0 válido)
+            # family y d deben ser no-None (z_h puede ser None: T=0 valido)
             missing.append(field)
         else:
             present[field] = raw
@@ -182,7 +182,7 @@ def check_geometry_gate(meta: Dict) -> Dict:
 
 def check_holographic_gate(meta: Dict) -> Dict:
     """
-    Comprueba los campos del Gate 6 holográfico.
+    Comprueba los campos del Gate 6 holografico.
 
     Returns
     -------
@@ -202,11 +202,11 @@ def check_holographic_gate(meta: Dict) -> Dict:
 
 def check_uv_ir_gate(meta: Dict) -> Dict:
     """
-    Comprueba que la fuente UV y la condición de contorno IR estén declaradas.
+    Comprueba que la fuente UV y la condicion de contorno IR esten declaradas.
 
     Returns
     -------
-    dict con ``status`` (PASS | FRAGILE | MISSING), más los valores leídos
+    dict con ``status`` (PASS | FRAGILE | MISSING), mas los valores leidos
     """
     uv = meta.get("uv_source_declared", None)
     ir = meta.get("ir_bc_declared", None)
@@ -246,9 +246,9 @@ def check_uv_ir_gate(meta: Dict) -> Dict:
 
 def normalize_ads_pipeline_tier(meta: Dict) -> str:
     """
-    Política de compatibilidad:
+    Politica de compatibilidad:
 
-    - `canonical`: ruta científica ads; exige Gate 6 completo y correlador fuerte.
+    - `canonical`: ruta cientifica ads; exige Gate 6 completo y correlador fuerte.
     - `experimental`: ruta toy/legacy; puede existir, pero nunca pasa como fuerte.
 
     H5 legacy sin `ads_pipeline_tier` se tratan como `experimental` para no romper
@@ -284,7 +284,7 @@ def has_toy_provenance(meta: Dict[str, Any]) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Lógica de veredicto
+# Logica de veredicto
 # ---------------------------------------------------------------------------
 
 def compute_ads_verdict(
@@ -302,25 +302,25 @@ def compute_ads_verdict(
 
     Orden de prioridad:
 
-    1. BF bound violada o campos geométricos críticos ausentes → ADS_CONTRACT_FAIL.
-    2. Tier canonical exige correlador fuerte, Gate 6 completo y procedencia no-toy; si falta → ADS_CONTRACT_FAIL.
-    3. Tier experimental con correlador toy/geodésico/QNM → ADS_EXPERIMENTAL_TOY_ONLY
-       cuando Gate 6 está presente, o ADS_TEMPLATE_ONLY si falta Gate 6.
-    4. correlator_type = UNKNOWN → ADS_TEMPLATE_ONLY.
-    5. Gate UV/IR = FRAGILE → ADS_UV_IR_FRAGILE.
-    6. Gate UV/IR = PASS → ADS_HOLOGRAPHIC_STRONG_PASS.
-    7. Default (Gate 6 OK, UV/IR no declarado) → ADS_HOLOGRAPHIC_PARTIAL_PASS.
+    1. BF bound violada o campos geometricos criticos ausentes  ADS_CONTRACT_FAIL.
+    2. Tier canonical exige correlador fuerte, Gate 6 completo y procedencia no-toy; si falta  ADS_CONTRACT_FAIL.
+    3. Tier experimental con correlador toy/geodesico/QNM  ADS_EXPERIMENTAL_TOY_ONLY
+       cuando Gate 6 esta presente, o ADS_TEMPLATE_ONLY si falta Gate 6.
+    4. correlator_type = UNKNOWN  ADS_TEMPLATE_ONLY.
+    5. Gate UV/IR = FRAGILE  ADS_UV_IR_FRAGILE.
+    6. Gate UV/IR = PASS  ADS_HOLOGRAPHIC_STRONG_PASS.
+    7. Default (Gate 6 OK, UV/IR no declarado)  ADS_HOLOGRAPHIC_PARTIAL_PASS.
 
     Nota de compatibilidad:
     - `ADS_THERMAL_TOY_ONLY` queda como etiqueta legacy del registro, pero ya no se
-      emite desde la lógica viva: los casos toy/no fuertes del carril experimental
+      emite desde la logica viva: los casos toy/no fuertes del carril experimental
       colapsan en `ADS_EXPERIMENTAL_TOY_ONLY`.
     """
     # 1. BF bound violation
     if bf_check.get("pass") is False:
         return "ADS_CONTRACT_FAIL"
 
-    # 1b. Geometry gate: campos críticos ausentes
+    # 1b. Geometry gate: campos criticos ausentes
     geo_missing = set(geometry_gate.get("missing", []))
     if "family" in geo_missing or "d" in geo_missing:
         return "ADS_CONTRACT_FAIL"
@@ -338,11 +338,11 @@ def compute_ads_verdict(
         if toy_provenance:
             return "ADS_CONTRACT_FAIL"
 
-    # 3. correlator_type UNKNOWN → ADS_TEMPLATE_ONLY
+    # 3. correlator_type UNKNOWN  ADS_TEMPLATE_ONLY
     if correlator_type == "UNKNOWN":
         return "ADS_TEMPLATE_ONLY"
 
-    # 4. Gate 6 incompleto en ruta experimental/legacy → template only.
+    # 4. Gate 6 incompleto en ruta experimental/legacy  template only.
     if not holo_gate_ok:
         return "ADS_TEMPLATE_ONLY"
 
@@ -370,12 +370,12 @@ def compute_ads_verdict(
 
 def validate_ads_geometry(meta: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Valida una geometría/run ads contra el contrato AGMOO.
+    Valida una geometria/run ads contra el contrato AGMOO.
 
     Parameters
     ----------
     meta : dict
-        Metadata de la geometría. Claves esperadas:
+        Metadata de la geometria. Claves esperadas:
         ``family``, ``d``, ``z_h``, ``deformation``, ``correlator_type``,
         ``ads_classification``, ``operators`` (lista), ``bf_bound_pass``,
         ``uv_source_declared``, ``ir_bc_declared``, ``bulk_field_name``,
@@ -383,13 +383,13 @@ def validate_ads_geometry(meta: Dict[str, Any]) -> Dict[str, Any]:
 
     Returns
     -------
-    dict serializable a JSON con el resultado de la validación.
+    dict serializable a JSON con el resultado de la validacion.
 
     Para familias distintas de ``ads``, retorna overall_verdict = "NOT_ADS".
     """
     family = meta.get("family", "unknown")
 
-    # Familia distinta de ads → skip
+    # Familia distinta de ads  skip
     if family != "ads":
         return {
             "family": family,
@@ -406,7 +406,7 @@ def validate_ads_geometry(meta: Dict[str, Any]) -> Dict[str, Any]:
             "overall_verdict": "NOT_ADS",
         }
 
-    # Sub-clasificación
+    # Sub-clasificacion
     z_h_raw = meta.get("z_h", None)
     z_h: Optional[float] = float(z_h_raw) if z_h_raw is not None else None
     deformation = float(meta.get("deformation", 0.0))
@@ -414,7 +414,7 @@ def validate_ads_geometry(meta: Dict[str, Any]) -> Dict[str, Any]:
         family, z_h, deformation
     )
     if classification not in ADS_CLASSIFICATIONS:
-        classification = "ads_toy_boundary"  # conservador si valor inválido
+        classification = "ads_toy_boundary"  # conservador si valor invalido
 
     # Tipo de correlador
     correlator_type = meta.get("correlator_type", "UNKNOWN")
@@ -424,7 +424,7 @@ def validate_ads_geometry(meta: Dict[str, Any]) -> Dict[str, Any]:
     strong_correlator = is_strong_correlator(correlator_type)
     toy_provenance = has_toy_provenance(meta)
 
-    # Dimensión del boundary
+    # Dimension del boundary
     d_raw = meta.get("d", None)
     d_int = int(d_raw) if d_raw is not None else 3
 
@@ -438,7 +438,7 @@ def validate_ads_geometry(meta: Dict[str, Any]) -> Dict[str, Any]:
 
     # Cota BF
     bf_check = check_bf_from_operators(operators, d_int)
-    # Sobreescribir con campo explícito si está presente
+    # Sobreescribir con campo explicito si esta presente
     explicit_bf = meta.get("bf_bound_pass")
     if explicit_bf is not None:
         bf_pass = bool(explicit_bf)
@@ -491,7 +491,7 @@ def read_meta_from_h5(h5_path: str) -> Dict[str, Any]:
     """
     Lee los attrs de un HDF5 de Stage 01 y devuelve un dict de metadata.
 
-    Requiere h5py. Si no está disponible, lanza ImportError.
+    Requiere h5py. Si no esta disponible, lanza ImportError.
     """
     import h5py  # type: ignore
 
@@ -541,13 +541,13 @@ def read_meta_from_h5(h5_path: str) -> Dict[str, Any]:
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description="Validador AGMOO para familia ads. "
-                    "Emite JSON con clasificación, gates y veredicto."
+                    "Emite JSON con clasificacion, gates y veredicto."
     )
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument(
         "--meta",
         type=str,
-        help="JSON string con la metadata de la geometría.",
+        help="JSON string con la metadata de la geometria.",
     )
     group.add_argument(
         "--h5",
@@ -558,13 +558,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output",
         type=str,
         default=None,
-        help="Ruta de salida para escribir el JSON de validación (opcional).",
+        help="Ruta de salida para escribir el JSON de validacion (opcional).",
     )
     p.add_argument(
         "--indent",
         type=int,
         default=2,
-        help="Indentación del JSON de salida.",
+        help="Indentacion del JSON de salida.",
     )
     return p
 
@@ -586,7 +586,7 @@ def main() -> int:
         try:
             meta = json.loads(args.meta)
         except json.JSONDecodeError as e:
-            print(f"[ERROR] JSON inválido en --meta: {e}", file=sys.stderr)
+            print(f"[ERROR] JSON invalido en --meta: {e}", file=sys.stderr)
             return 1
 
     result = validate_ads_geometry(meta)

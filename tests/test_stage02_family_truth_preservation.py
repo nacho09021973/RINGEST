@@ -49,7 +49,7 @@ class Stage02FamilyTruthPreservation(unittest.TestCase):
             msg=(
                 "Expected family attr to be written from family_truth_name. "
                 "Overwriting with family_pred_name loses canonical semantic "
-                "trace in downstream stages (03/06) — see audit April 2026."
+                "trace in downstream stages (03/06)  see audit April 2026."
             ),
         )
 

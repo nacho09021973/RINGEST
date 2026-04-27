@@ -2,7 +2,7 @@
 """
 02c_prepare_community_ringdown_cohort.py
 
-Prepara una cohorte mínima y trazable de eventos reales para análisis de
+Prepara una cohorte minima y trazable de eventos reales para analisis de
 ringdown con herramientas comunitarias externas (por ejemplo ringdown o
 pyRingGW), sin acoplar el pipeline a ninguna API externa concreta.
 
@@ -14,9 +14,9 @@ Salida:
   - <out-dir>/community_ringdown_cohort.csv
   - <out-dir>/community_ringdown_cohort.json
 
-Política:
+Politica:
   - Solo emite eventos presentes en el dataset de literatura.
-  - Requiere raw/ local para poder relanzar análisis comunitario.
+  - Requiere raw/ local para poder relanzar analisis comunitario.
   - Requiere boundary_h5 local para conservar el puente downstream existente.
   - Si existe un ringdown local previo, lo adjunta como metadato trazable
     (dir preferido, poles_joint.json, t0_rel), pero no lo toma como verdad.
@@ -65,13 +65,13 @@ def parse_args():
         "--dataset-csv",
         type=Path,
         default=Path("runs/qnm_dataset_literature/qnm_dataset.csv"),
-        help="CSV canónico de literatura con columnas tipo qnm_dataset.csv",
+        help="CSV canonico de literatura con columnas tipo qnm_dataset.csv",
     )
     ap.add_argument(
         "--gwosc-root",
         type=Path,
         default=Path("data/gwosc_events"),
-        help="Raíz local de eventos GWOSC",
+        help="Raiz local de eventos GWOSC",
     )
     ap.add_argument(
         "--out-dir",

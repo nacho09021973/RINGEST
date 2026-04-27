@@ -20,10 +20,10 @@ df = df[['gw_name', 'result_label',
          'final_mass_source_median', 'final_mass_source_lower', 'final_mass_source_upper',
          'final_spin_median', 'final_spin_lower', 'final_spin_upper']].copy()
 
-# Filtrar filas válidas
+# Filtrar filas validas
 df = df[np.isfinite(df['final_mass_source_median']) & np.isfinite(df['final_spin_median'])].reset_index(drop=True)
 
-# Sigma aproximado (como hacías tú)
+# Sigma aproximado (como hacias tu)
 df['sigma_M_final_Msun'] = (df['final_mass_source_upper'] - df['final_mass_source_lower']) / 2
 df['sigma_chi_final'] = (df['final_spin_upper'] - df['final_spin_lower']) / 2
 
@@ -75,4 +75,4 @@ for event, group in df.groupby('gw_name'):
 with open('GWTC4_remnant_params.yaml', 'w', encoding='utf-8') as f:
     yaml.dump(yaml_list, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
-print(f'¡Listo! Se generaron {len(yaml_list)} entradas en GWTC4_remnant_params.yaml')
+print(f'Listo! Se generaron {len(yaml_list)} entradas en GWTC4_remnant_params.yaml')

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-06_holographic_eigenmode_dataset.py  —  CUERDAS-MALDACENA  (Stage 06 GW, v1.0)
+06_holographic_eigenmode_dataset.py    CUERDAS-MALDACENA  (Stage 06 GW, v1.0)
 
 Build the eigenmode dataset for stage 07.  Two modes:
 
@@ -13,9 +13,9 @@ in boundary attrs:
   Tier A:         rn_ads, gauss_bonnet, massive_gravity, linear_axion, charged_hvlif
   Tier A ext:     gubser_rocha, soft_wall
 
-  - lambda_sl  = m²L²   (bulk scalar mass squared, can be negative/tachyonic)
-  - Delta_UV   = Δ       (operator dimension)
-  - d          = d_cft   = (d_spatial + 1)  so that Δ(Δ - d_cft) = m²L²
+  - lambda_sl  = m2L2   (bulk scalar mass squared, can be negative/tachyonic)
+  - Delta_UV   =        (operator dimension)
+  - d          = d_cft   = (d_spatial + 1)  so that ( - d_cft) = m2L2
 
 One row per operator per geometry.  The SL frequency solver is also run as
 an independent cross-check (stored in lambda_sl_freq column).
@@ -50,7 +50,7 @@ import numpy as np
 
 SCRIPT_VERSION = "06_holographic_eigenmode_dataset.py v1.1 (2026-04-13)"
 
-# ── Registro canónico de familias ──────────────────────────────────────────
+#  Registro canonico de familias 
 try:
     from family_registry import HOLOGRAPHIC_FAMILIES as _HOLO_FAMS, read_extra_attrs_from_h5
     _HAS_FAMILY_REGISTRY = True
@@ -65,7 +65,7 @@ except ImportError:
     def read_extra_attrs_from_h5(h5_attrs, family):  # type: ignore
         return {}
 
-# ── Try to import bulk solver ──────────────────────────────────────────────
+#  Try to import bulk solver 
 try:
     import sys as _sys
     _sys.path.insert(0, str(Path(__file__).parent))
@@ -76,7 +76,7 @@ except ImportError:
     HAS_SOLVER = False
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────
+#  Helpers 
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -88,12 +88,12 @@ def _str(x: Any) -> str:
     return str(x)
 
 
-# ── Row definitions ────────────────────────────────────────────────────────
+#  Row definitions 
 
 HOLO_FIELDS = [
     "system_name", "family", "d",        # d = d_cft = d_spatial + 1
-    "operator", "Delta_UV", "lambda_sl", # Δ and m²L²
-    "lambda_sl_freq",                     # ω² from SL frequency solver (cross-check)
+    "operator", "Delta_UV", "lambda_sl", #  and m2L2
+    "lambda_sl_freq",                     # 2 from SL frequency solver (cross-check)
     "z_dyn", "theta", "quality_flag",
     "is_ground_state", "delta_source",
     # Tier A extra attrs (NaN/empty for Tier Canonical geometries)
@@ -108,7 +108,7 @@ KERR_FIELDS = [
 ]
 
 
-# ── Holographic geometry processing ───────────────────────────────────────
+#  Holographic geometry processing 
 
 def process_holographic(
     h5_path: Path,
@@ -120,11 +120,11 @@ def process_holographic(
     with h5py.File(h5_path, "r") as f:
         family = _str(f.attrs.get("family", "unknown"))
         d_sp   = int(f.attrs.get("d", 4))          # spatial dim
-        d_cft  = d_sp + 1                           # CFT dim (for Δ(Δ-d_cft) = m²L²)
+        d_cft  = d_sp + 1                           # CFT dim (for (-d_cft) = m2L2)
         system_name = _str(f.attrs.get("system_name", f.attrs.get("name", h5_path.stem)))
         z_dyn  = float(f.attrs.get("z_dyn", float("nan")))
         theta  = float(f.attrs.get("theta", float("nan")))
-        # Tier A: leer attrs canónicos extra (NaN para H5 legacy que no los tienen)
+        # Tier A: leer attrs canonicos extra (NaN para H5 legacy que no los tienen)
         extra = read_extra_attrs_from_h5(f.attrs, family)
         charge_Q    = extra.get("charge_Q",    float("nan"))
         lambda_gb   = extra.get("lambda_gb",   float("nan"))
@@ -142,8 +142,8 @@ def process_holographic(
     if not delta_dict:
         return []   # no operators to map
 
-    # Compute d_formula empirically: d = (Δ² - m2L2) / Δ
-    # This is derived from m2L2 = Δ(Δ - d_formula) → d_formula = (Δ² - m2L2) / Δ
+    # Compute d_formula empirically: d = (2 - m2L2) / 
+    # This is derived from m2L2 = ( - d_formula)  d_formula = (2 - m2L2) / 
     # We take the median across all operators for robustness.
     d_estimates = []
     for op_name, op_vals in delta_dict.items():
@@ -177,7 +177,7 @@ def process_holographic(
         if not (np.isfinite(D) and np.isfinite(m2)):
             continue
 
-        # Verify formula: D*(D - d_formula) ≈ m2L2
+        # Verify formula: D*(D - d_formula)  m2L2
         theory = D * (D - d_formula)
         rel_err = abs(theory - m2) / (abs(m2) + 1e-10)
         quality = "ok" if rel_err < 0.01 else f"theory_mismatch_{rel_err:.3f}"
@@ -188,10 +188,10 @@ def process_holographic(
         rows.append({
             "system_name":    system_name,
             "family":         family,
-            "d":              d_formula,       # empirical d where Δ(Δ-d) = m²L²
+            "d":              d_formula,       # empirical d where (-d) = m2L2
             "operator":       op_name,
             "Delta_UV":       round(D, 8),
-            "lambda_sl":      round(m2, 8),   # m²L² (main eigenvalue)
+            "lambda_sl":      round(m2, 8),   # m2L2 (main eigenvalue)
             "lambda_sl_freq": round(lam_freq, 6) if np.isfinite(lam_freq) else "",
             "z_dyn":          round(z_dyn, 6) if np.isfinite(z_dyn) else "",
             "theta":          round(theta, 6) if np.isfinite(theta) else "",
@@ -208,7 +208,7 @@ def process_holographic(
     return rows
 
 
-# ── Kerr geometry processing ───────────────────────────────────────────────
+#  Kerr geometry processing 
 
 def process_kerr(h5_path: Path) -> Optional[Dict[str, Any]]:
     """Return a single Kerr row from QNM attrs."""
@@ -231,7 +231,7 @@ def process_kerr(h5_path: Path) -> Optional[Dict[str, Any]]:
     if not (np.isfinite(M) and np.isfinite(a) and np.isfinite(Q0)):
         return None
 
-    # Reconstruct f0, tau0 from Q0 = π f0 / γ0 and qnm features
+    # Reconstruct f0, tau0 from Q0 =  f0 / 0 and qnm features
     # The sandbox stores only ratios; for inverse map we need raw values.
     # Read them from the manifest or recompute via qnm package.
     # For now store what we have; the inverse is done in 07K.
@@ -250,7 +250,7 @@ def process_kerr(h5_path: Path) -> Optional[Dict[str, Any]]:
     }
 
 
-# ── CSV writers ────────────────────────────────────────────────────────────
+#  CSV writers 
 
 def write_csv(rows: List[Dict], fields: List[str], out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -260,7 +260,7 @@ def write_csv(rows: List[Dict], fields: List[str], out_path: Path) -> None:
         w.writerows(rows)
 
 
-# ── Main ───────────────────────────────────────────────────────────────────
+#  Main 
 
 def main() -> int:
     ap = argparse.ArgumentParser(
@@ -284,7 +284,7 @@ def main() -> int:
         return 2
 
     print("=" * 70)
-    print("HOLOGRAPHIC EIGENMODE DATASET  —  Stage 06 (GW)")
+    print("HOLOGRAPHIC EIGENMODE DATASET    Stage 06 (GW)")
     print(f"Script: {SCRIPT_VERSION}")
     print(f"Source: {src_dir}  ({len(h5_files)} files)")
     print(f"Output: {out_dir}")
@@ -343,8 +343,8 @@ def main() -> int:
     (out_dir / "bulk_modes_meta.json").write_text(json.dumps(meta, indent=2))
 
     print("\n" + "=" * 70)
-    print(f"[OK] Holographic:  {meta['n_holographic_rows']:4d} rows  ({meta['n_holographic_geometries']} geometries) → {holo_csv}")
-    print(f"     Kerr:         {meta['n_kerr_geometries']:4d} geometries → {kerr_csv}")
+    print(f"[OK] Holographic:  {meta['n_holographic_rows']:4d} rows  ({meta['n_holographic_geometries']} geometries)  {holo_csv}")
+    print(f"     Kerr:         {meta['n_kerr_geometries']:4d} geometries  {kerr_csv}")
     print(f"     Skipped:      {n_skipped}")
     print("=" * 70)
     print("Next: 07_emergent_lambda_sl_dictionary.py  (holographic) and  07K_kerr_qnm_dictionary.py  (Kerr)")

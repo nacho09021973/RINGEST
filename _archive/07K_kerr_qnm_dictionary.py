@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 """
-07K_kerr_qnm_dictionary.py  —  CUERDAS-MALDACENA  (Stage 07K, v1.0)
+07K_kerr_qnm_dictionary.py    CUERDAS-MALDACENA  (Stage 07K, v1.0)
 
 Learn the INVERSE QNM map for Kerr black holes:
-    (f₀_Hz, τ₀_ms)  →  (M_Msun, a/M)
+    (f0_Hz, 0_ms)    (M_Msun, a/M)
 
 Physical basis
 --------------
-For a Kerr BH of mass M and spin a/M, the (ℓ=2,m=2,n=0) QNM frequency and
+For a Kerr BH of mass M and spin a/M, the (l=2,m=2,n=0) QNM frequency and
 damping time scale as:
 
-    f₀  ∝  1/M  × α(a/M)
-    τ₀  ∝  M    × β(a/M)
+    f0    1/M   (a/M)
+    0    M     (a/M)
 
-where α, β are dimensionless functions of a/M known from the `qnm` package.
+where ,  are dimensionless functions of a/M known from the `qnm` package.
 
-Given (f₀, τ₀) measured from a ringdown signal, invert:
+Given (f0, 0) measured from a ringdown signal, invert:
 
-    M  ≈  f(f₀, τ₀)
-    a/M ≈  g(f₀, τ₀)
+    M    f(f0, 0)
+    a/M   g(f0, 0)
 
 Using the sandbox data from `01b_generate_kerr_sandbox.py` as training set.
 
@@ -57,7 +57,7 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-# ── Load Kerr sandbox data ─────────────────────────────────────────────────
+#  Load Kerr sandbox data 
 
 def load_kerr_manifest(manifest_path: Path) -> Dict[str, Any]:
     """Load the Kerr sandbox manifest and extract (f0, tau0, M, a/M)."""
@@ -85,7 +85,7 @@ def load_kerr_manifest(manifest_path: Path) -> Dict[str, Any]:
     return data
 
 
-# ── QNM feature engineering ────────────────────────────────────────────────
+#  QNM feature engineering 
 
 def build_features(data: Dict[str, list]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -94,15 +94,15 @@ def build_features(data: Dict[str, list]) -> Tuple[np.ndarray, np.ndarray, np.nd
     Features:
       - f0_hz      (fundamental frequency)
       - tau0_ms    (damping time)
-      - f0*tau0    (dimensionless product — mass-independent)
-      - qnm_Q0     (= π f0 τ0 — quality factor)
-      - qnm_f1f0   (overtone frequency ratio — spin indicator)
+      - f0*tau0    (dimensionless product  mass-independent)
+      - qnm_Q0     (=  f0 0  quality factor)
+      - qnm_f1f0   (overtone frequency ratio  spin indicator)
       - qnm_g1g0   (overtone damping ratio)
 
     Physical intuition:
-      - f0 × tau0 = f0 × τ0 = Q0/π  → depends mainly on a/M
-      - f0 × M = dimensionless freq  → depends only on a/M
-      - τ0 / M = dimensionless τ     → depends only on a/M
+      - f0  tau0 = f0  0 = Q0/   depends mainly on a/M
+      - f0  M = dimensionless freq   depends only on a/M
+      - 0 / M = dimensionless       depends only on a/M
       - So M is determined by f0 alone given a/M
     """
     f0  = np.array(data["f0_hz"],   dtype=float)
@@ -112,17 +112,17 @@ def build_features(data: Dict[str, list]) -> Tuple[np.ndarray, np.ndarray, np.nd
     g10 = np.array(data["qnm_g1g0"],dtype=float)
 
     # Derived features
-    f0t0    = f0 * t0           # ∝ Q0/π (spin proxy)
-    inv_f0  = 1.0 / (f0 + 1e-9)  # ∝ M (mass proxy)
+    f0t0    = f0 * t0           #  Q0/ (spin proxy)
+    inv_f0  = 1.0 / (f0 + 1e-9)  #  M (mass proxy)
 
     X = np.column_stack([
-        f0,       # Hz — contains M information
-        t0,       # ms — contains M information
-        f0t0,     # dimensionless — spin proxy
+        f0,       # Hz  contains M information
+        t0,       # ms  contains M information
+        f0t0,     # dimensionless  spin proxy
         Q0,       # quality factor
-        r10,      # f1/f0 — strong spin indicator (Kerr: <1)
-        g10,      # γ1/γ0 — ~3 for all Kerr
-        inv_f0,   # 1/f0 ∝ M
+        r10,      # f1/f0  strong spin indicator (Kerr: <1)
+        g10,      # 1/0  ~3 for all Kerr
+        inv_f0,   # 1/f0  M
     ])
 
     M_arr = np.array(data["M_msun"],  dtype=float)
@@ -137,7 +137,7 @@ def build_features(data: Dict[str, list]) -> Tuple[np.ndarray, np.ndarray, np.nd
     return X[valid], M_arr[valid], a_arr[valid]
 
 
-# ── Model training ─────────────────────────────────────────────────────────
+#  Model training 
 
 def train_model(X: np.ndarray, y: np.ndarray, target_name: str) -> Tuple[Any, Dict]:
     """Train a gradient boosting model to predict target from features."""
@@ -152,7 +152,7 @@ def train_model(X: np.ndarray, y: np.ndarray, target_name: str) -> Tuple[Any, Di
         )),
     ])
 
-    # Cross-validation R² (leave-one-out at this sample size ~80)
+    # Cross-validation R2 (leave-one-out at this sample size ~80)
     cv_r2 = cross_val_score(pipe, X, y, cv=5, scoring="r2")
 
     pipe.fit(X, y)
@@ -165,13 +165,13 @@ def train_model(X: np.ndarray, y: np.ndarray, target_name: str) -> Tuple[Any, Di
         "r2_cv_std":   float(cv_r2.std()),
         "n_samples":   int(len(y)),
     }
-    print(f"  {target_name:12s}: R²_train={metrics['r2_train']:.4f}  "
-          f"R²_cv={metrics['r2_cv_mean']:.4f}±{metrics['r2_cv_std']:.4f}  "
+    print(f"  {target_name:12s}: R2_train={metrics['r2_train']:.4f}  "
+          f"R2_cv={metrics['r2_cv_mean']:.4f}{metrics['r2_cv_std']:.4f}  "
           f"MAE={metrics['mae_train']:.4f}")
     return pipe, metrics
 
 
-# ── Physical invariance checks ─────────────────────────────────────────────
+#  Physical invariance checks 
 
 def check_physical_invariants(
     data: Dict[str, list],
@@ -183,8 +183,8 @@ def check_physical_invariants(
 ) -> Dict[str, Any]:
     """
     Verify physical scaling laws:
-      - f0 × M = α(a/M)  (should be pure function of spin)
-      - τ0 / M = β(a/M)  (should be pure function of spin)
+      - f0  M = (a/M)  (should be pure function of spin)
+      - 0 / M = (a/M)  (should be pure function of spin)
     """
     f0 = X[:, 0]
     t0 = X[:, 1]
@@ -194,10 +194,10 @@ def check_physical_invariants(
     MSUN_S = 4.925491e-6  # seconds per solar mass
 
     # Dimensionless QNM products (should be function of a/M only)
-    alpha = f0 * M_true * MSUN_S * 2 * np.pi  # ωR × M (dim'less)
-    beta  = t0 * 1e-3 / (M_true * MSUN_S)     # τ0 / M (dim'less, τ0 in s)
+    alpha = f0 * M_true * MSUN_S * 2 * np.pi  # R  M (dim'less)
+    beta  = t0 * 1e-3 / (M_true * MSUN_S)     # 0 / M (dim'less, 0 in s)
 
-    # Correlation of (alpha, beta) with a/M — should be very high
+    # Correlation of (alpha, beta) with a/M  should be very high
     corr_alpha = float(np.corrcoef(alpha, a)[0, 1])
     corr_beta  = float(np.corrcoef(beta,  a)[0, 1])
 
@@ -206,15 +206,15 @@ def check_physical_invariants(
         "beta_corr_with_spin":  corr_beta,
         "alpha_range": [float(alpha.min()), float(alpha.max())],
         "beta_range":  [float(beta.min()),  float(beta.max())],
-        "note": "alpha = ω_R M (dim'less freq), beta = τ0 / M (dim'less time). Both should be functions of a/M only.",
+        "note": "alpha = _R M (dim'less freq), beta = 0 / M (dim'less time). Both should be functions of a/M only.",
     }
 
 
-# ── Main ───────────────────────────────────────────────────────────────────
+#  Main 
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Stage 07K: learn Kerr inverse QNM map (f0,τ0) → (M, a/M)."
+        description="Stage 07K: learn Kerr inverse QNM map (f0,0)  (M, a/M)."
     )
     ap.add_argument("--manifest",  required=True,
                     help="Path to Kerr sandbox geometries_manifest.json")
@@ -223,20 +223,20 @@ def main() -> int:
     ap.add_argument("--ligo-f0-hz",  type=float, default=None,
                     help="(Optional) LIGO f0 [Hz] to predict M and a/M")
     ap.add_argument("--ligo-tau0-ms", type=float, default=None,
-                    help="(Optional) LIGO τ0 [ms] to predict M and a/M")
+                    help="(Optional) LIGO 0 [ms] to predict M and a/M")
     ap.add_argument("--ligo-Q0",   type=float, default=None,
                     help="(Optional) LIGO Q0 for prediction")
     ap.add_argument("--ligo-f1f0", type=float, default=None,
                     help="(Optional) LIGO f1/f0 for prediction")
     ap.add_argument("--ligo-g1g0", type=float, default=None,
-                    help="(Optional) LIGO γ1/γ0 for prediction")
+                    help="(Optional) LIGO 1/0 for prediction")
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 70)
-    print("KERR QNM DICTIONARY  —  Stage 07K")
+    print("KERR QNM DICTIONARY    Stage 07K")
     print(f"Script: {SCRIPT_VERSION}")
     print(f"Output: {out_dir}")
     print("=" * 70)
@@ -256,9 +256,9 @@ def main() -> int:
     pipe_M, metrics_M = train_model(X, M_true,  "M [Msun]")
     pipe_a, metrics_a = train_model(X, a_true,  "a/M")
 
-    # ── Two-step analytical predictor ──────────────────────────────────────
-    # Step 1: a/M from f1/f0, Q0 (via ML model — essentially exact)
-    # Step 2: M from f0 given a/M using M = α(a/M) / (2π f0 MSUN_S)
+    #  Two-step analytical predictor 
+    # Step 1: a/M from f1/f0, Q0 (via ML model  essentially exact)
+    # Step 2: M from f0 given a/M using M = (a/M) / (2 f0 MSUN_S)
     print("\n>> Two-step analytical predictor (physics-based)...")
     MSUN_S = 4.925491e-6  # seconds per solar mass
     try:
@@ -266,10 +266,10 @@ def main() -> int:
         seq0 = qnm.modes_cache(s=-2, l=2, m=2, n=0)
 
         def alpha_from_a(a_val: float) -> float:
-            """Dimensionless frequency ω_R M = ω_R * (M*G/c³)"""
+            """Dimensionless frequency _R M = _R * (M*G/c3)"""
             a_clip = float(np.clip(a_val, 1e-4, 0.9999))
             omega, _, _ = seq0(a=a_clip, interp_only=True)
-            return abs(float(np.real(omega)))  # ω_R in units of 1/M
+            return abs(float(np.real(omega)))  # _R in units of 1/M
 
         a_pred_ml = np.clip(pipe_a.predict(X), 0.01, 0.9999)
         M_pred_2step = np.array([
@@ -279,8 +279,8 @@ def main() -> int:
 
         r2_2step_M = float(r2_score(M_true, M_pred_2step))
         mae_2step_M = float(mean_absolute_error(M_true, M_pred_2step))
-        print(f"  2-step M: R²={r2_2step_M:.4f}, MAE={mae_2step_M:.2f} Msun  "
-              f"(vs ML-only R²={metrics_M['r2_cv_mean']:.4f})")
+        print(f"  2-step M: R2={r2_2step_M:.4f}, MAE={mae_2step_M:.2f} Msun  "
+              f"(vs ML-only R2={metrics_M['r2_cv_mean']:.4f})")
         metrics_M["r2_2step"] = r2_2step_M
         metrics_M["mae_2step"] = mae_2step_M
     except Exception as e:
@@ -289,10 +289,10 @@ def main() -> int:
     # Physical invariance check
     print("\n>> Physical invariance check...")
     inv_check = check_physical_invariants(data, pipe_M, pipe_a, X, M_true, a_true)
-    print(f"  corr(ωM, a/M) = {inv_check['alpha_corr_with_spin']:.4f}  "
-          f"(expected ≈ 1.0 — ωM is function of spin only)")
-    print(f"  corr(τ/M, a/M) = {inv_check['beta_corr_with_spin']:.4f}  "
-          f"(expected ≈ 1.0 — τ/M is function of spin only)")
+    print(f"  corr(M, a/M) = {inv_check['alpha_corr_with_spin']:.4f}  "
+          f"(expected  1.0  M is function of spin only)")
+    print(f"  corr(/M, a/M) = {inv_check['beta_corr_with_spin']:.4f}  "
+          f"(expected  1.0  /M is function of spin only)")
 
     # LIGO prediction (if provided)
     ligo_pred: Optional[Dict] = None
@@ -312,11 +312,11 @@ def main() -> int:
         # Clamp to training range
         M_pred_clamped = float(np.clip(M_pred, M_true.min()*0.5, M_true.max()*1.5))
 
-        print(f"  Input:  f0={f0:.1f} Hz, τ0={t0:.2f} ms, Q0={Q0:.2f}, f1/f0={r10:.3f}, γ1/γ0={g10:.3f}")
+        print(f"  Input:  f0={f0:.1f} Hz, 0={t0:.2f} ms, Q0={Q0:.2f}, f1/f0={r10:.3f}, 1/0={g10:.3f}")
         print(f"  Output: M_pred={M_pred:.1f} Msun, a/M_pred={a_pred:.3f}")
         print(f"  Note: training range M=[{M_true.min():.0f},{M_true.max():.0f}] Msun, a/M=[{a_true.min():.2f},{a_true.max():.2f}]")
         if M_pred < M_true.min() * 0.5 or M_pred > M_true.max() * 2:
-            print(f"  [WARN] M prediction {M_pred:.1f} outside training range — extrapolation")
+            print(f"  [WARN] M prediction {M_pred:.1f} outside training range  extrapolation")
 
         ligo_pred = {
             "f0_hz": f0, "tau0_ms": t0, "Q0": Q0,
@@ -370,9 +370,9 @@ def main() -> int:
 
     print("\n" + "=" * 70)
     print(f"[OK] Kerr QNM dictionary trained")
-    print(f"  M prediction:   R²={metrics_M['r2_cv_mean']:.4f} (CV), "
+    print(f"  M prediction:   R2={metrics_M['r2_cv_mean']:.4f} (CV), "
           f"MAE={metrics_M['mae_train']:.2f} Msun")
-    print(f"  a/M prediction: R²={metrics_a['r2_cv_mean']:.4f} (CV), "
+    print(f"  a/M prediction: R2={metrics_a['r2_cv_mean']:.4f} (CV), "
           f"MAE={metrics_a['mae_train']:.4f}")
     print(f"  Report: {out_path}")
     print(f"  CSV:    {csv_path}")

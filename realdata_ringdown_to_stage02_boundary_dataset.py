@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-realdata_ringdown_to_stage02_boundary_dataset.py — CUERDAS-MALDACENA
+realdata_ringdown_to_stage02_boundary_dataset.py  CUERDAS-MALDACENA
 Real-data bridge: ringdown poles -> stage-02 boundary dataset.
 
 Purpose
@@ -342,7 +342,7 @@ def get_normalization_scales(poles: List[Pole]) -> Tuple[float, float]:
     Return (omega_dom_rads, gamma_dom_inv_s) from the dominant (max-amplitude) pole.
 
     These two scales define the dimensionless units shared with sandbox embeddings:
-      omega_dimless = (2π f) / omega_dom_rads
+      omega_dimless = (2 f) / omega_dom_rads
       x_dimless     = t_seconds * gamma_dom_inv_s
 
     Falls back to generic stellar-mass BH values if no poles are available.
@@ -364,7 +364,7 @@ def kerr_hawking_omega_T_rads(M_final_Msun: float, chi_final: float) -> Optional
     Kerr remnant Hawking angular frequency omega_T = k_B T_H / hbar, in rad/s.
 
     Uses:
-      omega_T = (1 / 8π) * (c^3 / GM) * [2 sqrt(1 - chi^2) / (1 + sqrt(1 - chi^2))]
+      omega_T = (1 / 8) * (c^3 / GM) * [2 sqrt(1 - chi^2) / (1 + sqrt(1 - chi^2))]
 
     Returns None when (M, chi) are absent or unphysical.
     """
@@ -390,9 +390,9 @@ def build_omega_grid_dimless(
     fmax_hz: Optional[float],
 ) -> np.ndarray:
     """
-    Build dimensionless omega grid: omega_dimless = (2π f) / omega_dom_rads.
+    Build dimensionless omega grid: omega_dimless = (2 f) / omega_dom_rads.
 
-    The dominant pole sits at omega_dimless ≈ 1; other poles at their frequency ratios.
+    The dominant pole sits at omega_dimless  1; other poles at their frequency ratios.
     This matches the sandbox embedding space (dimensionless AdS natural units).
     """
     if fmin_hz is not None and fmax_hz is not None and fmax_hz > fmin_hz > 0:
@@ -417,7 +417,7 @@ def poles_to_gr(
     normalization: str = "unit_peak",
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    GR(ω̃) = Σ aₙ / (ω̃ - w̃ₙ)   with  w̃ₙ = (2πfₙ - iγₙ) / omega_dom_rads
+    GR() =  an / ( - wn)   with  wn = (2fn - in) / omega_dom_rads
 
     omega_grid_dimless is already in units of omega_dom (dominant pole sits at ~1).
     Poles are renormalized by the same scale so the Lorentzian shape is preserved.
@@ -490,13 +490,13 @@ def poles_to_g2(
     g2_time_contract: str = DEFAULT_G2_TIME_CONTRACT,
 ) -> np.ndarray:
     """
-    G2(x̃) = |Σ aₙ exp((-γ̃ₙ + iω̃ₙ) x̃)|²
+    G2(x) = | an exp((-n + in) x)|2
 
     omega_dom_v1:
-      γ̃ₙ = γₙ / omega_dom_rads,  ω̃ₙ = 2πfₙ / omega_dom_rads,  x̃ = t * omega_dom
+      n = n / omega_dom_rads,  n = 2fn / omega_dom_rads,  x = t * omega_dom
 
     gamma_dom_v2:
-      γ̃ₙ = γₙ / gamma_dom_inv_s, ω̃ₙ = 2πfₙ / gamma_dom_inv_s, x̃ = t * gamma_dom
+      n = n / gamma_dom_inv_s, n = 2fn / gamma_dom_inv_s, x = t * gamma_dom
     """
     Nx = int(x_grid_dimless.size)
     if not poles or Nx <= 0:
@@ -542,7 +542,7 @@ def gr_to_g2_hybrid_width(
     Experimental local surrogate for G2 using only boundary G_R.
 
     Construction:
-      G2(x) ∝ exp(-x) * ∫ |Im G_R(ω)| exp(-|ω-ω_bar| x) dω
+      G2(x)  exp(-x) *  |Im G_R()| exp(-|-_bar| x) d
 
     This preserves some event-to-event spectral-width information that the
     single-pole coherent construction loses in literature mode.
@@ -714,7 +714,7 @@ def main() -> int:
         event_id = dataset_csv_path.stem
 
     print("=" * 70)
-    print("REAL-DATA BRIDGE — Ringdown/Literature -> stage-02 boundary dataset")
+    print("REAL-DATA BRIDGE  Ringdown/Literature -> stage-02 boundary dataset")
     print(f"Script:    {SCRIPT_VERSION}")
     if run_dir is not None:
         print(f"Run dir:   {run_dir}")
@@ -1144,7 +1144,7 @@ def main() -> int:
             b.attrs["has_horizon"] = int(has_horizon)
 
             # QNM-derived features (parallel to sandbox qnm_numerical.json attrs).
-            # Primary discriminators between geometry families; replace Δ operator
+            # Primary discriminators between geometry families; replace  operator
             # features which are 0 for LIGO data (no CFT operator spectrum).
             if poles:
                 dom = max(poles, key=lambda p: p.amp_abs)

@@ -2,14 +2,14 @@
 """
 build_multifamily_gkpw_bank.py
 
-Itera sobre un conjunto de geometrías H5 (ads + rn_ads + ...) y produce,
+Itera sobre un conjunto de geometrias H5 (ads + rn_ads + ...) y produce,
 familia a familia, el banco GKPW de correlators fuente/respuesta escritos
 en disco. Cada correlator es un H5 canonical_strong consumible por
-auditoría downstream.
+auditoria downstream.
 
 Entrada admitida:
   --sources <PATH>...  cada PATH puede ser:
-    - un fichero H5 de geometría (raíz con z_grid/A_of_z/f_of_z)
+    - un fichero H5 de geometria (raiz con z_grid/A_of_z/f_of_z)
     - un directorio (se toman todos los *.h5 directos)
     - un manifest.json (p.ej. el emitido por generate_rn_ads_geometries.py)
 
@@ -21,7 +21,7 @@ El bank queda organizado como:
       bank_manifest.json
 
 No sustituye el checkpoint congelado de Ruta A ni retraina Stage 02. Solo
-produce el banco GKPW sobre el que se apoyaría cualquier retraining futuro.
+produce el banco GKPW sobre el que se apoyaria cualquier retraining futuro.
 """
 from __future__ import annotations
 
@@ -172,10 +172,10 @@ def build_bank(
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="Construye un banco GKPW multi-familia a partir de geometrías H5.",
+        description="Construye un banco GKPW multi-familia a partir de geometrias H5.",
     )
     p.add_argument("--sources", required=True, nargs="+", type=Path,
-                   help="H5 / directorios / manifest.json con geometrías de entrada.")
+                   help="H5 / directorios / manifest.json con geometrias de entrada.")
     p.add_argument("--bank-dir", required=True, type=Path)
     p.add_argument("--allowed-families", default="ads,rn_ads",
                    help="Familias permitidas, coma-separadas.")

@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-00_sandbox_to_poles_bridge.py — CUERDAS-MALDACENA
+00_sandbox_to_poles_bridge.py  CUERDAS-MALDACENA
 
-Genera embeddings tipo-polo para cada geometría del sandbox, usando
-fórmulas analíticas de QNM (AdS, Lifshitz, hyperscaling).
+Genera embeddings tipo-polo para cada geometria del sandbox, usando
+formulas analiticas de QNM (AdS, Lifshitz, hyperscaling).
 
 Para cada HDF5 sandbox produce un gemelo con:
-  - G2_ringdown = |Σ aₙ exp((-γ̃ₙ + iω̃ₙ) x̃)|²   (x̃ = t × ω_dom)
+  - G2_ringdown = | an exp((-n + in) x)|2   (x = t  _dom)
   - G_R_real/imag del mismo estilo que real-data bridge
-  - operators = [] (vacío, igual que datos LIGO)
+  - operators = [] (vacio, igual que datos LIGO)
   - temperature = 0.0
 
 Esto crea un training set donde el modelo aprende a distinguir familias
 desde la ESTRUCTURA DE POLOS (Q-factor, spacing), no desde los operadores.
 
-Además genera geometrías "high-Q" sintéticas para cubrir el rango Kerr (Q~20).
+Ademas genera geometrias "high-Q" sinteticas para cubrir el rango Kerr (Q~20).
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ import h5py
 import numpy as np
 
 
-# ── Embedding functions (same logic as real-data bridge) ──────────────────────────────────
+#  Embedding functions (same logic as real-data bridge) 
 
 @dataclass
 class Pole:
@@ -81,7 +81,7 @@ def build_x_grid(n_x, x_max=10.0):
 
 
 def poles_to_g2(x_grid, poles, omega_dom, normalization="unit_peak"):
-    """x̃ = t × omega_dom  →  decay rate = γ/ω_dom = 1/Q"""
+    """x = t  omega_dom    decay rate = /_dom = 1/Q"""
     Nx = int(x_grid.size)
     if not poles or Nx <= 0:
         return np.zeros(Nx)
@@ -103,21 +103,21 @@ def poles_to_g2(x_grid, poles, omega_dom, normalization="unit_peak"):
     return G2.astype(np.float64)
 
 
-# ── Analytic QNM estimates ────────────────────────────────────────────────────
+#  Analytic QNM estimates 
 
 def estimate_qnm_poles(family: str, T: float, z_dyn: float, theta: float,
                        d: int, delta_mean: float) -> List[Pole]:
     """
-    Estima los 2 modos QNM dominantes (n=0, n=1) usando fórmulas analíticas.
+    Estima los 2 modos QNM dominantes (n=0, n=1) usando formulas analiticas.
 
-    AdS:          ω_n = 2πT(2Δ + 2n + 1),   γ_n = 2πT(2n+1)
-    Lifshitz z:   ω_n = 2πT(2Δ + 2n + 1)/z, γ_n = 2πT(2n+1)/z
-    Hyperscaling: z_eff = z_dyn/(1 - θ/d),   igual que Lifshitz con z_eff
-    Deformed:     como AdS pero γ × 1.5 (mayor anchura por deformación)
+    AdS:          _n = 2T(2 + 2n + 1),   _n = 2T(2n+1)
+    Lifshitz z:   _n = 2T(2 + 2n + 1)/z, _n = 2T(2n+1)/z
+    Hyperscaling: z_eff = z_dyn/(1 - /d),   igual que Lifshitz con z_eff
+    Deformed:     como AdS pero   1.5 (mayor anchura por deformacion)
     Dpbrane:      como Lifshitz con z=1.5
     """
     if T < 1e-8:
-        T = 0.2  # fallback razonable si T≈0
+        T = 0.2  # fallback razonable si T0
 
     z = z_dyn
     if family == "hyperscaling":
@@ -135,7 +135,7 @@ def estimate_qnm_poles(family: str, T: float, z_dyn: float, theta: float,
         g0 *= 1.5
         g1 *= 1.5
 
-    # Convertir rad/s → Hz (el embedding usa freq_hz)
+    # Convertir rad/s  Hz (el embedding usa freq_hz)
     f0 = w0 / (2 * math.pi)
     f1 = w1 / (2 * math.pi)
 
@@ -145,7 +145,7 @@ def estimate_qnm_poles(family: str, T: float, z_dyn: float, theta: float,
     ]
 
 
-# ── Conversión de un fichero ──────────────────────────────────────────────────
+#  Conversion de un fichero 
 
 def convert_h5(src: Path, dst: Path, n_omega: int, n_x: int) -> dict:
     with h5py.File(src, "r") as f:
@@ -199,7 +199,7 @@ def convert_h5(src: Path, dst: Path, n_omega: int, n_x: int) -> dict:
     return {"family": family, "Q": Q, "n_poles": len(poles)}
 
 
-# ── High-Q synthetic geometries ───────────────────────────────────────────────
+#  High-Q synthetic geometries 
 
 HIGH_Q_SPECS = {
     # family, Q_target, f0_hz, n_samples
@@ -212,9 +212,9 @@ HIGH_Q_SPECS = {
 
 def generate_high_q_h5(out_dir: Path, family: str, Q: float, tag: str,
                         n_omega: int, n_x: int):
-    """Genera un HDF5 sintético con Q-factor especificado."""
-    f0 = 1.0  # freq normalizada arbitraria (1.0 rad/(2π))
-    gamma0 = f0 * (2 * math.pi) / Q  # γ = ω/Q
+    """Genera un HDF5 sintetico con Q-factor especificado."""
+    f0 = 1.0  # freq normalizada arbitraria (1.0 rad/(2))
+    gamma0 = f0 * (2 * math.pi) / Q  #  = /Q
     poles = [
         Pole(freq_hz=f0,          damping_1_over_s=gamma0,        amp_abs=1.0),
         Pole(freq_hz=f0 * 1.48,   damping_1_over_s=gamma0 * 2.88, amp_abs=0.35),
@@ -271,18 +271,18 @@ def generate_high_q_h5(out_dir: Path, family: str, Q: float, tag: str,
     return name, Q
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+#  Main 
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Genera sandbox v3: embeddings polo-derivados con QNMs analíticos."
+        description="Genera sandbox v3: embeddings polo-derivados con QNMs analiticos."
     )
     ap.add_argument("--src-dir",  required=True)
     ap.add_argument("--out-dir",  required=True)
     ap.add_argument("--n-omega",  type=int, default=256)
     ap.add_argument("--n-x",      type=int, default=256)
     ap.add_argument("--no-highq", action="store_true",
-                    help="Omitir geometrías high-Q sintéticas")
+                    help="Omitir geometrias high-Q sinteticas")
     args = ap.parse_args()
 
     src_dir = Path(args.src_dir)
@@ -290,7 +290,7 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     h5_files = sorted(src_dir.glob("*.h5"))
-    print(f"[bridge] Convirtiendo {len(h5_files)} ficheros sandbox → polo-derivado")
+    print(f"[bridge] Convirtiendo {len(h5_files)} ficheros sandbox  polo-derivado")
 
     manifest_entries = []
     q_by_family = {}
@@ -317,9 +317,9 @@ def main() -> int:
     for fam, qs in sorted(q_by_family.items()):
         print(f"  {fam:15s}  Q_mean={np.mean(qs):.1f}  range=[{min(qs):.1f}, {max(qs):.1f}]")
 
-    # High-Q sintéticas
+    # High-Q sinteticas
     if not args.no_highq:
-        print("\nGenerando geometrías high-Q sintéticas (rango Kerr Q=8-22)...")
+        print("\nGenerando geometrias high-Q sinteticas (rango Kerr Q=8-22)...")
         for fam, specs in HIGH_Q_SPECS.items():
             for i, (Q, _) in enumerate(specs):
                 name, q = generate_high_q_h5(out_dir, fam, Q, f"hq{i:02d}", args.n_omega, args.n_x)
@@ -331,7 +331,7 @@ def main() -> int:
 
     manifest = {"geometries": manifest_entries, "version": "v3-poles-analytic"}
     (out_dir / "geometries_manifest.json").write_text(json.dumps(manifest, indent=2))
-    print(f"\n[bridge] done → {out_dir}  ({len(manifest_entries)} ficheros totales)")
+    print(f"\n[bridge] done  {out_dir}  ({len(manifest_entries)} ficheros totales)")
     return 0
 
 

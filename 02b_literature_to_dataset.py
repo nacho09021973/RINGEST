@@ -3,11 +3,11 @@
 02b_literature_to_dataset.py  v1.0
 
 Lee valores QNM de LITERATURA (o theory-seed Berti) para alimentar el
-bridge real-data → stage02. Reemplaza el carril de extracción ESPRIT
-(desaparecido): la extracción propia no identificaba limpiamente el modo
+bridge real-data  stage02. Reemplaza el carril de extraccion ESPRIT
+(desaparecido): la extraccion propia no identificaba limpiamente el modo
 (2,2,0) de strain real.
 
-Motivo: la extracción propia no identifica limpiamente el modo (2,2,0)
+Motivo: la extraccion propia no identifica limpiamente el modo (2,2,0)
 de strain real. Los posteriors Bayesianos publicados por LVC/Isi/Giesler/
 Capano/pyRing son la entrada limpia para Ruta B (mapeo surrogate AdS).
 
@@ -18,7 +18,7 @@ Salida:
     runs/qnm_dataset_literature/qnm_dataset.csv
     runs/qnm_dataset_literature/qnm_dataset_220.csv
 
-Schema idéntico al legacy qnm_dataset_220.csv + 4 columnas opcionales:
+Schema identico al legacy qnm_dataset_220.csv + 4 columnas opcionales:
 sigma_freq_hz, sigma_damping_hz, sigma_M_final_Msun, sigma_chi_final.
 
 Uso:
@@ -167,7 +167,7 @@ def row_from_entry(event_name: str, ifo: str,
     scale_detector = M_detector * G_OVER_C3_PER_MSUN
 
     # THEORY SEED: if f_hz is null AND source_paper starts with "berti_theory",
-    # compute from Kerr table. This is a pipeline sanity check — Berti distance
+    # compute from Kerr table. This is a pipeline sanity check  Berti distance
     # should be ~0 by construction.
     if f_hz is None:
         if not source_paper.startswith("berti_theory"):
@@ -366,7 +366,7 @@ def summarise(rows: List[Dict[str, Any]]) -> None:
     print(f"  literature rows     : {len(lit_rows)}")
 
     if theory_seed:
-        print("\n  [THEORY-SEED sanity — Berti distance debe ser ~0]")
+        print("\n  [THEORY-SEED sanity  Berti distance debe ser ~0]")
         for r in theory_seed[:10]:
             d = r.get("kerr_220_distance")
             d_str = f"{d:.2e}" if d is not None else "none"
@@ -374,7 +374,7 @@ def summarise(rows: List[Dict[str, Any]]) -> None:
                   f"kerr_220_distance={d_str}")
 
     if lit_rows:
-        print("\n  [LITERATURE rows — Berti distance esperada dentro de error]")
+        print("\n  [LITERATURE rows  Berti distance esperada dentro de error]")
         for r in lit_rows[:20]:
             d = r.get("kerr_220_distance")
             d_str = f"{d:.3f}" if d is not None else "none"
@@ -409,13 +409,13 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     out_csv = args.out / "qnm_dataset.csv"
     write_csv(rows, out_csv)
-    print(f"\n  wrote {len(rows)} rows → {out_csv}")
+    print(f"\n  wrote {len(rows)} rows  {out_csv}")
 
     # 220-only filter (fundamentals)
     rows_220 = [r for r in rows if r.get("is_220_candidate")]
     out_csv_220 = args.out / "qnm_dataset_220.csv"
     write_csv(rows_220, out_csv_220)
-    print(f"  wrote {len(rows_220)} rows (is_220) → {out_csv_220}")
+    print(f"  wrote {len(rows_220)} rows (is_220)  {out_csv_220}")
 
     summarise(rows)
     return 0

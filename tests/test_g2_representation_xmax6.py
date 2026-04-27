@@ -47,7 +47,7 @@ ANCHOR_EVENTS = ["GW150914", "GW151226", "GW170814"]
 class TestXmax6Roundtrip(unittest.TestCase):
 
     def _make_raw_g2(self, x_raw: np.ndarray) -> np.ndarray:
-        """Synthetic G2 that decays as a power law — well-behaved on [0.001, 6]."""
+        """Synthetic G2 that decays as a power law  well-behaved on [0.001, 6]."""
         return np.exp(-0.5 * np.log(x_raw + 1e-9) ** 2)
 
     def test_canonical_grid_ends_at_6(self):
@@ -82,14 +82,14 @@ class TestXmax6Roundtrip(unittest.TestCase):
         self.assertTrue(np.all(np.isfinite(result.g2_canonical)))
 
     def test_xmax6_differs_from_xmax10(self):
-        """xmax_6 and xmax_10 produce different grids — not trivially equal."""
+        """xmax_6 and xmax_10 produce different grids  not trivially equal."""
         x_raw = np.linspace(0.001, 12.0, 300)
         g2_raw = self._make_raw_g2(x_raw)
         r6 = canonicalize_g2_representation(x_raw, g2_raw, x_max=6.0)
         r10 = canonicalize_g2_representation(x_raw, g2_raw, x_max=10.0)
         # Grids have different endpoints
         self.assertNotAlmostEqual(float(r6.x_grid[-1]), float(r10.x_grid[-1]), places=3)
-        # g2 values differ (different grid spacing → different interpolation)
+        # g2 values differ (different grid spacing  different interpolation)
         self.assertFalse(np.allclose(r6.g2_canonical, r10.g2_canonical))
 
 
@@ -178,7 +178,7 @@ class TestWriteContractedH5Xmax6(unittest.TestCase):
 
 @unittest.skipUnless(
     ANCHOR_COHORT_DIR.exists(),
-    "Anchor cohort not present — run generate step first",
+    "Anchor cohort not present  run generate step first",
 )
 class TestAnchorCohortXmax6(unittest.TestCase):
 
@@ -247,7 +247,7 @@ class TestAnchorCohortXmax6(unittest.TestCase):
 
 @unittest.skipUnless(
     ANCHOR_COHORT_DIR.exists(),
-    "Anchor cohort not present — run generate step first",
+    "Anchor cohort not present  run generate step first",
 )
 class TestV3GateOnAnchorXmax6(unittest.TestCase):
     """
@@ -255,7 +255,7 @@ class TestV3GateOnAnchorXmax6(unittest.TestCase):
     xmax_6_v1 H5 yields a feature vector that passes the V3 feature gate when
     representative train statistics are used.
 
-    This is the canonical restatement of the probe runs from reopen_v1 — but
+    This is the canonical restatement of the probe runs from reopen_v1  but
     now using the upstream-contracted H5, not the local non-canonical probe.
     """
 
@@ -301,7 +301,7 @@ class TestV3GateOnAnchorXmax6(unittest.TestCase):
             )
             self.assertNotEqual(
                 report.verdict, "FAIL",
-                f"{entry['name']}: gate FAIL with representative stats — "
+                f"{entry['name']}: gate FAIL with representative stats  "
                 f"{report.verdict_reason}",
             )
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-summarize_family_compatibility.py  —  lector de emergent_geometry_summary.json.
+summarize_family_compatibility.py    lector de emergent_geometry_summary.json.
 
 Lee el JSON que produce `02_emergent_geometry_engine.py --mode inference` y
-emite, por evento, un resumen epistemológicamente honesto del ranking de
-compatibilidad familia↔dato. No hace inferencia nueva, no toca el modelo.
+emite, por evento, un resumen epistemologicamente honesto del ranking de
+compatibilidad familiadato. No hace inferencia nueva, no toca el modelo.
 
 Salidas:
   - stdout: bloque legible por evento
@@ -65,7 +65,7 @@ def _format_event_block(entry: Dict[str, Any]) -> str:
         ranked_active_str = "(coincide con ranking completo)"
 
     lines = [
-        f"── {name} ──",
+        f" {name} ",
         f"  top1        : {raw}  (score={top1:.3f})",
         f"  top2        : {top2}  (score={top2s:.3f})",
         f"  margin      : {margin:.3f}",
@@ -117,7 +117,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description=(
             "Lee emergent_geometry_summary.json y emite por evento un resumen "
-            "epistemológicamente honesto del ranking de compatibilidad por familia."
+            "epistemologicamente honesto del ranking de compatibilidad por familia."
         )
     )
     ap.add_argument(
@@ -144,7 +144,7 @@ def main(argv=None) -> int:
         print("[WARN] summary no contiene 'systems'; nada que resumir.")
         return 0
 
-    # Advertencia global única cuando el banco es single-family.
+    # Advertencia global unica cuando el banco es single-family.
     first = systems[0]
     bank_status = first.get("family_bank_status", "unknown")
     bank_active = first.get("family_bank_active_families", [])
@@ -152,7 +152,7 @@ def main(argv=None) -> int:
         print(
             "[GLOBAL] checkpoint entrenado con banco single-family "
             f"({bank_active!r}). El 'ranking entre familias' solo es ruido del "
-            "head softmax; lo único interpretable por evento es compatibilidad "
+            "head softmax; lo unico interpretable por evento es compatibilidad "
             "con la familia activa."
         )
         print()

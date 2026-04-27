@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-merge_manifests.py  —  Merge two geometries_manifest.json files into one.
+merge_manifests.py    Merge two geometries_manifest.json files into one.
 
 Usage:
   python3 malda/merge_manifests.py \
@@ -52,7 +52,7 @@ def main():
     }
     out_path = out_dir / "geometries_manifest.json"
     out_path.write_text(json.dumps(merged, indent=2))
-    print(f"\n[OK] Merged {len(all_entries)} geometries → {out_path}")
+    print(f"\n[OK] Merged {len(all_entries)} geometries  {out_path}")
 
 
 if __name__ == "__main__":

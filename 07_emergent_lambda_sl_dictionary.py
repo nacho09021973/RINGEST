@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # 07_emergent_lambda_sl_dictionary.py
-# CUERDAS — Bloque C: Diccionario emergente λ_SL ↔ Δ (con contratos por régimen)
+# CUERDAS  Bloque C: Diccionario emergente _SL   (con contratos por regimen)
 #
 # OBJETIVO
-#   Aprender una relación emergente entre el espectro escalar en el bulk (λ_SL)
-#   y los exponentes UV/Δ, utilizando:
-#     - Un modelo suave (p.ej. KAN) para aproximar la relación.
-#     - PySR (u otro SR) para destilar una forma simbólica compacta.
+#   Aprender una relacion emergente entre el espectro escalar en el bulk (_SL)
+#   y los exponentes UV/, utilizando:
+#     - Un modelo suave (p.ej. KAN) para aproximar la relacion.
+#     - PySR (u otro SR) para destilar una forma simbolica compacta.
 #
 # ENTRADAS
 #   - runs/<experiment>/06_build_bulk_eigenmodes_dataset/bulk_modes_dataset.csv
@@ -17,15 +17,15 @@
 #     lambda_sl_dictionary_pareto.csv
 #     stage_summary.json
 #
-# RELACIÓN CON OTROS SCRIPTS
+# RELACION CON OTROS SCRIPTS
 #   - Consume el dataset generado por: 06_build_bulk_eigenmodes_dataset.py
 #   - Sus resultados se usan en: 09_real_data_and_dictionary_contracts.py
 #
 # HONESTIDAD
-#   - No se fuerza la fórmula Δ(Δ-d) ni se inyectan diccionarios conocidos.
-#   - Cualquier comparación con fórmulas teóricas se realiza posteriormente.
-#   - La comparación con teoría solo se activa con --compare-theory.
-#   - Evaluación por regímenes para detectar mezcla de escalas engañosa.
+#   - No se fuerza la formula (-d) ni se inyectan diccionarios conocidos.
+#   - Cualquier comparacion con formulas teoricas se realiza posteriormente.
+#   - La comparacion con teoria solo se activa con --compare-theory.
+#   - Evaluacion por regimenes para detectar mezcla de escalas enganosa.
 #
 # MIGRADO A V3: 2024-12-23
 # PATCH ROUTING_CONTRACT: 2024-12-27
@@ -52,15 +52,15 @@ try:
 except ImportError:
     HAS_PYSR = False
 
-# ═══════════════════════════════════════════════════════════════════════════
+# 
 # V3 INFRASTRUCTURE - PATCH: Probar stage_utils primero, luego tools.stage_utils
-# ═══════════════════════════════════════════════════════════════════════════
+# 
 HAS_STAGE_UTILS = False
 StageContext = None
 add_standard_arguments = None
 infer_experiment = None
 
-# Intentar import desde raíz primero (nuevo estándar)
+# Intentar import desde raiz primero (nuevo estandar)
 try:
     from stage_utils import StageContext, add_standard_arguments, infer_experiment
     HAS_STAGE_UTILS = True
@@ -87,22 +87,22 @@ except ImportError:
 
 
 # =============================================================================
-# CONTRATOS POR RÉGIMEN: Definición de umbrales
+# CONTRATOS POR REGIMEN: Definicion de umbrales
 # =============================================================================
 
 @dataclass
 class RegimeContractConfig:
-    """Configuración de contratos por régimen de lambda_sl."""
+    """Configuracion de contratos por regimen de lambda_sl."""
     regime_lo_threshold: float = 1.0     # lambda_sl < 1
     regime_hi_threshold: float = 10.0    # lambda_sl > 10
     max_mre_for_pass: float = 0.5        # MRE < 50% para PASS
     mae_must_beat_baseline: bool = True  # MAE < MAE_baseline para PASS
-    min_samples_for_regime: int = 5      # Mínimo de muestras para evaluar régimen
+    min_samples_for_regime: int = 5      # Minimo de muestras para evaluar regimen
 
 
 @dataclass
 class DiscoveryConfig:
-    """Configuración para el descubrimiento de relaciones emergentes."""
+    """Configuracion para el descubrimiento de relaciones emergentes."""
     niterations: int = 200
     populations: int = 30
     ncycles_per_iteration: int = 1000
@@ -179,14 +179,14 @@ def load_emergent_data(input_path: Path) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     if missing:
         raise ValueError(f"Faltan columnas requeridas: {missing}. Columnas disponibles: {list(df.columns)}")
     
-    # Detectar métodos sospechosos
+    # Detectar metodos sospechosos
     if "method" in df.columns:
         suspicious = ["theoretical", "injected", "forced", "assumed"]
         mask = df["method"].str.lower().str.contains("|".join(suspicious), na=False)
         if mask.any():
             methods = df.loc[mask, "method"].unique().tolist()
             metadata["suspicious_methods_found"] = methods
-            print(f"[WARN] Métodos sospechosos detectados: {methods}")
+            print(f"[WARN] Metodos sospechosos detectados: {methods}")
     
     metadata["total_operators"] = len(df)
     metadata["columns"] = list(df.columns)
@@ -208,7 +208,7 @@ def prepare_training_data(
     """
     df_clean = df.copy()
     
-    # Filtrar métodos sospechosos si se solicita
+    # Filtrar metodos sospechosos si se solicita
     if filter_suspicious and "method_is_suspicious" in df_clean.columns:
         df_clean = df_clean[~df_clean["method_is_suspicious"]]
     
@@ -241,7 +241,7 @@ def prepare_training_data(
 
 
 # =============================================================================
-# DESCUBRIMIENTO SIMBÓLICO
+# DESCUBRIMIENTO SIMBOLICO
 # =============================================================================
 
 def discover_emergent_relation(
@@ -251,7 +251,7 @@ def discover_emergent_relation(
     use_minimal_ops: bool = False
 ) -> Optional[PySRRegressor]:
     """
-    Ejecuta PySR para descubrir relación simbólica.
+    Ejecuta PySR para descubrir relacion simbolica.
     """
     if not HAS_PYSR:
         print("[ERROR] PySR no disponible")
@@ -260,11 +260,11 @@ def discover_emergent_relation(
     binary_ops = list(config.binary_ops_minimal if use_minimal_ops else config.binary_operators)
     unary_ops = list(config.unary_ops_minimal if use_minimal_ops else config.unary_operators)
     
-    print(f"\n   Configuración PySR:")
+    print(f"\n   Configuracion PySR:")
     print(f"   - Iteraciones: {config.niterations}")
     print(f"   - Operadores binarios: {binary_ops}")
     print(f"   - Operadores unarios: {unary_ops}")
-    print(f"   - Tamaño máximo: {config.maxsize}")
+    print(f"   - Tamano maximo: {config.maxsize}")
     
     model = PySRRegressor(
         niterations=config.niterations,
@@ -283,7 +283,7 @@ def discover_emergent_relation(
         verbosity=1,
     )
     
-    print("\n   Ejecutando regresión simbólica...")
+    print("\n   Ejecutando regresion simbolica...")
     try:
         model.fit(X, y, variable_names=list(config.features))
     except Exception as e:
@@ -294,7 +294,7 @@ def discover_emergent_relation(
 
 
 # =============================================================================
-# EVALUACIÓN POR RÉGIMEN
+# EVALUACION POR REGIMEN
 # =============================================================================
 
 def evaluate_by_regime(
@@ -305,7 +305,7 @@ def evaluate_by_regime(
     config: RegimeContractConfig
 ) -> Dict[str, Any]:
     """
-    Evalúa el modelo por régimen de lambda_sl.
+    Evalua el modelo por regimen de lambda_sl.
     """
     y_pred = model.predict(X)
     
@@ -315,7 +315,7 @@ def evaluate_by_regime(
         "contract_status": "UNKNOWN"
     }
     
-    # Definir regímenes
+    # Definir regimenes
     regimes = {
         "lo": y < config.regime_lo_threshold,
         "mid": (y >= config.regime_lo_threshold) & (y <= config.regime_hi_threshold),
@@ -374,7 +374,7 @@ def evaluate_by_regime(
 
 
 def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
-    """Calcula métricas de evaluación."""
+    """Calcula metricas de evaluacion."""
     metrics = {}
     
     try:
@@ -408,7 +408,7 @@ def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
 
 
 # =============================================================================
-# COMPARACIÓN POST-HOC CON TEORÍA (solo si --compare-theory)
+# COMPARACION POST-HOC CON TEORIA (solo si --compare-theory)
 # =============================================================================
 
 def compare_with_theory(
@@ -416,14 +416,14 @@ def compare_with_theory(
     y_pred: np.ndarray
 ) -> Dict[str, Any]:
     """
-    Comparación POST-HOC con fórmula teórica Δ(Δ-d).
-    IMPORTANTE: Esto es solo validación, nunca entra en entrenamiento.
+    Comparacion POST-HOC con formula teorica (-d).
+    IMPORTANTE: Esto es solo validacion, nunca entra en entrenamiento.
     """
     Delta = df["Delta"].values
     d = df["d"].values
     y_true = df["lambda_sl_emergent"].values
     
-    # Fórmula teórica: λ_SL = Δ(Δ - d)
+    # Formula teorica: _SL = ( - d)
     y_theory = Delta * (Delta - d)
     
     theory_metrics = compute_metrics(y_true, y_theory)
@@ -464,19 +464,19 @@ def save_results(
     """Guarda todos los resultados."""
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Obtener mejor ecuación
+    # Obtener mejor ecuacion
     best_eq = str(model.sympy())
     best_complexity = int(model.equations_.iloc[-1]['complexity'])
     best_loss = float(model.equations_.iloc[-1]["loss"])
     
-    # Métricas en test
+    # Metricas en test
     y_pred_test = model.predict(X_test)
     test_metrics = compute_metrics(y_test, y_pred_test)
     
-    # Evaluación por régimen
+    # Evaluacion por regimen
     regime_results = evaluate_by_regime(model, X_test, y_test, test_df, regime_config)
     
-    # Comparación con teoría (solo si se solicita)
+    # Comparacion con teoria (solo si se solicita)
     theory_comparison = {}
     if compare_theory:
         theory_comparison = compare_with_theory(test_df, y_pred_test)
@@ -537,10 +537,10 @@ def save_skip_results(
     use_minimal_ops: bool,
 ) -> Dict[str, Any]:
     """
-    Guarda artefactos mínimos cuando PySR/Julia no está disponible.
+    Guarda artefactos minimos cuando PySR/Julia no esta disponible.
 
     Esto preserva el carril operativo del pipeline sin fingir descubrimiento
-    simbólico ni romper los nombres de artefactos del stage.
+    simbolico ni romper los nombres de artefactos del stage.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -582,13 +582,13 @@ def save_skip_results(
 
 
 # =============================================================================
-# ROUTING CONTRACT: Validación de conflictos
+# ROUTING CONTRACT: Validacion de conflictos
 # =============================================================================
 
 def validate_routing_args(args) -> Tuple[bool, str]:
     """
     Valida que no haya conflictos entre --experiment y --output-dir.
-    Según ROUTING_CONTRACT: --experiment es la fuente de verdad.
+    Segun ROUTING_CONTRACT: --experiment es la fuente de verdad.
     
     Returns:
         (is_valid, error_message)
@@ -600,13 +600,13 @@ def validate_routing_args(args) -> Tuple[bool, str]:
         return False, (
             "CONFLICTO: --experiment y --output-dir son mutuamente excluyentes.\n"
             "  --experiment es la fuente de verdad (ROUTING_CONTRACT).\n"
-            "  --output-dir está DEPRECATED.\n"
+            "  --output-dir esta DEPRECATED.\n"
             "  Usa solo --experiment."
         )
     
     if has_output_dir:
         warnings.warn(
-            "--output-dir está DEPRECATED. Usa --experiment en su lugar.",
+            "--output-dir esta DEPRECATED. Usa --experiment en su lugar.",
             DeprecationWarning,
             stacklevel=2
         )
@@ -616,19 +616,19 @@ def validate_routing_args(args) -> Tuple[bool, str]:
 
 def resolve_input_file(args, ctx) -> Optional[Path]:
     """
-    Resuelve el archivo de entrada según ROUTING_CONTRACT.
+    Resuelve el archivo de entrada segun ROUTING_CONTRACT.
     
     Prioridad:
-    1. --input-file explícito (DEPRECATED, con warning)
-    2. --experiment → buscar en stage 06
-    3. --run-dir legacy → buscar en bulk_eigenmodes/
+    1. --input-file explicito (DEPRECATED, con warning)
+    2. --experiment  buscar en stage 06
+    3. --run-dir legacy  buscar en bulk_eigenmodes/
     """
-    # Prioridad 1: --input-file explícito
+    # Prioridad 1: --input-file explicito
     if args.input_file:
         input_path = Path(args.input_file).resolve()
         if input_path.exists():
             warnings.warn(
-                "--input-file está DEPRECATED. Usa --experiment en su lugar.",
+                "--input-file esta DEPRECATED. Usa --experiment en su lugar.",
                 DeprecationWarning
             )
             return input_path
@@ -648,7 +648,7 @@ def resolve_input_file(args, ctx) -> Optional[Path]:
                 return candidate
         
         # No encontrado - dar error claro
-        print(f"[ERROR] No se encontró bulk_modes_dataset.csv en:")
+        print(f"[ERROR] No se encontro bulk_modes_dataset.csv en:")
         for c in candidates:
             print(f"        - {c}")
         print(f"\n        Ejecuta primero: python 06_build_bulk_eigenmodes_dataset.py --experiment {ctx.experiment}")
@@ -666,7 +666,7 @@ def resolve_input_file(args, ctx) -> Optional[Path]:
             if candidate.exists():
                 return candidate
         
-        print(f"[ERROR] No se encontró dataset en {run_dir}")
+        print(f"[ERROR] No se encontro dataset en {run_dir}")
         return None
     
     return None
@@ -674,11 +674,11 @@ def resolve_input_file(args, ctx) -> Optional[Path]:
 
 def resolve_output_dir(args, ctx) -> Optional[Path]:
     """
-    Resuelve el directorio de salida según ROUTING_CONTRACT.
+    Resuelve el directorio de salida segun ROUTING_CONTRACT.
     
     Prioridad:
-    1. --experiment → ctx.stage_dir (V3)
-    2. --output-dir explícito (DEPRECATED)
+    1. --experiment  ctx.stage_dir (V3)
+    2. --output-dir explicito (DEPRECATED)
     3. --run-dir / emergent_dictionary (legacy)
     """
     if ctx:
@@ -699,12 +699,12 @@ def resolve_output_dir(args, ctx) -> Optional[Path]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="FASE XII.c v3: Diccionario Emergente λ_SL ↔ Δ (con contratos por régimen)"
+        description="FASE XII.c v3: Diccionario Emergente _SL   (con contratos por regimen)"
     )
     
-    # ═══════════════════════════════════════════════════════════════════════
-    # V3: Argumentos estándar
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
+    # V3: Argumentos estandar
+    # 
     if HAS_STAGE_UTILS and add_standard_arguments:
         add_standard_arguments(parser)
     else:
@@ -719,43 +719,43 @@ def main() -> int:
     parser.add_argument("--output-dir", type=str, default=None,
                         help="[DEPRECATED] Directorio de salida. Usar --experiment.")
     
-    # Argumentos específicos del script
+    # Argumentos especificos del script
     parser.add_argument("--ops-minimal", action="store_true",
-                        help="Usar operadores mínimos (+,-,*,/,square,sqrt)")
+                        help="Usar operadores minimos (+,-,*,/,square,sqrt)")
     parser.add_argument("--seed", type=int, default=42,
                         help="Semilla aleatoria para reproducibilidad")
     parser.add_argument("--iterations", type=int, default=200,
-                        help="Número de iteraciones de PySR")
+                        help="Numero de iteraciones de PySR")
     parser.add_argument("--no-filter-suspicious", action="store_true",
-                        help="No filtrar operadores con métodos sospechosos")
+                        help="No filtrar operadores con metodos sospechosos")
     parser.add_argument("--drop-suspicious", action="store_true",
                         help="Descartar filas con method_is_suspicious==True antes de entrenar")
     parser.add_argument("--force-continue", action="store_true",
-                        help="Continuar aunque se detecten métodos sospechosos")
+                        help="Continuar aunque se detecten metodos sospechosos")
     
-    # Argumentos para contratos por régimen
+    # Argumentos para contratos por regimen
     parser.add_argument("--compare-theory", action="store_true",
-                        help="Activar comparación post-hoc con Δ(Δ-d). OFF por defecto.")
+                        help="Activar comparacion post-hoc con (-d). OFF por defecto.")
     parser.add_argument("--regime-lo", type=float, default=1.0,
-                        help="Umbral inferior para régimen 'lo' (default: lambda_sl < 1.0)")
+                        help="Umbral inferior para regimen 'lo' (default: lambda_sl < 1.0)")
     parser.add_argument("--regime-hi", type=float, default=10.0,
-                        help="Umbral superior para régimen 'hi' (default: lambda_sl > 10.0)")
+                        help="Umbral superior para regimen 'hi' (default: lambda_sl > 10.0)")
     parser.add_argument("--max-mre", type=float, default=0.5,
-                        help="MRE máximo para PASS en contratos (default: 0.5 = 50%%)")
+                        help="MRE maximo para PASS en contratos (default: 0.5 = 50%%)")
     
     args = parser.parse_args()
     
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
     # ROUTING CONTRACT: Validar conflictos
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
     is_valid, error_msg = validate_routing_args(args)
     if not is_valid:
         print(f"[ERROR] {error_msg}")
         return 1
     
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
     # V3: Crear StageContext
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
     ctx = None
     if HAS_STAGE_UTILS and StageContext:
         if not getattr(args, 'experiment', None):
@@ -771,9 +771,9 @@ def main() -> int:
             print(f"[V3] Experiment: {ctx.experiment}")
             print(f"[V3] Stage dir: {ctx.stage_dir}")
     
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
     # RESOLVER INPUT
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
     input_path = resolve_input_file(args, ctx)
     
     if input_path is None:
@@ -781,13 +781,13 @@ def main() -> int:
             ctx.write_summary(status="INCOMPLETE", counts={"error": "no_input_file"})
         return 2
     
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
     # RESOLVER OUTPUT
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
     output_dir = resolve_output_dir(args, ctx)
     
     if output_dir is None:
-        print("[ERROR] No se especificó directorio de salida.")
+        print("[ERROR] No se especifico directorio de salida.")
         print("        Usar --experiment o --output-dir")
         return 2
     
@@ -801,9 +801,9 @@ def main() -> int:
     )
     
     print("=" * 80)
-    print("FASE XII.c v3 - DICCIONARIO HOLOGRÁFICO EMERGENTE")
-    print("Nomenclatura honesta: λ_SL (autovalores Sturm–Liouville)")
-    print("Con contratos por régimen y --compare-theory OFF por defecto")
+    print("FASE XII.c v3 - DICCIONARIO HOLOGRAFICO EMERGENTE")
+    print("Nomenclatura honesta: _SL (autovalores SturmLiouville)")
+    print("Con contratos por regimen y --compare-theory OFF por defecto")
     print("=" * 80)
     
     if not input_path.exists():
@@ -822,7 +822,7 @@ def main() -> int:
             ctx.write_summary(status="ERROR", counts={"error": str(e)})
         return 3
     
-    # Filtrar métodos sospechosos si se solicitó
+    # Filtrar metodos sospechosos si se solicito
     if args.drop_suspicious and "method_is_suspicious" in df.columns:
         n_before = len(df)
         df = df[~df["method_is_suspicious"]].copy()
@@ -833,8 +833,8 @@ def main() -> int:
     
     n_suspicious = len(metadata.get("suspicious_methods_found", []))
     if n_suspicious > 0 and not args.force_continue:
-        print(f"\n   Se encontraron {n_suspicious} métodos sospechosos.")
-        response = input("   ¿Continuar? (s/N): ")
+        print(f"\n   Se encontraron {n_suspicious} metodos sospechosos.")
+        response = input("   Continuar? (s/N): ")
         if response.lower() != 's':
             print("   Abortado por el usuario.")
             if ctx:
@@ -853,7 +853,7 @@ def main() -> int:
         return 3
     
     if not HAS_PYSR:
-        reason = "PySR no disponible. Se omite la regresión simbólica y el stage continúa."
+        reason = "PySR no disponible. Se omite la regresion simbolica y el stage continua."
         print(f"   [WARN] {reason}")
         summary = save_skip_results(
             output_dir=output_dir,
@@ -884,7 +884,7 @@ def main() -> int:
     model = discover_emergent_relation(X_train, y_train, config, use_minimal_ops=args.ops_minimal)
 
     if model is None:
-        reason = "PySR/Julia falló en runtime. Se omite la regresión simbólica y el stage continúa."
+        reason = "PySR/Julia fallo en runtime. Se omite la regresion simbolica y el stage continua."
         print(f"   [WARN] {reason}")
         summary = save_skip_results(
             output_dir=output_dir,
@@ -926,37 +926,37 @@ def main() -> int:
     test_metrics = summary["discovery_results"]["test_metrics"]
     theory_comp = summary["theory_comparison"]
     
-    print(f"\n   ECUACIÓN DESCUBIERTA: {best_eq}")
+    print(f"\n   ECUACION DESCUBIERTA: {best_eq}")
     print(f"\n   x_mapping: {summary['feature_mapping']['x_mapping']}")
-    print(f"\n   MÉTRICAS EN TEST (GLOBALES):")
-    print(f"   - R²: {test_metrics.get('r2', 'N/A'):.4f}")
+    print(f"\n   METRICAS EN TEST (GLOBALES):")
+    print(f"   - R2: {test_metrics.get('r2', 'N/A'):.4f}")
     print(f"   - MAE: {test_metrics.get('mae', 'N/A'):.4f}")
     print(f"   - Pearson: {test_metrics.get('pearson', 'N/A'):.4f}")
     
     contract_status = summary.get("contract_status", "UNKNOWN")
-    print(f"\n   ESTADO DE CONTRATOS POR RÉGIMEN: {contract_status}")
+    print(f"\n   ESTADO DE CONTRATOS POR REGIMEN: {contract_status}")
     
     if contract_status == "FAIL":
-        print(f"   ⚠ El diccionario NO generaliza bien en todos los regímenes de λ_SL.")
+        print(f"    El diccionario NO generaliza bien en todos los regimenes de _SL.")
         print(f"   Revisar metrics_by_regime en el JSON para detalles.")
     elif contract_status == "PASS":
-        print(f"   ✓ El diccionario pasa contratos en todos los regímenes evaluados.")
+        print(f"    El diccionario pasa contratos en todos los regimenes evaluados.")
     else:
-        print(f"   ? Estado inconcluso - revisar regímenes individuales.")
+        print(f"   ? Estado inconcluso - revisar regimenes individuales.")
     
     if args.compare_theory:
-        print(f"\n   COMPARACIÓN A POSTERIORI CON TEORÍA (--compare-theory activado):")
-        print(f"   - Fórmula teórica: λ_SL = Δ(Δ - d)")
-        print(f"   - R² teórico: {theory_comp.get('theory_r2', 'N/A')}")
+        print(f"\n   COMPARACION A POSTERIORI CON TEORIA (--compare-theory activado):")
+        print(f"   - Formula teorica: _SL = ( - d)")
+        print(f"   - R2 teorico: {theory_comp.get('theory_r2', 'N/A')}")
         print(f"   - Compatible: {theory_comp.get('compatible_with_maldacena', 'N/A')}")
     else:
-        print(f"\n   Comparación con teoría Δ(Δ-d): DESHABILITADA (usar --compare-theory)")
+        print(f"\n   Comparacion con teoria (-d): DESHABILITADA (usar --compare-theory)")
     
     print(f"\n   Resultados en: {output_dir.absolute()}")
     
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
     # V3: Registrar artefactos y escribir summary
-    # ═══════════════════════════════════════════════════════════════════════
+    # 
     if ctx:
         report_file = output_dir / "lambda_sl_dictionary_report.json"
         ctx.record_artifact("dictionary_report", report_file)

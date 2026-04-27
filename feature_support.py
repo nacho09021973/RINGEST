@@ -1,13 +1,13 @@
 """
-feature_support.py — Feature support audit and inference gate for stage 02.
+feature_support.py  Feature support audit and inference gate for stage 02.
 
 Contract-first, auditable, no side effects beyond returning structured reports.
 Designed to be imported by 02_emergent_geometry_engine.py and tests.
 
 Audit logic:
-- TINY_STD  : train X_std < 1e-6  →  feature was operationally frozen in train
-- OFF_SUPPORT: |z| > 5.0           →  inference point outside train distribution
-- CLIP_RISK : |z| > 10.0           →  will be hard-clipped, prediction unreliable
+- TINY_STD  : train X_std < 1e-6    feature was operationally frozen in train
+- OFF_SUPPORT: |z| > 5.0             inference point outside train distribution
+- CLIP_RISK : |z| > 10.0             will be hard-clipped, prediction unreliable
 
 Verdict rules (priority order):
   FAIL if any critical feature has tiny std
@@ -80,22 +80,22 @@ FEATURE_NAMES_V2_5: Tuple[str, ...] = (
 # to the fundamental.  Physical expectation: f1/f0 > 1 (overtone is faster).
 # A value outside [QNM_F1F0_SANE_MIN, QNM_F1F0_SANE_MAX] suggests a
 # pipeline error (pole-ordering inversion or wrong QNM assignment).
-# NOTE: We do NOT assert theory here — only flag for human review.
+# NOTE: We do NOT assert theory here  only flag for human review.
 # -----------------------------------------------------------------------
 QNM_F1F0_SANE_MIN: float = 0.5
 QNM_F1F0_SANE_MAX: float = 20.0
 
 # -----------------------------------------------------------------------
-# V3 contract — Camino C2 (drops QNM block, 17 features)
+# V3 contract  Camino C2 (drops QNM block, 17 features)
 #
 # qnm_Q0 / qnm_f1f0 / qnm_g1g0 are removed because they are not
-# interoperable between the Kerr analytical sandbox (01b, Q0≈2–7) and the
-# real ESPRIT bridge (real-data bridge, Q0≈100–10000).
+# interoperable between the Kerr analytical sandbox (01b, Q027) and the
+# real ESPRIT bridge (real-data bridge, Q010010000).
 #
 # V2_5 and CRITICAL_FEATURES are kept frozen as evidence of the v1 block.
 # -----------------------------------------------------------------------
 FEATURE_NAMES_V3: Tuple[str, ...] = (
-    # Correlator (9) — unchanged from V2_5
+    # Correlator (9)  unchanged from V2_5
     "G2_log_slope",
     "G2_log_curvature",
     "G2_small_x",
@@ -105,16 +105,16 @@ FEATURE_NAMES_V3: Tuple[str, ...] = (
     "slope_running",
     "G2_std",
     "G2_skew",
-    # Thermal (4) — unchanged from V2_5
+    # Thermal (4)  unchanged from V2_5
     "temperature",
     "has_horizon",
     "thermal_scale",
     "exponential_decay",
     # QNM block intentionally absent (C2 contract)
-    # Response G_R (2) — unchanged from V2_5
+    # Response G_R (2)  unchanged from V2_5
     "GR_peak_height",
     "GR_peak_width",
-    # Global scalars (2) — unchanged from V2_5
+    # Global scalars (2)  unchanged from V2_5
     "central_charge_eff",
     "d",
 )
@@ -125,7 +125,7 @@ CRITICAL_FEATURES_V3: Tuple[str, ...] = (
 )
 
 # -----------------------------------------------------------------------
-# V4 contract — G2_large_x demotion (2026-04-12 governance decision)
+# V4 contract  G2_large_x demotion (2026-04-12 governance decision)
 #
 # G2_large_x is demoted from CRITICAL to OOD_SIGNAL based on evidence that:
 # - OOD cohort (55 events) passes Stage 03/04 identically to canonical (33)
@@ -140,7 +140,7 @@ CRITICAL_FEATURES_V3: Tuple[str, ...] = (
 # -----------------------------------------------------------------------
 CRITICAL_FEATURES_V4: Tuple[str, ...] = (
     "has_horizon",
-    # G2_large_x removed — demoted to OOD signal
+    # G2_large_x removed  demoted to OOD signal
 )
 
 OOD_SIGNAL_FEATURES_V4: Tuple[str, ...] = (

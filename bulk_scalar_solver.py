@@ -1,41 +1,41 @@
 #!/usr/bin/env python3
 """
-bulk_scalar_solver.py  —  CUERDAS-MALDACENA  (v1.0)
+bulk_scalar_solver.py    CUERDAS-MALDACENA  (v1.0)
 
 Sturm-Liouville eigensolver for a massless scalar field in the emergent
 bulk geometry A(z), f(z) inferred by 02_emergent_geometry_engine.py.
 
 Physics
 -------
-The equation of motion for a massless scalar φ ~ e^{-iωt} ψ(z) in the metric
+The equation of motion for a massless scalar  ~ e^{-it} (z) in the metric
 
-    ds² = A(z)²[-f(z) dt² + dx_{d-1}²] + dz²
+    ds2 = A(z)2[-f(z) dt2 + dx_{d-1}2] + dz2
 
 is, at zero spatial momentum k=0,
 
-    -∂_z[p(z) ∂_z ψ] = λ w(z) ψ
+    -_z[p(z) _z ] =  w(z) 
 
 with:
     p(z) = A(z)^{d-1} f(z)          (SL coefficient)
     w(z) = A(z)^{d-3}               (weight function)
-    λ    = ω²                        (eigenvalue)
+        = 2                        (eigenvalue)
 
-This is a proper Sturm-Liouville problem; its eigenvalues λ_sl ≥ 0 and
+This is a proper Sturm-Liouville problem; its eigenvalues _sl  0 and
 eigenfunctions are real and orthogonal with weight w.
 
 Boundary conditions
 -------------------
-UV (z → 0 / boundary): Dirichlet ψ = 0  (normalizable mode)
-IR (z = z_max / horizon): Dirichlet ψ = 0  (Dirichlet at horizon)
+UV (z  0 / boundary): Dirichlet  = 0  (normalizable mode)
+IR (z = z_max / horizon): Dirichlet  = 0  (Dirichlet at horizon)
 
 UV exponents
 -----------
-Near z → 0 in the holographic geometry A ~ const/z^α.  The two independent
-solutions behave as ψ ~ z^{Δ_±} with
+Near z  0 in the holographic geometry A ~ const/z^.  The two independent
+solutions behave as  ~ z^{_} with
 
-    Δ_± = (d ± √(d² + 4λ)) / 2
+    _ = (d  (d2 + 4)) / 2
 
-The normalizable mode corresponds to the larger root Δ_+ (operator dimension).
+The normalizable mode corresponds to the larger root _+ (operator dimension).
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ def _build_sl_matrix(
     The operator  L = -d/dz[p(z) d/dz]  is discretised with second-order
     central differences.  Dirichlet BC at both ends (boundary rows excluded).
 
-    Returns (L, W) where L ψ = λ W ψ.
+    Returns (L, W) where L  =  W .
     """
     n = len(p)  # number of interior points (boundaries already stripped)
     L = np.zeros((n, n), dtype=np.float64)
@@ -71,17 +71,17 @@ def _build_sl_matrix(
 
     for i in range(n):
         # Recover p at half-cell faces using harmonic average for robustness
-        # at the horizon where f→0 and p→0
+        # at the horizon where f0 and p0
         p_plus  = 0.5 * (p[i] + p[i+1]) if i < n - 1 else p[i]  # p_{i+1/2}
         p_minus = 0.5 * (p[i] + p[i-1]) if i > 0     else p[i]  # p_{i-1/2}
 
-        # -d/dz[p dψ/dz] with Dirichlet BCs → ghost points = 0
-        # Interior:   L_ii = (p_{i+1/2} + p_{i-1/2}) / dz²
-        # Off-diag:   L_{i,i±1} = -p_{i±1/2} / dz²
+        # -d/dz[p d/dz] with Dirichlet BCs  ghost points = 0
+        # Interior:   L_ii = (p_{i+1/2} + p_{i-1/2}) / dz2
+        # Off-diag:   L_{i,i1} = -p_{i1/2} / dz2
         if i == 0:
-            p_minus = p[i]          # ghost point at left boundary (ψ=0)
+            p_minus = p[i]          # ghost point at left boundary (=0)
         if i == n - 1:
-            p_plus = p[i]           # ghost point at right boundary (ψ=0)
+            p_plus = p[i]           # ghost point at right boundary (=0)
 
         L[i, i] = (p_plus + p_minus) / dz**2
         if i > 0:
@@ -96,9 +96,9 @@ def _build_sl_matrix(
 
 def _uv_exponents(lambda_sl: np.ndarray, d: int) -> np.ndarray:
     """
-    Compute UV exponents Δ+ from eigenvalues λ_sl.
+    Compute UV exponents + from eigenvalues _sl.
 
-    Δ_+ = (d + sqrt(d² + 4λ)) / 2
+    _+ = (d + sqrt(d2 + 4)) / 2
 
     This is the holographic relation between the bulk eigenvalue and the
     conformal dimension of the dual boundary operator.
@@ -136,14 +136,14 @@ def solve_geometry(
     d_override : int or None
         Boundary dimension d.  If None, read from file attrs.
     trim_horizon_fraction : float
-        Strip the last fraction of the grid near the horizon where f→0 causes
-        p→0 and numerical instability.  Default: 5 %.
+        Strip the last fraction of the grid near the horizon where f0 causes
+        p0 and numerical instability.  Default: 5 %.
 
     Returns
     -------
     dict with keys:
-        lambda_sl   : list[float]  — eigenvalues (sorted ascending)
-        uv_exponents: list[float]  — Δ_+ from λ_sl
+        lambda_sl   : list[float]   eigenvalues (sorted ascending)
+        uv_exponents: list[float]   _+ from _sl
         n_modes     : int
         d           : int
         solver      : str
@@ -248,7 +248,7 @@ def solve_geometry(
     L, W = _build_sl_matrix(p_int, w_int, dz)
 
     # Use scipy.linalg.eigh for symmetric positive-definite problems
-    # W may become singular near the horizon (w→0) — regularise slightly
+    # W may become singular near the horizon (w0)  regularise slightly
     W_reg = W + 1e-14 * np.eye(n_int)
 
     n_eigs_req = min(n_eigs, n_int - 1)
@@ -271,7 +271,7 @@ def solve_geometry(
     for ev in eigenvalues:
         ev_f = float(np.real(ev))
         if ev_f < -1e-6:
-            # Unphysical negative eigenvalue — numerical noise
+            # Unphysical negative eigenvalue  numerical noise
             quality_flags.append("negative")
             ev_f = abs(ev_f)  # still include with flag
         elif ev_f < 1e-10:

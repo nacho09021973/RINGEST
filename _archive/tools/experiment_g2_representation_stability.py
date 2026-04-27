@@ -18,7 +18,7 @@ import numpy as np
 
 
 # ---------------------------------------------------------------------------
-# Variant catalogue — pure config, no paths
+# Variant catalogue  pure config, no paths
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ class VariantSpec:
 
 
 VARIANTS: List[VariantSpec] = [
-    # ── Variants requiring G2_ringdown_raw (full-range raw data) ──────────
+    #  Variants requiring G2_ringdown_raw (full-range raw data) 
     # These only work when the source H5 contains G2_ringdown_raw / x_grid_raw.
     VariantSpec("baseline_v2_like",  "G2_ringdown",     "x_grid",     100, 10.0, "source", "Canonical compat view preserved from boundary_dataset_v2."),
     VariantSpec("raw_like",          "G2_ringdown_raw", "x_grid_raw", 256, 10.0, "source", "Closest to original raw ringdown representation."),
@@ -43,7 +43,7 @@ VARIANTS: List[VariantSpec] = [
     VariantSpec("xmax_14",           "G2_ringdown_raw", "x_grid_raw", 100, 14.0, "linear", "Raw G2 resampled to x_max=14."),
     VariantSpec("interp_linear",     "G2_ringdown_raw", "x_grid_raw", 100, 10.0, "linear", "Explicit linear interpolation on x."),
     VariantSpec("interp_logx",       "G2_ringdown_raw", "x_grid_raw", 100, 10.0, "logx",   "Interpolation in log(x)."),
-    # ── Variants using only G2_ringdown (processed) ───────────────────────
+    #  Variants using only G2_ringdown (processed) 
     # These work on any source H5 that has G2_ringdown + x_grid (the standard
     # processed representation).  They test whether truncating x_max from the
     # processed correlator changes the gate outcome.
@@ -108,7 +108,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         metavar="NAME",
         help=(
             "Subset of variant names to run "
-            f"(default: all — {[v.name for v in VARIANTS]})."
+            f"(default: all  {[v.name for v in VARIANTS]})."
         ),
     )
     p.add_argument(
@@ -271,8 +271,8 @@ def run_inference(
     Run stage-02 inference for a single variant directory.
 
     Returns a dict that always contains:
-      - gate_fail: bool  — True when the feature gate blocked the event
-      - gate_reason: str — human-readable reason (empty string when gate_fail=False)
+      - gate_fail: bool   True when the feature gate blocked the event
+      - gate_reason: str  human-readable reason (empty string when gate_fail=False)
       - family_pred: str | None
       - zh_pred: float | None
 
@@ -370,7 +370,7 @@ def process_source(
     per_variant: Dict[str, Any] = {}
     baseline_vector: Optional[np.ndarray] = None
 
-    # ── Step 1: build variant H5s, compute feature vectors, run inference ──
+    #  Step 1: build variant H5s, compute feature vectors, run inference 
     for spec in variants:
         variant_dir = event_root / "variants" / spec.name
         input_h5 = make_variant_h5(source_h5, variant_dir, spec, system_name)
@@ -406,12 +406,12 @@ def process_source(
             baseline_vector = feature_vector
 
         gate_tag = " [GATE_FAIL]" if rec["gate_fail"] else ""
-        fv_tag = f"  Δ-feats=?" if feature_vector is None else ""
+        fv_tag = f"  -feats=?" if feature_vector is None else ""
         print(f"   variant={spec.name}{gate_tag}{fv_tag}")
 
-    # ── Step 2: compute feature deltas vs baseline ─────────────────────────
+    #  Step 2: compute feature deltas vs baseline 
     results_rows: List[Dict[str, Any]] = []
-    gate_outcomes: Dict[str, bool] = {}  # variant_name → gate_fail
+    gate_outcomes: Dict[str, bool] = {}  # variant_name  gate_fail
 
     for spec in variants:
         if spec.name not in per_variant:
@@ -455,7 +455,7 @@ def process_source(
             json.dumps(rec, indent=2) + "\n", encoding="utf-8"
         )
 
-    # ── Step 3: overall verdict ────────────────────────────────────────────
+    #  Step 3: overall verdict 
     n_pass = sum(1 for v in gate_outcomes.values() if not v)
     n_gate_fail = sum(1 for v in gate_outcomes.values() if v)
     passed_variants = [k for k, v in gate_outcomes.items() if not v]
@@ -472,7 +472,7 @@ def process_source(
         conclusion = (
             f"{n_pass} variant(s) passed gate ({passed_variants}), "
             f"{n_gate_fail} gate_failed ({failed_variants}). "
-            "Representation choice affects gate outcome — x_max sensitivity confirmed."
+            "Representation choice affects gate outcome  x_max sensitivity confirmed."
         )
     elif n_pass > 0 and n_gate_fail == 0:
         # All passed: check family stability among passing variants
@@ -537,7 +537,7 @@ def main() -> int:
     checkpoint: Optional[Path] = args.checkpoint.resolve() if args.checkpoint else None
     inference_script: Path = args.inference_script.resolve()
 
-    # ── Validate inputs (after argparse, so --help always works) ──────────
+    #  Validate inputs (after argparse, so --help always works) 
     if not input_dir.is_dir():
         print(f"[ERROR] --input-dir not found: {input_dir}", file=sys.stderr)
         return 2
@@ -561,7 +561,7 @@ def main() -> int:
         print(f"[ERROR] Inference script not found: {inference_script}", file=sys.stderr)
         return 2
 
-    # ── Resolve variant subset ─────────────────────────────────────────────
+    #  Resolve variant subset 
     if args.variants is not None:
         variant_names = set(args.variants)
         unknown = variant_names - {v.name for v in VARIANTS}
@@ -580,11 +580,11 @@ def main() -> int:
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── Load stage02 module once ───────────────────────────────────────────
+    #  Load stage02 module once 
     print(f"Loading inference module: {inference_script}")
     stage02_module = load_stage02_module(inference_script)
 
-    # ── Top-level manifest ─────────────────────────────────────────────────
+    #  Top-level manifest 
     experiment_manifest = {
         "created_at": datetime.utcnow().isoformat() + "Z",
         "input_dir": str(input_dir),
@@ -600,7 +600,7 @@ def main() -> int:
         json.dumps(experiment_manifest, indent=2) + "\n", encoding="utf-8"
     )
 
-    # ── Process each source ────────────────────────────────────────────────
+    #  Process each source 
     print(f"\nProcessing {len(h5_files)} source(s) from {input_dir}")
     per_source_summaries: List[Dict[str, Any]] = []
     errors: List[str] = []
@@ -622,7 +622,7 @@ def main() -> int:
             print(f"   [ERROR] {msg}")
             errors.append(msg)
 
-    # ── Cohort-level summary ───────────────────────────────────────────────
+    #  Cohort-level summary 
     verdict_counts: Dict[str, int] = {}
     for s in per_source_summaries:
         v = s.get("overall_verdict", "UNKNOWN")
@@ -656,11 +656,11 @@ def main() -> int:
     print(f"[OK] sources processed: {len(per_source_summaries)}/{len(h5_files)}")
     print(f"[OK] verdict breakdown: {verdict_counts}")
     if events_with_any_pass:
-        print(f"[OK] events where ≥1 variant passed gate ({len(events_with_any_pass)}): {events_with_any_pass}")
+        print(f"[OK] events where 1 variant passed gate ({len(events_with_any_pass)}): {events_with_any_pass}")
     else:
-        print(f"[INFO] no event had any variant pass the gate — all blocked by G2_large_x")
+        print(f"[INFO] no event had any variant pass the gate  all blocked by G2_large_x")
     if errors:
-        print(f"[WARN] {len(errors)} infrastructure error(s) — see cohort_summary.json")
+        print(f"[WARN] {len(errors)} infrastructure error(s)  see cohort_summary.json")
     return 0 if not errors else 1
 
 

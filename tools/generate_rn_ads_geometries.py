@@ -2,27 +2,27 @@
 """
 generate_rn_ads_geometries.py
 
-Emite H5 de familia RN-AdS (Reissner-Nordström-AdS planar, gauge domain-wall)
+Emite H5 de familia RN-AdS (Reissner-Nordstrom-AdS planar, gauge domain-wall)
 consumibles por `tools/gkpw_ads_scalar_correlator.py`.
 
 NO sustituye Ruta A ni regenera training data sandbox. Produce miembros
 del carril multi-familia previsto (ADS + RN-AdS + ...), pero NO declara
 `canonical_strong`: en el contrato vivo del repo ese estatus sigue reservado
-a `ads` con frontera GKPW. Estos H5 son geometrías raw para un banco GKPW y
-para empaquetado posterior, no una promoción semántica de RN-AdS.
+a `ads` con frontera GKPW. Estos H5 son geometrias raw para un banco GKPW y
+para empaquetado posterior, no una promocion semantica de RN-AdS.
 
-Métrica (L=1, gauge domain-wall, brana plana):
+Metrica (L=1, gauge domain-wall, brana plana):
 
-    ds² = e^{2A(z)}[-f(z)·dt² + dx_i²] + dz²/f(z)
+    ds2 = e^{2A(z)}[-f(z)dt2 + dx_i2] + dz2/f(z)
     A(z) = -log(z)
-    f(z) = 1 - (1+Q²)·(z/z_h)^d + Q²·(z/z_h)^{2(d-1)}
+    f(z) = 1 - (1+Q2)(z/z_h)^d + Q2(z/z_h)^{2(d-1)}
 
 Notas:
   * Q=0 reduce a AdS-Schwarzschild planar.
-  * La carga extremal satisface Q²_ext = d/(d-2); más allá aparece horizonte
+  * La carga extremal satisface Q2_ext = d/(d-2); mas alla aparece horizonte
     interior y f cambia de signo dentro de (0, z_h). El generador rechaza
-    cualquier (d, Q) que viole f(z) > 0 en el dominio de integración.
-  * El potencial de gauge A_μ se omite: el correlador escalar GKPW actual
+    cualquier (d, Q) que viole f(z) > 0 en el dominio de integracion.
+  * El potencial de gauge A_ se omite: el correlador escalar GKPW actual
     solo usa (A, f, d, z_h), pero se registra `charge_Q` para trazabilidad.
 
 Uso:
@@ -86,7 +86,7 @@ def _profiles(cfg: RNAdsConfig) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     q2_ext = extremal_Q_squared(cfg.d)
     if cfg.Q < 0.0 or cfg.Q ** 2 >= q2_ext:
         raise RNAdsGeometryError(
-            f"Q={cfg.Q} fuera de (0, Q_ext) para d={cfg.d}; Q²_ext={q2_ext}"
+            f"Q={cfg.Q} fuera de (0, Q_ext) para d={cfg.d}; Q2_ext={q2_ext}"
         )
 
     z_min = cfg.z_frac_uv * cfg.z_h
@@ -190,13 +190,13 @@ def generate_bank(
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="Generador de geometrías RN-AdS planar (raw geometry; family_status=toy_sandbox).",
+        description="Generador de geometrias RN-AdS planar (raw geometry; family_status=toy_sandbox).",
     )
     p.add_argument("--out-dir", required=True, type=Path)
     p.add_argument("--d", type=int, default=3)
     p.add_argument("--z-h", type=float, nargs="+", default=[1.0])
     p.add_argument("--Q", type=float, nargs="+", required=True,
-                   help="Lista de cargas Q (no Q²). 0 ≤ Q < Q_ext = sqrt(d/(d-2)).")
+                   help="Lista de cargas Q (no Q2). 0  Q < Q_ext = sqrt(d/(d-2)).")
     p.add_argument("--n-points", type=int, default=256)
     p.add_argument("--z-frac-uv", type=float, default=1e-3)
     p.add_argument("--z-frac-ir", type=float, default=1e-3)

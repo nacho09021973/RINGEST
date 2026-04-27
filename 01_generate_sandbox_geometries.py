@@ -9,7 +9,7 @@ from __future__ import annotations
 #       - boundary/: datos CFT en el borde (entrada del learner)
 #       - bulk_truth/: geometria de referencia (solo para validacion/contratos)
 #
-# PRINCIPALES CARACTERÍSTICAS
+# PRINCIPALES CARACTERISTICAS
 #   - Generacion de multiples universes por geometria base (jitter de parametros).
 #   - Jitter de parametros fisicos (z_h, d, theta, z_dyn, deformation, ...).
 #   - CLI escalable: p.ej. --n-known, --n-test, --n-unknown.
@@ -17,7 +17,7 @@ from __future__ import annotations
 #
 # Inputs: (tipicas)
 #   - Parametros de familys por CLI o fichero de configuracion:
-#       * family ∈ {ads, lifshitz, hyperscaling, deformed, ...}
+#       * family  {ads, lifshitz, hyperscaling, deformed, ...}
 #       * d, z_dyn, theta, etc.
 #
 # Outputs: (estructura esperada)
@@ -32,7 +32,7 @@ from __future__ import annotations
 #     manifest.json
 #       - Lista de "geometries" generadas y metadatos basicos.
 #
-# RELACIÓN CON OTROS SCRIPTS
+# RELACION CON OTROS SCRIPTS
 #   - Entrada directa para:
 #       * 02_emergent_geometry_engine.py       (reconstruye geometria a partir de boundary/)
 #       * 04_geometry_physics_contracts.py    (usa bulk_truth/ para contratos fisicos)
@@ -99,7 +99,7 @@ try:
 except ImportError:
     validate_ads_geometry = None  # type: ignore
 
-# Registro canónico de familias (contract-first)
+# Registro canonico de familias (contract-first)
 try:
     from family_registry import (  # noqa: F401
         extra_attrs_for,
@@ -181,58 +181,58 @@ except ImportError:
 
 
 # ============================================================
-#  NOTA SOBRE familyS, GAUGES Y FUENTES TEÓRICAS
+#  NOTA SOBRE familyS, GAUGES Y FUENTES TEORICAS
 # ============================================================
 #
 # familyS IMPLEMENTADAS:
 #
 #   TIER CANONICAL (soporte original):
 #   - ads:            AdS puro, conforme a AGMOO Sec. 2
-#   - lifshitz:       Extensión con exponente dinámico z (Kachru et al. 2008)
-#   - hyperscaling:   Violación de hyperscaling θ (Huijse et al. 2011)
-#   - dpbrane:        Métricas near-horizon de Dp-branas (AGMOO Sec. 6.1.3)
-#   - deformed:       AdS con deformación suave fenomenológica
-#   - unknown:        family de test sin garantía holográfica
+#   - lifshitz:       Extension con exponente dinamico z (Kachru et al. 2008)
+#   - hyperscaling:   Violacion de hyperscaling  (Huijse et al. 2011)
+#   - dpbrane:        Metricas near-horizon de Dp-branas (AGMOO Sec. 6.1.3)
+#   - deformed:       AdS con deformacion suave fenomenologica
+#   - unknown:        family de test sin garantia holografica
 #
-#   TIER A (cohorte de expansión — encajan en gauge actual):
-#   - rn_ads:         Reissner-Nordström AdS (BH cargado)
-#   - gauss_bonnet:   Gauss-Bonnet AdS (corrección cuadrática en curvatura)
-#   - massive_gravity: Massive gravity AdS tipo Vegh (disipación de momento)
-#   - linear_axion:   Axiones lineales (disipación de momento, metal incoherente)
+#   TIER A (cohorte de expansion  encajan en gauge actual):
+#   - rn_ads:         Reissner-Nordstrom AdS (BH cargado)
+#   - gauss_bonnet:   Gauss-Bonnet AdS (correccion cuadratica en curvatura)
+#   - massive_gravity: Massive gravity AdS tipo Vegh (disipacion de momento)
+#   - linear_axion:   Axiones lineales (disipacion de momento, metal incoherente)
 #   - charged_hvlif:  Hyperscaling-Violation Lifshitz cargado (EMD toy)
-#   - gubser_rocha:   EMD Gubser-Rocha toy (dilatón corriendo, s(T=0)->0)
-#   - soft_wall:      Soft-wall backreacted (deformación cuadrática IR del warp)
+#   - gubser_rocha:   EMD Gubser-Rocha toy (dilaton corriendo, s(T=0)->0)
+#   - soft_wall:      Soft-wall backreacted (deformacion cuadratica IR del warp)
 #
-# NOTA HISTÓRICA:
+# NOTA HISTORICA:
 #   Las familys Lifshitz y Hyperscaling son extensiones post-1999 del
 #   paradigma AdS/CFT. El AGMOO (1999) cubre principalmente AdS puro y
 #   Dp-branas. Usamos estas extensiones como familys de TEST para
-#   evaluar la capacidad del pipeline de detectar/distinguir geometrías.
+#   evaluar la capacidad del pipeline de detectar/distinguir geometrias.
 #
-# GAUGE DE LA MÉTRICA:
+# GAUGE DE LA METRICA:
 #   Usamos el gauge conformal (Domain Wall):
-#       ds² = e^{2A(z)} [ -f(z) dt² + dx² ] + dz²/f(z)
+#       ds2 = e^{2A(z)} [ -f(z) dt2 + dx2 ] + dz2/f(z)
 #   
-#   NO el gauge de Poincaré estándar:
-#       ds² = (L/z)² [ dz²/f + dx² - f dt² ]
+#   NO el gauge de Poincare estandar:
+#       ds2 = (L/z)2 [ dz2/f + dx2 - f dt2 ]
 #
 #   En gauge conformal: A(z) = -log(z/L) para AdS puro
-#   Esto afecta la forma funcional pero NO las relaciones físicas.
+#   Esto afecta la forma funcional pero NO las relaciones fisicas.
 #
 # CORRELADORES:
-#   Los correladores de 2 puntos G₂(x) son TOY MODELS fenomenológicos:
-#       T=0: G₂ ~ 1/|x|^{2Δ}
-#       T>0: G₂ ~ (πT/sinh(πTx))^{2Δ}
+#   Los correladores de 2 puntos G2(x) son TOY MODELS fenomenologicos:
+#       T=0: G2 ~ 1/|x|^{2}
+#       T>0: G2 ~ (T/sinh(Tx))^{2}
 #   
 #   Esto captura el comportamiento CUALITATIVO (power-law UV, exponencial IR)
-#   pero NO es la predicción exacta de AdS/CFT. Esto es DELIBERADO:
+#   pero NO es la prediccion exacta de AdS/CFT. Esto es DELIBERADO:
 #   el pipeline debe descubrir relaciones desde datos imperfectos.
 #
 # ============================================================
 
 
 # ============================================================
-#  GEOMETRÍA OCULTA
+#  GEOMETRIA OCULTA
 # ============================================================
 
 @dataclass
@@ -242,7 +242,7 @@ class HiddenGeometry:
     NO se expone al learner (solo a bulk_truth para validacion).
     """
     name: str
-    family: str           # ver family_registry.ALL_FAMILIES para valores válidos
+    family: str           # ver family_registry.ALL_FAMILIES para valores validos
     category: str         # "known", "test", "unknown"
     d: int                # dimension del boundary (CFT_d)
     z_h: Optional[float] = None  # posicion del horizonte (si hay BH)
@@ -250,14 +250,14 @@ class HiddenGeometry:
     z_dyn: float = 1.0           # exponente dinamico de Lifshitz
     deformation: float = 0.0     # deformacion generica de A(z)
     L: float = 1.0               # escala AdS
-    # ── Tier A: campos de metadata canónica extra ──────────────────────────
-    charge_Q: float = 0.0        # carga eléctrica adimensional (rn_ads, charged_hvlif)
+    #  Tier A: campos de metadata canonica extra 
+    charge_Q: float = 0.0        # carga electrica adimensional (rn_ads, charged_hvlif)
     lambda_gb: float = 0.0       # acoplamiento Gauss-Bonnet (gauss_bonnet)
-    m_g: float = 0.0             # masa del gravitón (massive_gravity)
+    m_g: float = 0.0             # masa del graviton (massive_gravity)
     mg_c1: float = 1.0           # coeficiente c1 del potencial de masa (massive_gravity)
     mg_c2: float = 0.0           # coeficiente c2 del potencial de masa (massive_gravity)
-    alpha_axion: float = 0.0     # pendiente del axión lineal (linear_axion)
-    mu_GR: float = 0.0           # parámetro efectivo del toy Gubser-Rocha
+    alpha_axion: float = 0.0     # pendiente del axion lineal (linear_axion)
+    mu_GR: float = 0.0           # parametro efectivo del toy Gubser-Rocha
     kappa_sw: float = 0.0        # escala de confinamiento soft-wall (Batell-Gherghetta)
     metadata: Dict = field(default_factory=dict)
 
@@ -266,7 +266,7 @@ class HiddenGeometry:
     def warp_factor(self, z: np.ndarray) -> np.ndarray:
         """
         A(z) tal que:
-            ds² = e^{2A(z)} [ -f(z) dt² + dx_i² ] + dz² / f(z)
+            ds2 = e^{2A(z)} [ -f(z) dt2 + dx_i2 ] + dz2 / f(z)
         Implementacion toy distinta por family.
         """
         eps = 1e-6
@@ -281,7 +281,7 @@ class HiddenGeometry:
             return -np.log(z / self.L)
 
         elif self.family == "hyperscaling":
-            # HV: ds² ~ z^{-2(d-θ)/d}(...)
+            # HV: ds2 ~ z^{-2(d-)/d}(...)
             return -(1.0 - self.theta / self.d) * np.log(z / self.L)
 
         elif self.family == "deformed":
@@ -291,25 +291,25 @@ class HiddenGeometry:
 
         elif self.family == "dpbrane":
             # Dp-brane near-horizon (AGMOO Sec. 6.1.3)
-            # La métrica near-horizon tiene la forma:
-            #   ds² = H^{-1/2} dx_∥² + H^{1/2} (dr² + r²dΩ²)
-            # donde H ~ (L/r)^{7-p} para p ≠ 3
+            # La metrica near-horizon tiene la forma:
+            #   ds2 = H^{-1/2} dx_2 + H^{1/2} (dr2 + r2d2)
+            # donde H ~ (L/r)^{7-p} para p = 3
             # En nuestra coordenada z ~ 1/r, y usando z_dyn como (7-p)/2:
             #   A(z) ~ -z_dyn * log(z/L)
-            # Para D3-branas (p=3): z_dyn=2 recupera AdS₅
+            # Para D3-branas (p=3): z_dyn=2 recupera AdS5
             # Para D2-branas (p=2): z_dyn=5/2
             # Para D4-branas (p=4): z_dyn=3/2
             effective_exp = self.z_dyn  # z_dyn codifica (7-p)/2
             return -effective_exp * np.log(z / self.L)
 
-        # ── Tier A ────────────────────────────────────────────────────────────
+        #  Tier A 
 
         elif self.family == "rn_ads":
             # RN-AdS: misma A(z) que AdS puro; la carga solo entra en f(z).
             return -np.log(z / self.L)
 
         elif self.family == "gauss_bonnet":
-            # GB: corrección perturbativa al warp factor.
+            # GB: correccion perturbativa al warp factor.
             # Leading-order: A(z) = -(1 - lambda_gb/2)*log(z/L)
             correction = 1.0 - 0.5 * self.lambda_gb
             return -correction * np.log(z / self.L)
@@ -319,7 +319,7 @@ class HiddenGeometry:
             return -np.log(z / self.L)
 
         elif self.family == "linear_axion":
-            # Linear axion: misma A(z) que AdS; el axión solo afecta f(z).
+            # Linear axion: misma A(z) que AdS; el axion solo afecta f(z).
             return -np.log(z / self.L)
 
         elif self.family == "charged_hvlif":
@@ -328,7 +328,7 @@ class HiddenGeometry:
 
         elif self.family == "gubser_rocha":
             # Gubser-Rocha toy: A(z) = -log(z/L) - (1/4)*log(1 + mu_GR * z/L)
-            # UV (z->0): AdS puro. IR: corrección log del dilatón corriendo.
+            # UV (z->0): AdS puro. IR: correccion log del dilaton corriendo.
             # mu_GR = 0 reduce exactamente a AdS en A(z).
             base = -np.log(z / self.L)
             return base - 0.25 * np.log1p(self.mu_GR * z / self.L)
@@ -336,7 +336,7 @@ class HiddenGeometry:
         elif self.family == "soft_wall":
             # Soft-wall backreacted (Batell-Gherghetta, Einstein frame):
             # A(z) = -log(z/L) - (kappa_sw/2) * (z/L)^2
-            # UV: AdS puro. IR: deformación cuadrática -> Regge lineal.
+            # UV: AdS puro. IR: deformacion cuadratica -> Regge lineal.
             base = -np.log(z / self.L)
             return base - 0.5 * self.kappa_sw * (z / self.L) ** 2
 
@@ -367,10 +367,10 @@ class HiddenGeometry:
             eff_exp = max(1.0, 2 * self.z_dyn)
             return np.clip(1.0 - ratio ** eff_exp, 0.0, 1.0)
 
-        # ── Tier A ────────────────────────────────────────────────────────────
+        #  Tier A 
 
         elif self.family == "rn_ads":
-            # RN-AdS: f(z) = 1 - (1+q²)(z/z_h)^d + q²(z/z_h)^{2(d-1)}
+            # RN-AdS: f(z) = 1 - (1+q2)(z/z_h)^d + q2(z/z_h)^{2(d-1)}
             # Satisface f(0)=1, f(z_h)=0 exactamente.
             q = self.charge_Q
             term1 = (1.0 + q * q) * ratio ** self.d
@@ -385,19 +385,19 @@ class HiddenGeometry:
 
         elif self.family == "massive_gravity":
             # Massive gravity (Vegh-type) toy:
-            # f(z) = 1 - (1 - m_g²*z_h²)(z/z_h)^d - m_g²*z²
+            # f(z) = 1 - (1 - m_g2*z_h2)(z/z_h)^d - m_g2*z2
             # Satisface f(0)=1, f(z_h)=0.
             mg2 = self.m_g * self.m_g * self.mg_c1
             coeff = 1.0 - mg2 * self.z_h * self.z_h
             term1 = coeff * ratio ** self.d
-            term2 = mg2 * (z / self.z_h) ** 2 * self.z_h ** 2 * ratio ** 0  # m_g²·z²
-            # rewrite: term2 = mg2 * z² → using z = ratio*z_h
+            term2 = mg2 * (z / self.z_h) ** 2 * self.z_h ** 2 * ratio ** 0  # m_g2z2
+            # rewrite: term2 = mg2 * z2  using z = ratio*z_h
             term2 = mg2 * (ratio * self.z_h) ** 2
             return np.clip(1.0 - term1 - term2, 0.0, 1.0)
 
         elif self.family == "linear_axion":
             # Linear axion toy:
-            # f(z) = 1 - (1 + alpha²*z_h²/d)(z/z_h)^d + alpha²*z²/d
+            # f(z) = 1 - (1 + alpha2*z_h2/d)(z/z_h)^d + alpha2*z2/d
             # Satisface f(0)=1, f(z_h)=0.
             a2 = self.alpha_axion * self.alpha_axion
             coeff = 1.0 + a2 * self.z_h * self.z_h / float(self.d)
@@ -407,7 +407,7 @@ class HiddenGeometry:
 
         elif self.family == "charged_hvlif":
             # Charged HV-Lifshitz: como hyperscaling pero con carga.
-            # f(z) = 1 - (1+q²)(z/z_h)^{eff_d} + q²(z/z_h)^{2(eff_d-1)}
+            # f(z) = 1 - (1+q2)(z/z_h)^{eff_d} + q2(z/z_h)^{2(eff_d-1)}
             eff_d = max(1.0, float(self.d) - self.theta)
             q = self.charge_Q
             term1 = (1.0 + q * q) * ratio ** eff_d
@@ -426,7 +426,7 @@ class HiddenGeometry:
 
         elif self.family == "soft_wall":
             # Soft-wall: blackening puro tipo AdS-Schwarzschild.
-            # Toda la física distintiva entra por el warp factor.
+            # Toda la fisica distintiva entra por el warp factor.
             return np.clip(1.0 - ratio ** self.d, 0.0, 1.0)
 
         else:
@@ -474,7 +474,7 @@ class HiddenGeometry:
         Observable de borde tipo "central charge" toy.
 
         Definimos un escalar
-            c_eff ∼ ∫ e^{(d-1) A(z)} dz
+            c_eff   e^{(d-1) A(z)} dz
 
         integrado desde el UV hasta el horizonte (si existe) o hasta una
         escala IR tipica ~ L en geometrias sin horizonte.
@@ -499,7 +499,7 @@ class HiddenGeometry:
         return c_eff
 
 # ============================================================
-#  METADATA AGMOO: clasificación y tipo de correlador
+#  METADATA AGMOO: clasificacion y tipo de correlador
 # ============================================================
 
 def get_ads_metadata_for_geometry(
@@ -509,17 +509,17 @@ def get_ads_metadata_for_geometry(
     gkpw_meta: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
-    Retorna la metadata AGMOO para una geometría.
+    Retorna la metadata AGMOO para una geometria.
 
     Para familia ``ads``:
-      - ``ads_classification``: sub-clasificación derivada del código
+      - ``ads_classification``: sub-clasificacion derivada del codigo
         (ads_thermal | ads_deformed | ads_toy_boundary | None si no es ads)
       - ``correlator_type``: tipo de correlador del observable de frontera.
         Actualmente siempre GEODESIC_APPROXIMATION, pues generate_boundary_data
         llama a correlator_2pt_geodesic para todos los G2.
 
     Para otras familias solo se emite ``correlator_type`` (el correlador
-    geodésico es el mismo para todas las familias en este repo).
+    geodesico es el mismo para todas las familias en este repo).
     """
     if geo.family == "ads" and ads_boundary_mode == "gkpw":
         correlator_type = GKPW_ADS_CORRELATOR_TYPE
@@ -607,7 +607,7 @@ def build_ads_gkpw_run_summary(manifest: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ============================================================
-#  GEOMETRÍA BASE
+#  GEOMETRIA BASE
 # ============================================================
 
 def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
@@ -711,7 +711,7 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
             z_dyn=1.5,
             deformation=0.15,
             L=1.0,
-            metadata={"description": "Lifshitz deformado, z≈1.5"}
+            metadata={"description": "Lifshitz deformado, z1.5"}
         ),
         "test",
     ))
@@ -766,7 +766,7 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
     ))
 
     # --- Dp-branas (AGMOO Sec. 6.1.3) ---
-    # D3-brana: z_dyn=2 (recupera AdS₅)
+    # D3-brana: z_dyn=2 (recupera AdS5)
     geos.append((
         HiddenGeometry(
             name="d3brane_d4",
@@ -775,11 +775,11 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
             d=4,
             z_h=1.0,
             theta=0.0,
-            z_dyn=1.0,  # Corregido: A = -ln(z) para AdS₅
+            z_dyn=1.0,  # Corregido: A = -ln(z) para AdS5
             deformation=0.0,
             L=1.0,
             metadata={
-                "description": "D3-brane near-horizon (AdS₅×S⁵)",
+                "description": "D3-brane near-horizon (AdS5S5)",
                 "p": 3,
                 "theory_ref": "AGMOO Sec. 6.1.3"
             }
@@ -829,8 +829,8 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
         "test",
     ))
 
-    # ── TIER A: RN-AdS ────────────────────────────────────────────────────────
-    # Reissner-Nordström AdS_4 (d=3, carga moderada)
+    #  TIER A: RN-AdS 
+    # Reissner-Nordstrom AdS_4 (d=3, carga moderada)
     geos.append((
         HiddenGeometry(
             name="rn_ads_d3_q05",
@@ -850,7 +850,7 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
         ),
         "known",
     ))
-    # RN-AdS_5 (d=4) — carga baja para control
+    # RN-AdS_5 (d=4)  carga baja para control
     geos.append((
         HiddenGeometry(
             name="rn_ads_d4_q02",
@@ -870,7 +870,7 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
         "test",
     ))
 
-    # ── TIER A: Gauss-Bonnet AdS ──────────────────────────────────────────────
+    #  TIER A: Gauss-Bonnet AdS 
     geos.append((
         HiddenGeometry(
             name="gauss_bonnet_d4_lp2",
@@ -910,7 +910,7 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
         "test",
     ))
 
-    # ── TIER A: Massive gravity AdS ───────────────────────────────────────────
+    #  TIER A: Massive gravity AdS 
     geos.append((
         HiddenGeometry(
             name="massive_gravity_d3_mg03",
@@ -926,7 +926,7 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
             mg_c1=1.0,
             mg_c2=0.0,
             metadata={
-                "description": "Massive gravity AdS_4, m_g=0.3 (disipación de momento)",
+                "description": "Massive gravity AdS_4, m_g=0.3 (disipacion de momento)",
                 "theory_ref": "Vegh, arXiv:1301.0537; Blake & Tong, PRD 88 (2013)",
             }
         ),
@@ -953,7 +953,7 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
         "test",
     ))
 
-    # ── TIER A: Linear axion ──────────────────────────────────────────────────
+    #  TIER A: Linear axion 
     geos.append((
         HiddenGeometry(
             name="linear_axion_d3_a05",
@@ -992,7 +992,7 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
         "test",
     ))
 
-    # ── TIER A: Charged hvLif ─────────────────────────────────────────────────
+    #  TIER A: Charged hvLif 
     geos.append((
         HiddenGeometry(
             name="charged_hvlif_d3_theta1_q04",
@@ -1031,7 +1031,7 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
         "test",
     ))
 
-    # ── TIER A ext (2026-04): Gubser-Rocha ────────────────────────────────────
+    #  TIER A ext (2026-04): Gubser-Rocha 
     geos.append((
         HiddenGeometry(
             name="gubser_rocha_d3_mu05",
@@ -1071,7 +1071,7 @@ def get_phase11_geometries() -> List[Tuple[HiddenGeometry, str]]:
         "test",
     ))
 
-    # ── TIER A ext (2026-04): Soft-wall backreacted ───────────────────────────
+    #  TIER A ext (2026-04): Soft-wall backreacted 
     geos.append((
         HiddenGeometry(
             name="soft_wall_d3_k10",
@@ -1171,7 +1171,7 @@ def generate_operators_for_geometry(
     ops: List[Dict] = []
 
     for i, Delta in enumerate(deltas):
-        # Relacion masa-dimension AdS_{d+1}: m²L² = Δ(Δ-d)
+        # Relacion masa-dimension AdS_{d+1}: m2L2 = (-d)
         m2L2 = float(Delta * (Delta - geo.d))
         ops.append(
             {
@@ -1193,8 +1193,8 @@ def correlator_2pt_thermal(
 ) -> np.ndarray:
     """
     <O(x)O(0)> a temperatura T:
-        T = 0: G2 ~ 1/|x|^{2Δ}
-        T > 0: G2 ~ (πT / sinh(πT x))^{2Δ}
+        T = 0: G2 ~ 1/|x|^{2}
+        T > 0: G2 ~ (T / sinh(T x))^{2}
     """
     x = np.asarray(x)
     x_safe = np.maximum(np.abs(x), 1e-8)
@@ -1236,7 +1236,7 @@ def correlator_2pt_geodesic(
     from scipy.integrate import quad
     
     z_h = geo.z_h if geo.z_h is not None and geo.z_h > 0 else 1.0
-    # V4 fix: epsilon más grande para evitar problemas de interpolación
+    # V4 fix: epsilon mas grande para evitar problemas de interpolacion
     eps = 1e-4 * z_h
     
     # Grid de z para A(z), f(z) - empezar antes de eps
@@ -1245,7 +1245,7 @@ def correlator_2pt_geodesic(
     A_dense = geo.warp_factor(z_dense)
     f_dense = geo.blackening_factor(z_dense)
     
-    # V4 fix: interpolación lineal para mejor comportamiento en bordes
+    # V4 fix: interpolacion lineal para mejor comportamiento en bordes
     A_interp = interp1d(z_dense, A_dense, kind='linear', fill_value='extrapolate')
     f_interp = interp1d(z_dense, f_dense, kind='linear', fill_value='extrapolate')
     
@@ -1288,7 +1288,7 @@ def correlator_2pt_geodesic(
             if np.isfinite(r_half) and np.isfinite(L_half) and r_half > 0:
                 r_val = 2 * r_half
                 L_total = 2 * L_half
-                # V4 fix: regularización L_reg = L_total - L_div
+                # V4 fix: regularizacion L_reg = L_total - L_div
                 L_div = -2.0 * np.log(eps)
                 L_reg = L_total - L_div
                 # Sanity check
@@ -1462,7 +1462,7 @@ def generate_boundary_data(
     z_grid: Optional[np.ndarray] = None,
 ) -> Tuple[Dict[str, np.ndarray], Dict[str, Any]]:
     """
-    Genera datos del boundary (LO ÚNICO visible al learner).
+    Genera datos del boundary (LO UNICO visible al learner).
 
     Devuelve un dict con:
         - x_grid
@@ -1477,7 +1477,7 @@ def generate_boundary_data(
 
     if geo.family == "lifshitz" and lifshitz_boundary_mode != "toy":
         raise RuntimeError(
-            "lifshitz_boundary_mode=strong aún no implementado; "
+            "lifshitz_boundary_mode=strong aun no implementado; "
             "no existe carril fuerte de frontera para lifshitz en este commit"
         )
 
@@ -1513,7 +1513,7 @@ def generate_boundary_data(
         G2 = correlator_2pt_geodesic(x_grid, Delta, geo)
         data[f"G2_{name}"] = G2.astype(np.float32)
 
-    # Respuesta lineal toy G_R(ω, k)
+    # Respuesta lineal toy G_R(, k)
     omega_grid = np.linspace(0.1, 10.0, 50)
     k_grid = np.linspace(0.0, 5.0, 30)
 
@@ -1600,19 +1600,19 @@ def generate_lifshitz_from_emd(
     sol = solver.solve(phi_h=phi_h, r_uv=r_uv)
 
     if sol is None or getattr(sol, "success", True) is False:
-        raise ValueError(f"EMD solver failed for d={d}, z={z_dyn}, θ={theta}")
+        raise ValueError(f"EMD solver failed for d={d}, z={z_dyn}, ={theta}")
 
     r_grid = np.asarray(sol.t)
     f_r = np.asarray(sol.y[0])
 
-    # z = 1/r (boundary en z→0)
+    # z = 1/r (boundary en z0)
     z_grid = 1.0 / r_grid
     order = np.argsort(z_grid)
     z_grid = z_grid[order]
     f_z = f_r[order]
 
     # Warp factor compatible con Lifshitz/HV:
-    # g_xx ~ z^{2θ/d} y g_tt ~ z^{-2z_dyn}, asi que:
+    # g_xx ~ z^{2/d} y g_tt ~ z^{-2z_dyn}, asi que:
     with np.errstate(divide="ignore"):
         A_z = (theta / d - z_dyn) * np.log(z_grid)
 
@@ -1628,7 +1628,7 @@ def generate_bulk_truth(
     Genera la "verdad" del bulk para validacion.
     El learner NO tiene acceso a esto durante el entrenamiento.
 
-    Si use_emd=True y HAS_EMD=True y family ∈ {lifshitz,hyperscaling},
+    Si use_emd=True y HAS_EMD=True y family  {lifshitz,hyperscaling},
     se usa EMDLifshitzSolver como backend. En caso de fallo, hay fallback
     silencioso (con warning) al modo toy analitico.
     """
@@ -1695,9 +1695,9 @@ def make_geometry_instance(
     # --- CONTROL EINSTEIN PURO (sin jitter) -----------------------------
     # Para las geometrias AdS puras conocidas (ads5_pure, ads4_pure)
     # queremos al menos una instancia EXACTAMENTE igual al prototipo:
-    #   - z_h = None  → T = 0
+    #   - z_h = None   T = 0
     #   - family = "ads"
-    #   - R(z) constante = -D(D-1)/L² (ver HiddenGeometry.ricci_scalar)
+    #   - R(z) constante = -D(D-1)/L2 (ver HiddenGeometry.ricci_scalar)
     if (
         base.family == "ads"
         and base.name in ("ads5_pure", "ads4_pure")
@@ -1709,7 +1709,7 @@ def make_geometry_instance(
         params["name"] = f"{base.name}_{category}_{idx:03d}"
         return HiddenGeometry(**params)
 
-    # --- CÓDIGO ORIGINAL DE JITTER -------------------------------------
+    # --- CODIGO ORIGINAL DE JITTER -------------------------------------
     if focused_config is not None and focused_config.enabled:
         return make_focused_geometry_instance(base, category, idx, rng, focused_config)
 
@@ -1765,13 +1765,13 @@ def make_geometry_instance(
     elif family == "ads":
         # Nada especial extra, ads ya se controla con d y z_h
         pass
-    # ── Tier A jitters ────────────────────────────────────────────────────────
+    #  Tier A jitters 
     elif family == "rn_ads":
-        # Carga adimensional: 0 ≤ Q < Q_extremal ≈ sqrt(d/(d-2)).
+        # Carga adimensional: 0  Q < Q_extremal  sqrt(d/(d-2)).
         # Conservamos rango seguro [0.0, 0.8] para d=3.
         params["charge_Q"] = float(rng.uniform(0.0, 0.8))
     elif family == "gauss_bonnet":
-        # λ ∈ [-0.2, 0.23]: límite superior < 1/4 (Causal constraint para d=4).
+        #   [-0.2, 0.23]: limite superior < 1/4 (Causal constraint para d=4).
         params["lambda_gb"] = float(rng.uniform(-0.2, 0.23))
     elif family == "massive_gravity":
         params["m_g"] = float(rng.uniform(0.05, 0.5))
@@ -1786,11 +1786,11 @@ def make_geometry_instance(
         params["z_dyn"] = float(rng.uniform(1.2, 2.5))
         params["charge_Q"] = float(rng.uniform(0.0, 0.6))
     elif family == "gubser_rocha":
-        # mu_GR > -1 para mantener denominador positivo; rango físico positivo.
+        # mu_GR > -1 para mantener denominador positivo; rango fisico positivo.
         params["mu_GR"] = float(rng.uniform(0.1, 1.2))
     elif family == "soft_wall":
-        # kappa_sw > 0 produce deformación IR; cota superior suave para evitar
-        # singularidades numéricas del warp factor cerca de z_h.
+        # kappa_sw > 0 produce deformacion IR; cota superior suave para evitar
+        # singularidades numericas del warp factor cerca de z_h.
         params["kappa_sw"] = float(rng.uniform(0.2, 1.5))
     else:
         # unknown: solo tocamos z_h y d (ya hechos arriba)
@@ -1841,7 +1841,7 @@ def make_focused_geometry_instance(
     config: FocusedSamplingConfig,
 ) -> HiddenGeometry:
     """
-    Variante conservadora para retarget del sandbox al régimen empírico.
+    Variante conservadora para retarget del sandbox al regimen empirico.
     """
     params = asdict(base)
     metadata = dict(params.get("metadata") or {})
@@ -1942,8 +1942,8 @@ def build_parser() -> argparse.ArgumentParser:
         default="toy",
         help=(
             "Modo de boundary para family='lifshitz'. Default: toy. "
-            "'strong' queda reservado y debe fallar explícitamente hasta que "
-            "exista implementación fuerte real."
+            "'strong' queda reservado y debe fallar explicitamente hasta que "
+            "exista implementacion fuerte real."
         ),
     )
     parser.add_argument(
@@ -1955,7 +1955,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--focused-real-regime",
         action="store_true",
         help=(
-            "Retarget del sandbox al soporte empírico realista: filtra families, "
+            "Retarget del sandbox al soporte empirico realista: filtra families, "
             "fija d y focaliza el muestreo de z_h sin cambiar el comportamiento por defecto."
         ),
     )
@@ -1975,31 +1975,31 @@ def build_parser() -> argparse.ArgumentParser:
         "--zh-min",
         type=float,
         default=1.0,
-        help="Límite inferior del rango focalizado de z_h en modo focused.",
+        help="Limite inferior del rango focalizado de z_h en modo focused.",
     )
     parser.add_argument(
         "--zh-max",
         type=float,
         default=1.2,
-        help="Límite superior del rango focalizado de z_h en modo focused.",
+        help="Limite superior del rango focalizado de z_h en modo focused.",
     )
     parser.add_argument(
         "--out-of-support-frac",
         type=float,
         default=0.0,
-        help="Fracción explícita de muestras de z_h fuera del rango focalizado.",
+        help="Fraccion explicita de muestras de z_h fuera del rango focalizado.",
     )
     parser.add_argument(
         "--out-of-support-zh-min",
         type=float,
         default=0.8,
-        help="Mínimo permitido para la cola fuera de soporte en modo focused.",
+        help="Minimo permitido para la cola fuera de soporte en modo focused.",
     )
     parser.add_argument(
         "--out-of-support-zh-max",
         type=float,
         default=2.0,
-        help="Máximo permitido para la cola fuera de soporte en modo focused.",
+        help="Maximo permitido para la cola fuera de soporte en modo focused.",
     )
     add_standard_arguments(parser)
     return parser
@@ -2066,7 +2066,7 @@ def main():
         import numpy as np  # type: ignore
 
         rng = np.random.default_rng(args.seed)
-        # IO CONTRACT: output en 01_generate_sandbox_geometries/ §2: escribir en geometries/
+        # IO CONTRACT: output en 01_generate_sandbox_geometries/ 2: escribir en geometries/
         output_dir = ctx.run_root / "01_generate_sandbox_geometries"
         output_dir.mkdir(parents=True, exist_ok=True)
         print(f"[ROUTING] writing geometrias en: {output_dir}")
@@ -2103,7 +2103,7 @@ def main():
             print("[MODO FOCUSED] Retarget del sandbox activado.")
             print(
                 f"[MODO FOCUSED] families={list(focused_config.families)}, "
-                f"d={focused_config.d}, z_h∈[{focused_config.zh_min:.3f}, {focused_config.zh_max:.3f}], "
+                f"d={focused_config.d}, z_h[{focused_config.zh_min:.3f}, {focused_config.zh_max:.3f}], "
                 f"out_of_support_frac={focused_config.out_of_support_frac:.3f}"
             )
 
@@ -2169,7 +2169,7 @@ def main():
             # Guardrail IO v1: el nombre y geo.d deben nacer consistentes.
             # Si el nombre codifica "_d<k>_", debe coincidir con geo.d.
             # make_geometry_instance ya reescribe el nombre al jitterar d,
-            # por lo que cualquier mismatch aquí indica un bug regresivo.
+            # por lo que cualquier mismatch aqui indica un bug regresivo.
             # ============================================================
             m_d = re.search(r"_d(\d+)(?:_|$)", geo.name)
             if m_d is not None:
@@ -2178,7 +2178,7 @@ def main():
                     raise RuntimeError(
                         f"[IO_CONTRACT] d mismatch at stage 01 loop: "
                         f"{geo.name!r} carries _d{d_name}_ but geo.d={geo.d}. "
-                        "Nombre y dimensión deben nacer consistentes; "
+                        "Nombre y dimension deben nacer consistentes; "
                         "revisa make_geometry_instance."
                     )
 
@@ -2186,8 +2186,8 @@ def main():
             operators = generate_operators_for_geometry(geo, args.n_operators, rng)
             deltas_str = ", ".join(f"{op['Delta']:.2f}" for op in operators)
             zh_display = geo.z_h if geo.z_h is not None else 0.0
-            print(f"   d={geo.d}, z_h={zh_display:.3f}, θ={geo.theta:.2f}, z_dyn={geo.z_dyn:.2f}")
-            print(f"   Δ: [{deltas_str}]")
+            print(f"   d={geo.d}, z_h={zh_display:.3f}, ={geo.theta:.2f}, z_dyn={geo.z_dyn:.2f}")
+            print(f"   : [{deltas_str}]")
 
             # boundary (VISIBLE para el learner)
             boundary_data, boundary_meta = generate_boundary_data(
@@ -2216,17 +2216,17 @@ def main():
                 f.attrs["theta"] = geo.theta
                 f.attrs["z_dyn"] = geo.z_dyn
                 f.attrs["deformation"] = geo.deformation
-                # ── Tier A: attrs canónicos extra ─────────────────────────────
+                #  Tier A: attrs canonicos extra 
                 f.attrs["charge_Q"] = geo.charge_Q
                 f.attrs["lambda_gb"] = geo.lambda_gb
                 f.attrs["m_g"] = geo.m_g
                 f.attrs["mg_c1"] = geo.mg_c1
                 f.attrs["mg_c2"] = geo.mg_c2
                 f.attrs["alpha_axion"] = geo.alpha_axion
-                # ── Tier A ext (2026-04) ──────────────────────────────────────
+                #  Tier A ext (2026-04) 
                 f.attrs["mu_GR"] = geo.mu_GR
                 f.attrs["kappa_sw"] = geo.kappa_sw
-                # ── AGMOO contract: clasificación ads y tipo de correlador ────
+                #  AGMOO contract: clasificacion ads y tipo de correlador 
                 agmoo_meta = get_ads_metadata_for_geometry(
                     geo,
                     ads_boundary_mode=args.ads_boundary_mode if geo.family == "ads" else "toy",
@@ -2322,7 +2322,7 @@ def main():
                 manifest_entry["lifshitz_pipeline_tier"] = agmoo_manifest_meta.get("lifshitz_pipeline_tier")
             manifest["geometries"].append(manifest_entry)
 
-        # escribir manifest de geometrías (nombre propio para no colisionar con stage_utils)
+        # escribir manifest de geometrias (nombre propio para no colisionar con stage_utils)
         manifest_path = output_dir / "geometries_manifest.json"
         manifest_path.write_text(json.dumps(manifest, indent=2))
         ads_gkpw_summary = build_ads_gkpw_run_summary(manifest)
@@ -2348,7 +2348,7 @@ def main():
             )
 
         print("\n" + "=" * 70)
-        print("✓ SANDBOX GEOMETRY GENERATION v3 COMPLETADA")
+        print(" SANDBOX GEOMETRY GENERATION v3 COMPLETADA")
         print(f"  Manifest: {manifest_path}")
         print(f"  ADS GKPW summary: {ads_gkpw_summary_path}")
         print(f"  Total:    {len(geometries)} universes")

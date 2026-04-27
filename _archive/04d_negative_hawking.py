@@ -6,18 +6,18 @@
 Control negativo Hawking-Page para CUERDAS-MALDACENA.
 
 PROPOSITO:
-- Generar datos boundary simulando fase confining (below Tc) anti-holográfica.
-- Inspirado en Bao, Cao & Zhu (2022): no threshold holográfico en confinement.
-- Verificar que pipeline rechaza holografía (pass_rate < 20% en contratos).
+- Generar datos boundary simulando fase confining (below Tc) anti-holografica.
+- Inspirado en Bao, Cao & Zhu (2022): no threshold holografico en confinement.
+- Verificar que pipeline rechaza holografia (pass_rate < 20% en contratos).
 
 TEORIA POST-HOC (no inyectada):
 - Below Tc: area law (Wilson loops ~ exp(-m r)), no volume law EE.
-- No AdS emergente ni diccionario λ_SL ↔ Δ coherente.
-- Cita: Sección I del paper (intro a phase transition).
+- No AdS emergente ni diccionario _SL   coherente.
+- Cita: Seccion I del paper (intro a phase transition).
 
 CRITERIO DE EXITO:
-- Pass rate < 20% → SUCCESS (detecta no-holografía).
-- Pass rate > 50% → ALERTA (falsos positivos).
+- Pass rate < 20%  SUCCESS (detecta no-holografia).
+- Pass rate > 50%  ALERTA (falsos positivos).
 
 USO:
     python 4d_negative_hawking.py --output_dir runs/negative_hawking_YYYYMMDD
@@ -49,7 +49,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ==============================================================================
-# SECCIÓN 1: GENERACIÓN DE DATOS CONFINING (BELOW Tc)
+# SECCION 1: GENERACION DE DATOS CONFINING (BELOW Tc)
 # ==============================================================================
 
 def generate_hawking_negative_data(
@@ -61,10 +61,10 @@ def generate_hawking_negative_data(
     noise_level: float = 0.01
 ) -> Dict[str, np.ndarray]:
     """
-    Genera datos boundary anti-holográficos: fase confining below Tc.
+    Genera datos boundary anti-holograficos: fase confining below Tc.
     
     HONESTIDAD: Simula T < Tc (e.g., T=0.5*tc) con area law.
-    - Correladores: exp(-mass * r) + noise (área law, no conforme).
+    - Correladores: exp(-mass * r) + noise (area law, no conforme).
     - Entanglement entropy: ~ area (sum over boundaries).
     - Inspirado post-hoc en paper Sec. I: no threshold en confinement.
     """
@@ -97,7 +97,7 @@ def generate_hawking_negative_data(
     return boundary_data
 
 # ==============================================================================
-# SECCIÓN 2: GUARDADO EN FORMATO HDF5 (COMPATIBLE CON 02_emergent_geometry_engine)
+# SECCION 2: GUARDADO EN FORMATO HDF5 (COMPATIBLE CON 02_emergent_geometry_engine)
 # ==============================================================================
 
 def save_negative_hawking_data(data: Dict[str, np.ndarray], output_dir: Path, run_id: str) -> Path:
@@ -119,7 +119,7 @@ def save_negative_hawking_data(data: Dict[str, np.ndarray], output_dir: Path, ru
     system_name = f"negative_hawking_{run_id}"
     h5_path = output_dir / f"{system_name}.h5"
     
-    d = data['dims']  # Dimensión del boundary
+    d = data['dims']  # Dimension del boundary
     n_points = 100  # Puntos para x_grid
     
     with h5py.File(h5_path, 'w') as f:
@@ -132,7 +132,7 @@ def save_negative_hawking_data(data: Dict[str, np.ndarray], output_dir: Path, ru
         
         # Correlador G2 desde los datos confining
         # En fase confining: G(r) ~ exp(-m*r) (area law)
-        # Esto NO es power-law, lo cual debería fallar el contrato de correlador
+        # Esto NO es power-law, lo cual deberia fallar el contrato de correlador
         correlator_1d = data['correlator'].flatten()[:n_points]
         if len(correlator_1d) < n_points:
             # Extender con decay exponencial
@@ -146,12 +146,12 @@ def save_negative_hawking_data(data: Dict[str, np.ndarray], output_dir: Path, ru
         T_simulated = data.get('simulated_t', 0.5)
         boundary.create_dataset('temperature', data=np.array([T_simulated]))
         
-        # Dimensión d
+        # Dimension d
         boundary.attrs['d'] = d
         
         # === OPERADORES (requerido por 02 como JSON string) ===
         # Operadores fake - en fase confining no hay operadores conformes bien definidos
-        # Usamos dimensiones que violen unitariedad para marcar como no-holográfico
+        # Usamos dimensiones que violen unitariedad para marcar como no-holografico
         fake_operators = [
             {
                 "name": "glueball_fake",
@@ -162,7 +162,7 @@ def save_negative_hawking_data(data: Dict[str, np.ndarray], output_dir: Path, ru
             },
             {
                 "name": "string_tension_fake",
-                "Delta": -0.2,  # Dimensión negativa (imposible en CFT)
+                "Delta": -0.2,  # Dimension negativa (imposible en CFT)
                 "spin": 0,
                 "is_negative_control": True,
                 "phase": "confining"
@@ -223,7 +223,7 @@ def save_negative_hawking_data(data: Dict[str, np.ndarray], output_dir: Path, ru
         "metadata": {
             "generated_at": datetime.now().isoformat(),
             "simulated_t": float(T_simulated),
-            "purpose": "Detectar falsos positivos en pipeline holográfico (fase confining)"
+            "purpose": "Detectar falsos positivos en pipeline holografico (fase confining)"
         }
     }
     
@@ -236,7 +236,7 @@ def save_negative_hawking_data(data: Dict[str, np.ndarray], output_dir: Path, ru
     return h5_path
 
 # ==============================================================================
-# SECCIÓN 3: EJECUCIÓN DEL PIPELINE (OPCIONAL)
+# SECCION 3: EJECUCION DEL PIPELINE (OPCIONAL)
 # ==============================================================================
 
 def run_pipeline_on_negative_hawking(
@@ -248,7 +248,7 @@ def run_pipeline_on_negative_hawking(
     Ejecuta pipeline sobre datos generados.
     
     Para control negativo, necesitamos:
-    1. Si hay checkpoint: 02 inference → 03 → 04 (verificar contratos)
+    1. Si hay checkpoint: 02 inference  03  04 (verificar contratos)
     2. Sin checkpoint: solo 04 con data-dir (verificar contratos sobre boundary)
     
     Args:
@@ -277,7 +277,7 @@ def run_pipeline_on_negative_hawking(
             # 03: Descubrir ecuaciones
             f"python {pipeline_dir / '03_discover_bulk_equations.py'} --experiment {experiment}",
             
-            # 04: Verificar contratos (lo más importante)
+            # 04: Verificar contratos (lo mas importante)
             f"python {pipeline_dir / '04_geometry_physics_contracts.py'} "
             f"--experiment {experiment} "
             f"--geometry-dir {data_dir / '02_emergent_geometry_engine'} "
@@ -287,7 +287,7 @@ def run_pipeline_on_negative_hawking(
         # Modo simplificado: solo verificar contratos sobre boundary
         logger.info("Sin checkpoint. Evaluando contratos directamente sobre boundary data.")
         
-        # Crear estructura mínima para que 04 pueda evaluar
+        # Crear estructura minima para que 04 pueda evaluar
         # Solo necesitamos los contratos de unitariedad y correlador
         cmds = [
             f"python {pipeline_dir / '04_geometry_physics_contracts.py'} "
@@ -299,7 +299,7 @@ def run_pipeline_on_negative_hawking(
         logger.info(f"Ejecutando: {cmd}")
         ret = os.system(cmd)
         if ret != 0:
-            logger.warning(f"Comando falló (ret={ret}): {cmd}")
+            logger.warning(f"Comando fallo (ret={ret}): {cmd}")
             # No lanzar error, continuar para capturar lo que se pueda
     
     # Captura artefactos
@@ -318,7 +318,7 @@ def run_pipeline_on_negative_hawking(
     return results
 
 # ==============================================================================
-# SECCIÓN 4: VERIFICACIÓN DE CONTRATOS (POST-HOC)
+# SECCION 4: VERIFICACION DE CONTRATOS (POST-HOC)
 # ==============================================================================
 
 def check_contracts_failure(results: Dict[str, Any]) -> Dict[str, Any]:
@@ -328,7 +328,7 @@ def check_contracts_failure(results: Dict[str, Any]) -> Dict[str, Any]:
     Para un control negativo exitoso:
     - generic_passed debe ser False (unitariedad y/o correlador fallan)
     - overall_passed debe ser False
-    - pass_rate < 20% → SUCCESS (detecta no-holografía)
+    - pass_rate < 20%  SUCCESS (detecta no-holografia)
     """
     # Verificar contracts_summary de 04 (prioritario)
     if 'contracts_summary' in results:
@@ -375,7 +375,7 @@ def check_contracts_failure(results: Dict[str, Any]) -> Dict[str, Any]:
         
         if pass_rate < 20:
             status = 'SUCCESS'
-            message = 'Detectada no-holografía (via einstein_score)'
+            message = 'Detectada no-holografia (via einstein_score)'
         elif pass_rate < 50:
             status = 'WARNING'
             message = 'Pass rate marginal; revisar falsos positivos'
@@ -388,7 +388,7 @@ def check_contracts_failure(results: Dict[str, Any]) -> Dict[str, Any]:
     return {'status': 'INCOMPLETE', 'message': 'Pipeline no completado. Sin contracts_summary ni einstein_summary.'}
 
 # ==============================================================================
-# SECCIÓN 5: REPORTE FINAL
+# SECCION 5: REPORTE FINAL
 # ==============================================================================
 
 def generate_negative_hawking_report(
@@ -451,7 +451,7 @@ def main():
         '--lattice_size', 
         type=int, 
         default=100,
-        help='Tamaño del lattice (default: 100)'
+        help='Tamano del lattice (default: 100)'
     )
     parser.add_argument(
         '--dim', 

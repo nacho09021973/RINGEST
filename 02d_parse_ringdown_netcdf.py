@@ -3,16 +3,16 @@
 02d_parse_ringdown_netcdf.py
 
 Convierte resultados NetCDF reales de `ringdown` a una tabla intermedia,
-homogénea y trazable para el repo, sin acoplarse a la API Python de
+homogenea y trazable para el repo, sin acoplarse a la API Python de
 `ringdown` ni inventar columnas no verificadas.
 
-Hechos verificados en la instalación local de `ringdown`:
+Hechos verificados en la instalacion local de `ringdown`:
   - `ringdown_fit` escribe por defecto `ringdown_fit.nc`
   - `ringdown.result.Result.from_netcdf(...)` carga un `InferenceData`
     de ArviZ
-  - el grupo `posterior` puede contener parámetros como `f`, `g`, `m`, `chi`
+  - el grupo `posterior` puede contener parametros como `f`, `g`, `m`, `chi`
   - `f` se etiqueta en Hz y `g` como tasa de damping en Hz
-  - `t0` se recupera desde la configuración embebida (`attrs["config"]`)
+  - `t0` se recupera desde la configuracion embebida (`attrs["config"]`)
 
 Contrato de salida:
   - CSV:  <out-dir>/ringdown_intermediate.csv
@@ -70,7 +70,7 @@ STANDARD_GROUPS = [
 
 def parse_args():
     ap = argparse.ArgumentParser(
-        description="Resume resultados NetCDF de ringdown en una tabla intermedia mínima."
+        description="Resume resultados NetCDF de ringdown en una tabla intermedia minima."
     )
     ap.add_argument(
         "--input-path",

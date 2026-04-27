@@ -4,13 +4,13 @@ tests/test_03_symbolic_discovery.py
 Contract tests for stage 03 (symbolic discovery via PySR).
 
 Contracts:
-  1. PY_SR_UNAVAILABLE  — main() returns EXIT_ERROR (3) when PySR is not installed.
-  2. NO_SYMBOLIC_EQUATIONS_DISCOVERED — main() returns EXIT_ERROR when PySR runs
+  1. PY_SR_UNAVAILABLE   main() returns EXIT_ERROR (3) when PySR is not installed.
+  2. NO_SYMBOLIC_EQUATIONS_DISCOVERED  main() returns EXIT_ERROR when PySR runs
      but no geometry yields an R_equation.
-  3. Non-empty payload — when PySR is available and geometry data is valid, the
+  3. Non-empty payload  when PySR is available and geometry data is valid, the
      output JSON contains at least one R_equation entry (integration test, skipped
      when PySR is not installed).
-  4. Stage 05 compatibility — load_and_analyze() in stage 05 correctly consumes
+  4. Stage 05 compatibility  load_and_analyze() in stage 05 correctly consumes
      the JSON written by stage 03.
 """
 from __future__ import annotations
@@ -193,7 +193,7 @@ class TestPySRUnavailableContract(unittest.TestCase):
             with mock.patch.object(self.s03, "HAS_PYSR", False), \
                  mock.patch("sys.argv", argv):
                 self.s03.main()
-            # The error propagates into main()'s except block, not out — check
+            # The error propagates into main()'s except block, not out  check
             # that the RuntimeError text is what we expect by probing the sentinel.
             # Re-raise test: patch discover and check the raise directly.
         tensors = {k: np.zeros(10) for k in
@@ -407,7 +407,7 @@ class TestStage03ContractRuntime(unittest.TestCase):
 class TestSymbolicEquationPayload(unittest.TestCase):
     """When PySR is available the output JSON must contain R_equation entries."""
 
-    @unittest.skipUnless(_PYSR_INSTALLED, "pysr not installed — skipping integration test")
+    @unittest.skipUnless(_PYSR_INSTALLED, "pysr not installed  skipping integration test")
     def test_main_writes_nonempty_r_equation(self):
         s03 = _load_stage03()
         with tempfile.TemporaryDirectory() as tmp:

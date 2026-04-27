@@ -2,8 +2,8 @@
 Tests for the Delta_UV contract in 06_build_bulk_eigenmodes_dataset.py.
 
 Verifies that:
-  - No fallback silencioso a Δ = d when uv_exponents is missing
-  - No fallback silencioso a Δ = d when uv_exponents collapses to d (near-zero eigenvalues)
+  - No fallback silencioso a  = d when uv_exponents is missing
+  - No fallback silencioso a  = d when uv_exponents collapses to d (near-zero eigenvalues)
   - Real UV values propagate correctly when present
   - JSON output preserves None / null (no replacement by d)
 """
@@ -109,11 +109,11 @@ class TestSolverDeltaDoesNotDefaultToD(unittest.TestCase):
 
 
 class TestSolverDeltaNoneWhenUVMissing(unittest.TestCase):
-    """Near-zero eigenvalues produce uv_exponents == [d, d, …] → must become None."""
+    """Near-zero eigenvalues produce uv_exponents == [d, d, ...]  must become None."""
 
     def test_solver_delta_none_when_eigenvalues_near_zero(self):
         stage06 = _load_stage06()
-        # Eigenvalues so small that (d + sqrt(d² + 4λ))/2 == d in float64
+        # Eigenvalues so small that (d + sqrt(d2 + 4))/2 == d in float64
         near_zero_lambdas = [7.878e-24, 5.119e-23, 2.3e-22, 1.1e-21]
         d = 4
         uv_collapsed = [float(d)] * len(near_zero_lambdas)
@@ -185,7 +185,7 @@ class TestBulkModesJsonPreservesNoneDelta(unittest.TestCase):
 
     def test_bulk_modes_json_preserves_none_delta(self):
         stage06 = _load_stage06()
-        # No uv_exponents — all deltas should be null in the output JSON
+        # No uv_exponents  all deltas should be null in the output JSON
         stub = types.SimpleNamespace(
             __name__="stub_no_delta_json",
             solve_geometry=lambda **_: {
@@ -236,7 +236,7 @@ class TestAuditUVExponents(unittest.TestCase):
         self.assertFalse(r["all_equal_d"])
 
     def test_mixed_partial_d_not_suspicious(self):
-        # Only some are d — not flagged as suspicious (mixed data may be legit)
+        # Only some are d  not flagged as suspicious (mixed data may be legit)
         r = self.stage06.audit_uv_exponents([4.0, 5.2], 4)
         self.assertFalse(r["suspicious"])
         self.assertEqual(r["n_equal_d"], 1)

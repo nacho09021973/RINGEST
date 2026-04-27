@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 probe_g2_radial_signal.py
-Sonda mínima: ¿G2(x) raw contiene más señal sobre A(z) que los 9 escalares actuales?
+Sonda minima: G2(x) raw contiene mas senal sobre A(z) que los 9 escalares actuales?
 
 Uso:
     python3 probe_g2_radial_signal.py --run-dir runs/ads_gkpw_20260416_091407
@@ -20,7 +20,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score
 
 
-# ── Replicar los 9 escalares de build_feature_vector ─────────────────────────
+#  Replicar los 9 escalares de build_feature_vector 
 
 def _nine_scalars(G2: np.ndarray, x: np.ndarray) -> np.ndarray:
     """Los mismos 9 escalares que usa 02_emergent_geometry_engine.py V2.5."""
@@ -73,23 +73,23 @@ def _nine_scalars(G2: np.ndarray, x: np.ndarray) -> np.ndarray:
     return feats
 
 
-# ── Carga de datos ────────────────────────────────────────────────────────────
+#  Carga de datos 
 
 def load_run(run_dir: Path):
     """
     Devuelve listas paralelas:
-        g2_raw  : list[np.ndarray]  — G2(x) como vector (longitud variable, rellenado a común)
-        scalars : list[np.ndarray]  — 9 escalares
-        A_truth : list[np.ndarray]  — A(z) verdadero (longitud común n_z)
-        f_truth : list[np.ndarray]  — f(z) verdadero (longitud común n_z)
-        z_h     : list[float]       — horizonte verdadero
-        x_grids : list[np.ndarray]  — grids x originales
+        g2_raw  : list[np.ndarray]   G2(x) como vector (longitud variable, rellenado a comun)
+        scalars : list[np.ndarray]   9 escalares
+        A_truth : list[np.ndarray]   A(z) verdadero (longitud comun n_z)
+        f_truth : list[np.ndarray]   f(z) verdadero (longitud comun n_z)
+        z_h     : list[float]        horizonte verdadero
+        x_grids : list[np.ndarray]   grids x originales
         names   : list[str]
     """
     # Intentar encontrar los datos de Stage 01 dentro del run.
     # Soportamos dos layouts:
     # 1. legacy: boundary/ y bulk_truth/ separados
-    # 2. actual Ruta A: .h5 únicos bajo 01_generate_sandbox_geometries/ con
+    # 2. actual Ruta A: .h5 unicos bajo 01_generate_sandbox_geometries/ con
     #    grupos internos boundary y bulk_truth
     candidates_boundary = [
         run_dir / "01_generate_sandbox_geometries" / "boundary",
@@ -109,14 +109,14 @@ def load_run(run_dir: Path):
 
     if boundary_dir is None and stage01_dir is None:
         raise FileNotFoundError(
-            f"No se encontró ni boundary/ ni Stage-01 directo en {run_dir}. "
-            f"Probé boundary={ [str(p) for p in candidates_boundary] }, "
+            f"No se encontro ni boundary/ ni Stage-01 directo en {run_dir}. "
+            f"Probe boundary={ [str(p) for p in candidates_boundary] }, "
             f"stage01={ [str(p) for p in candidates_stage01] }"
         )
     if bulk_dir is None and stage01_dir is None:
         raise FileNotFoundError(
-            f"No se encontró ni bulk_truth/ ni Stage-01 directo en {run_dir}. "
-            f"Probé bulk={ [str(p) for p in candidates_bulk] }, "
+            f"No se encontro ni bulk_truth/ ni Stage-01 directo en {run_dir}. "
+            f"Probe bulk={ [str(p) for p in candidates_bulk] }, "
             f"stage01={ [str(p) for p in candidates_stage01] }"
         )
 
@@ -213,10 +213,10 @@ def load_run(run_dir: Path):
     return g2_raw, scalars, A_truth_list, f_truth_list, np.array(zh_list, dtype=np.float32), names
 
 
-# ── Interpolación a grid común ────────────────────────────────────────────────
+#  Interpolacion a grid comun 
 
 def interpolate_to_common_grid(arrays):
-    """Interpola arrays de distinta longitud al grid del más corto."""
+    """Interpola arrays de distinta longitud al grid del mas corto."""
     min_len = min(len(a) for a in arrays)
     out = []
     for a in arrays:
@@ -240,12 +240,12 @@ def pad_or_truncate_g2(g2_x_list, target_len=100):
     return np.array(out, dtype=np.float32)
 
 
-# ── Sonda de regresión ────────────────────────────────────────────────────────
+#  Sonda de regresion 
 
 def probe_features(X: np.ndarray, A: np.ndarray, train_idx, test_idx, label: str):
     """
-    Ridge sobre X → A(z). Predice cada punto de z por separado.
-    Devuelve R² medio y mediana sobre el grid de z.
+    Ridge sobre X  A(z). Predice cada punto de z por separado.
+    Devuelve R2 medio y mediana sobre el grid de z.
     """
     X_tr, X_te = X[train_idx], X[test_idx]
     A_tr, A_te = A[train_idx], A[test_idx]
@@ -266,11 +266,11 @@ def probe_features(X: np.ndarray, A: np.ndarray, train_idx, test_idx, label: str
     r2s = np.array(r2s)
     print(f"\n  [{label}]")
     print(f"    n_features : {X.shape[1]}")
-    print(f"    R²(A) medio  : {np.mean(r2s):.4f}")
-    print(f"    R²(A) mediana: {np.median(r2s):.4f}")
-    print(f"    R²(A) min    : {np.min(r2s):.4f}")
-    print(f"    R²(A) max    : {np.max(r2s):.4f}")
-    print(f"    % puntos R²>0: {100 * np.mean(r2s > 0):.1f}%")
+    print(f"    R2(A) medio  : {np.mean(r2s):.4f}")
+    print(f"    R2(A) mediana: {np.median(r2s):.4f}")
+    print(f"    R2(A) min    : {np.min(r2s):.4f}")
+    print(f"    R2(A) max    : {np.max(r2s):.4f}")
+    print(f"    % puntos R2>0: {100 * np.mean(r2s > 0):.1f}%")
     return r2s
 
 
@@ -292,12 +292,12 @@ def probe_scalar_target(X: np.ndarray, y: np.ndarray, train_idx, test_idx, label
     print(f"\n  [{label}]")
     print(f"    n_features : {X.shape[1]}")
     print(f"    target     : {target_name}")
-    print(f"    R²         : {r2:.4f}")
+    print(f"    R2         : {r2:.4f}")
     print(f"    MAE        : {mae:.4f}")
     return float(r2), mae
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+#  Main 
 
 def main():
     parser = argparse.ArgumentParser()
@@ -360,28 +360,28 @@ def main():
     # Veredicto
     delta = np.mean(r2_g2raw) - np.mean(r2_scalars)
     print(f"\n=== VEREDICTO ===")
-    print(f"  ΔR²(medio) = G2_raw - escalares = {delta:+.4f}")
+    print(f"  R2(medio) = G2_raw - escalares = {delta:+.4f}")
     if delta > 0.10:
-        print("  → G2 raw aporta señal radial clara. Rediseño del encoder justificado.")
+        print("   G2 raw aporta senal radial clara. Rediseno del encoder justificado.")
     elif delta > 0.02:
-        print("  → G2 raw aporta algo. Señal marginal; rediseño posible pero incierto.")
+        print("   G2 raw aporta algo. Senal marginal; rediseno posible pero incierto.")
     else:
-        print("  → G2 raw no aporta señal adicional. El problema no es la compresión.")
-        print("    Hipótesis alternativa: la variabilidad de A(z) entre geometrías ads")
-        print("    con parámetros similares es demasiado pequeña para recuperarse desde boundary.")
+        print("   G2 raw no aporta senal adicional. El problema no es la compresion.")
+        print("    Hipotesis alternativa: la variabilidad de A(z) entre geometrias ads")
+        print("    con parametros similares es demasiado pequena para recuperarse desde boundary.")
 
     delta_f = np.mean(r2f_g2raw) - np.mean(r2f_scalars)
-    print(f"\n  ΔR²_f(medio) = G2_raw - escalares = {delta_f:+.4f}")
+    print(f"\n  R2_f(medio) = G2_raw - escalares = {delta_f:+.4f}")
     if delta_f > 0.10:
-        print("  → En f(z), G2 raw aporta señal radial clara.")
+        print("   En f(z), G2 raw aporta senal radial clara.")
     elif delta_f > 0.02:
-        print("  → En f(z), G2 raw aporta algo, pero marginal.")
+        print("   En f(z), G2 raw aporta algo, pero marginal.")
     else:
-        print("  → En f(z), G2 raw no mejora claramente sobre los 9 escalares.")
+        print("   En f(z), G2 raw no mejora claramente sobre los 9 escalares.")
 
     delta_zh = r2zh_g2raw - r2zh_scalars
-    print(f"\n  ΔR²_z_h = G2_raw - escalares = {delta_zh:+.4f}")
-    print(f"  ΔMAE_z_h = G2_raw - escalares = {maezh_g2raw - maezh_scalars:+.4f}")
+    print(f"\n  R2_z_h = G2_raw - escalares = {delta_zh:+.4f}")
+    print(f"  MAE_z_h = G2_raw - escalares = {maezh_g2raw - maezh_scalars:+.4f}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,17 @@
+{
+  "artifacts": {
+    "02_emergent_geometry_engine": "/home/adnac/ringest/runs/routeB_all18_20260422/02_emergent_geometry_engine"
+  },
+  "created_at": "2026-04-22T16:43:46.068681+00:00",
+  "experiment": "routeB_all18_20260422",
+  "metadata": {
+    "command": "02_emergent_geometry_engine.py --mode inference --run-dir /home/adnac/ringest/runs/routeB_all18_20260422 --data-dir /home/adnac/ringest/runs/routeB_all18_20260422/boundary --checkpoint /home/adnac/ringest/runs/sandbox_serio_v1/02_emergent_geometry_engine/emergent_geometry_model.pt --device cuda --support-mode permissive_ood",
+    "mode": "inference"
+  },
+  "outputs": {
+    "geometry_engine_dir": "02_emergent_geometry_engine"
+  },
+  "run_root": "/home/adnac/ringest/runs/routeB_all18_20260422",
+  "stage": "02_emergent_geometry_engine",
+  "stage_dir": "/home/adnac/ringest/runs/routeB_all18_20260422/02_emergent_geometry_engine"
+}
